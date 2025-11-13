@@ -1,0 +1,117 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  /* Sistema de cores do curriculum-michael - Light Mode */
+  --primary-color: #313c43;
+  --primary-dark-color: #1b2126;
+  --secondary-color: #5d6b74;
+  --secondary-dark-color: #2c383f;
+  --accent-color: #21b6bf;
+  --accent-dark-color: #1a9ba3;
+  --neutral-color: #1b2126;
+  --neutral-light-color: #7d8d96;
+  --background-color: #ffffff;
+  --surface-color: #f8f9fa;
+  --surface-hover-color: #e9ecef;
+  --border-color: #a4b3ba;
+  --text-primary-color: #1b2126;
+  --text-secondary-color: #5d6b74;
+  --text-muted-color: #7d8d96;
+  
+  /* Cores para shadcn/ui (HSL format) - Light Mode */
+  --background: 0 0% 100%;
+  --foreground: 210 20% 12%;
+  --card: 0 0% 100%;
+  --card-foreground: 210 20% 12%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 210 20% 12%;
+  --primary: 210 20% 25%;
+  --primary-foreground: 0 0% 100%;
+  --secondary: 210 10% 96%;
+  --secondary-foreground: 210 20% 25%;
+  --muted: 210 10% 96%;
+  --muted-foreground: 210 10% 45%;
+  --accent: 182 70% 45%;
+  --accent-foreground: 0 0% 100%;
+  --destructive: 0 84% 60%;
+  --destructive-foreground: 0 0% 100%;
+  --border: 210 15% 75%;
+  --input: 210 15% 75%;
+  --ring: 182 70% 45%;
+  --radius: 0.5rem;
+  
+  /* Sombras - Light Mode */
+  --shadow-sm: 0 1px 2px 0 rgb(27 33 38 / 0.05);
+  --shadow-md: 0 4px 6px -1px rgb(27 33 38 / 0.1), 0 2px 4px -2px rgb(27 33 38 / 0.1);
+  --shadow-lg: 0 10px 15px -3px rgb(27 33 38 / 0.1), 0 4px 6px -4px rgb(27 33 38 / 0.1);
+  --shadow-xl: 0 20px 25px -5px rgb(27 33 38 / 0.1), 0 8px 10px -6px rgb(27 33 38 / 0.1);
+}
+
+.dark {
+  /* Sistema de cores do curriculum-michael - Dark Mode */
+  --primary-color: #a4b3ba;
+  --primary-dark-color: #7d8d96;
+  --secondary-color: #5d6b74;
+  --secondary-dark-color: #313c43;
+  --accent-color: #21b6bf;
+  --accent-dark-color: #1a9ba3;
+  --neutral-color: #f8f9fa;
+  --neutral-light-color: #a4b3ba;
+  --background-color: #1b2126;
+  --surface-color: #2c383f;
+  --surface-hover-color: #313c43;
+  --border-color: #5d6b74;
+  --text-primary-color: #f8fafc;
+  --text-secondary-color: #a4b3ba;
+  --text-muted-color: #7d8d96;
+  
+  /* Cores para shadcn/ui (HSL format) - Dark Mode */
+  --background: 210 30% 10%;
+  --foreground: 210 10% 98%;
+  --card: 210 25% 15%;
+  --card-foreground: 210 10% 98%;
+  --popover: 210 25% 15%;
+  --popover-foreground: 210 10% 98%;
+  --primary: 210 15% 70%;
+  --primary-foreground: 210 30% 10%;
+  --secondary: 210 20% 25%;
+  --secondary-foreground: 210 10% 98%;
+  --muted: 210 20% 25%;
+  --muted-foreground: 210 10% 65%;
+  --accent: 182 70% 45%;
+  --accent-foreground: 0 0% 100%;
+  --destructive: 0 63% 31%;
+  --destructive-foreground: 0 0% 100%;
+  --border: 210 15% 35%;
+  --input: 210 15% 35%;
+  --ring: 182 70% 45%;
+  
+  /* Sombras - Dark Mode */
+  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.3);
+  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.4), 0 2px 4px -2px rgb(0 0 0 / 0.4);
+  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.4), 0 4px 6px -4px rgb(0 0 0 / 0.4);
+  --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.4), 0 8px 10px -6px rgb(0 0 0 / 0.4);
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  
+  body {
+    @apply bg-background text-foreground;
+    font-family: system-ui, -apple-system, sans-serif;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    transition: background-color 0.3s ease, color 0.3s ease;
+  }
+  
+  /* Transições suaves para mudança de tema */
+  * {
+    transition: background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease;
+  }
+}
+
