@@ -362,3 +362,5 @@ Verifique se todas as variáveis de ambiente estão configuradas no `.env.local`
 **ServiceLocator atualizado**: `infra/adapters/ServiceLocator.ts`
 **Webhook Evolution**: `app/api/webhook/evolution/route.ts` (criar se necessário)
 
+
+

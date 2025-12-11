@@ -51,11 +51,8 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
     setThemeState(newTheme);
   };
 
-  // Evitar flash de conteúdo não estilizado
-  if (!mounted) {
-    return <div style={{ visibility: 'hidden' }}>{children}</div>;
-  }
-
+  // Durante SSR, retornar children diretamente com um tema padrão
+  // O tema será aplicado no cliente após a hidratação
   return (
     <ThemeContext.Provider value={{ theme, toggleTheme, setTheme }}>
       {children}

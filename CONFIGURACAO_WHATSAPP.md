@@ -40,3 +40,5 @@ NEXT_PUBLIC_APP_URL=http://localhost:3000
 
 Para mais detalhes, consulte: `/step-by-step/WHATSAPP_INTEGRACAO.md`
 
+
+

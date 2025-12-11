@@ -237,3 +237,5 @@ export class EvolutionWhatsAppService implements IWhatsAppService {
   }
 }
 
+
+

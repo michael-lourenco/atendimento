@@ -98,3 +98,5 @@ export interface IWhatsAppService {
   processWebhook(entry: WhatsAppWebhookEntry): Promise<Message[]>;
 }
 
+
+

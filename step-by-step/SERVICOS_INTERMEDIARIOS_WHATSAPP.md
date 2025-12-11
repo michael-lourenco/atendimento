@@ -386,3 +386,5 @@ WHATSAPP_PROVIDER=twilio  # ou 'meta', 'evolution', 'baileys'
 - **MessageBird**: https://developers.messagebird.com/
 - **ChatAPI**: https://chatapi.com.br/
 
+
+

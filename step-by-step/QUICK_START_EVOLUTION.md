@@ -75,3 +75,5 @@ Agora você está usando Evolution API como serviço intermediário.
 
 Para mais detalhes, consulte: `step-by-step/IMPLEMENTACAO_EVOLUTION.md`
 
+
+

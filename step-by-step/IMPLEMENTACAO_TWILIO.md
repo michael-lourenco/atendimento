@@ -185,3 +185,5 @@ Verifique se todas as variáveis de ambiente estão configuradas no `.env.local`
 **Arquivo criado em**: `infra/whatsapp/TwilioWhatsAppService.ts`
 **ServiceLocator atualizado**: `infra/adapters/ServiceLocator.ts`
 
+
+

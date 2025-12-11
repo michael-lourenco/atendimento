@@ -188,3 +188,5 @@ try {
 - Verifique se o `WHATSAPP_PHONE_NUMBER_ID` está correto
 - Verifique se o número está conectado e ativo no Meta
 
+
+

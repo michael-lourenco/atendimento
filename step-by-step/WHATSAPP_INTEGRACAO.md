@@ -388,3 +388,5 @@ curl -X POST http://localhost:3000/api/messages/send \
 - ✅ Integração com ServiceLocator
 - ✅ Documentação completa
 
+
+
