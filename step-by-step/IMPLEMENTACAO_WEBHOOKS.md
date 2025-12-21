@@ -85,7 +85,8 @@ npm install axios
 No servidor `chat-whatsapp` (AWS), adicionar no `.env`:
 
 ```env
-WEBHOOK_URL=http://seu-frontend.com/api/webhook/chat-whatsapp
+# URL do webhook do chatbot-atimo na Vercel
+WEBHOOK_URL=https://atendimento-pink.vercel.app/api/webhook/chat-whatsapp
 ```
 
 **Para desenvolvimento local:**
