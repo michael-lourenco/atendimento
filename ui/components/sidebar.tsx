@@ -18,6 +18,7 @@ import {
   X,
   Building2,
   MessageCircle,
+  Smartphone,
 } from 'lucide-react';
 import { Button } from './button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './tooltip';
@@ -83,6 +84,11 @@ const sidebarItems: SidebarItem[] = [
     title: 'Agendamento',
     href: '/dashboard/schedules',
     icon: Calendar,
+  },
+  {
+    title: 'WhatsApp',
+    href: '/dashboard/whatsapp',
+    icon: Smartphone,
   },
 ];
 

@@ -180,3 +180,4 @@ Exemplos de providers que podem ser adicionados:
 **Data da correção**: 2025-01-27
 **Status**: ✅ Resolvido
 
+
