@@ -14,8 +14,8 @@ Todas as rotas abaixo são **funcionais** (use case + mock). Nenhuma é vitrine.
 | Rota | Use cases | Persistência Fase 3 |
 |------|-----------|---------------------|
 | `/dashboard/flows` | `GetAll` / `Save` / `Delete` Flow | `IFlowRepository` |
-| `/dashboard/messages` | listagem (`?contact=` filtra); imagem/áudio/vídeo reproduzíveis; documento com link | `IMessageRepository` + `GET /api/messages/{id}/media` |
-| `/dashboard/conversations` | listar + transferir | `IConversationRepository` |
+| `/dashboard/messages` | listagem geral; com `?contact=` thread + envio + Assumir/Transferir/Finalizar | mensagens + conversa + agentes |
+| `/dashboard/conversations` | listar + transferir (seletor de agentes) + abrir | `IConversationRepository` + `IAgentRepository` |
 | `/dashboard/whatsapp` | QR/status + mensagens com player de mídia | BFF `/api/chat-whatsapp/*` (Evolution se `WHATSAPP_PROVIDER=evolution`) |
 | `/dashboard/departments` | catálogo setor | `IDepartmentRepository` |
 | `/dashboard/internal-chat` | conversas + notas internas | conversa + `IInternalMessageRepository` |
@@ -37,9 +37,17 @@ Catálogo = `list` / `save` / `delete` via `CatalogUseCase` (subclasses no locat
 
 ## Transferência
 
-`TransferConversationUseCase`: define `assignedAgentId` / `assignedAgentName` e `status: transferred`. A conversa **não some**: vai para a aba **Esperando**. Destino padrão do mock de UI: agente `2` (Carlos Santos) até haver seletor.
+`TransferConversationUseCase`: define `assignedAgentId` / `assignedAgentName` e `status: transferred`. A conversa **não some**: vai para a aba **Esperando**. Destino = agente escolhido no seletor (`AgentCatalogUseCase.list()`). Sem agente selecionado, não transfere.
 
 **Abrir** em conversas navega para `/dashboard/messages?contact=<telefone>`.
+
+Com `?contact=`, Mensagens mostra **thread** (bolhas in/out, mídia) e campo de texto. Enviar chama `POST /api/messages/send` (`to` = telefone) e pausa o bot. Ações da conversa:
+
+- **Assumir** — operador logado (casa `Agent.email` com o usuário; senão usa `User.id` / `User.name`); `status: waiting`; pausa o chatbot.
+- **Transferir** — seletor com agentes cadastrados.
+- **Finalizar** — `status: closed`.
+
+Enquanto o fluxo estiver pausado, a tela indica e oferece **Retomar chatbot**. Sem `?contact=`, permanece a tabela geral.
 
 **Mídia** em Mensagens e na aba de mensagens de `/dashboard/whatsapp`: `image` → `<img>`, `audio` → player, `video` → player, `document` → download. Fonte: `/api/messages/{id}/media` (cookie da sessão). Sem mídia: mostra `content` (ex.: “Áudio recebido”).
 

@@ -53,6 +53,7 @@ describe('planFlowTurn', () => {
       contactId: '5511999999999',
       flowId: 'inicio',
       currentStepId: 'ask',
+      paused: false,
       updatedAt: now,
     });
   });
@@ -64,6 +65,7 @@ describe('planFlowTurn', () => {
         contactId: '5511999999999',
         flowId: 'inicio',
         currentStepId: 'ask',
+        paused: false,
         updatedAt: now,
       },
       contactId: '5511999999999',
@@ -82,6 +84,7 @@ describe('planFlowTurn', () => {
         contactId: '5511999999999',
         flowId: 'inicio',
         currentStepId: 'ask',
+        paused: false,
         updatedAt: now,
       },
       contactId: '5511999999999',

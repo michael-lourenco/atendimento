@@ -5,6 +5,7 @@ import { UpsertConversationFromMessageUseCase } from '@/core/usecases/UpsertConv
 import { UpsertContactFromIncomingUseCase } from '@/core/usecases/UpsertContactFromIncomingUseCase';
 import { isPublicSupabaseConfigured } from '@/infra/supabase/env';
 import { getOperatorUser } from '@/infra/supabase/getOperatorUser';
+import { PauseContactFlowUseCase } from '@/core/usecases/PauseContactFlowUseCase';
 
 export async function POST(request: NextRequest) {
   try {
@@ -49,6 +50,12 @@ export async function POST(request: NextRequest) {
       templateName,
       templateParams,
     });
+
+    try {
+      await new PauseContactFlowUseCase(repos.flowSession, repos.flow).execute(to);
+    } catch (pauseError) {
+      console.error('Falha ao pausar fluxo após envio do operador:', pauseError);
+    }
 
     return NextResponse.json(result, { status: 200 });
   } catch (error) {

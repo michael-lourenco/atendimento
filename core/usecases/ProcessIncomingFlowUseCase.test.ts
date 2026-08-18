@@ -140,4 +140,22 @@ describe('ProcessIncomingFlowUseCase', () => {
 
     expect(whatsApp.sent).toEqual([]);
   });
+
+  it('não responde quando a sessão está pausada', async () => {
+    const { useCase, whatsApp, sessions } = createUseCase([sampleFlow]);
+    await sessions.save({
+      contactId: '5511999999999',
+      flowId: 'inicio',
+      currentStepId: 'ask',
+      paused: true,
+      updatedAt: now,
+    });
+
+    await useCase.execute({ contactId: '5511999999999', text: 'oi' });
+
+    expect(whatsApp.sent).toEqual([]);
+    const session = await sessions.getByContactId('5511999999999');
+    expect(session?.paused).toBe(true);
+    expect(session?.currentStepId).toBe('ask');
+  });
 });

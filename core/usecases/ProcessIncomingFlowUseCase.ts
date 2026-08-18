@@ -33,6 +33,9 @@ export class ProcessIncomingFlowUseCase {
   async execute(input: ProcessIncomingFlowInput): Promise<void> {
     const flows = await this.flowRepository.getAll();
     const session = await this.sessionRepository.getByContactId(input.contactId);
+    if (session?.paused) {
+      return;
+    }
     const flow = resolveActiveFlow(flows, session?.flowId);
 
     if (!flow) {

@@ -18,9 +18,11 @@ Runner: Jest + `ts-jest` (`npm test`). Testing Library só quando houver teste d
 ## Cobertura atual
 
 - `core/engine/planFlowTurn.test.ts` — primeira sessão, `nextStepId`, `condition` true/false
-- `core/usecases/ProcessIncomingFlowUseCase.test.ts` — envio via fake + persistência de sessão
+- `core/usecases/ProcessIncomingFlowUseCase.test.ts` — envio via fake + persistência de sessão; pausado não responde
+- `core/usecases/PauseContactFlowUseCase.test.ts` — pausa e retoma sessão
 - `core/usecases/CatalogUseCase.test.ts` — list/save/delete
 - `core/usecases/TransferConversationUseCase.test.ts` — status transferred
+- `core/usecases/AssignConversationUseCase.test.ts` — assumir (waiting) e finalizar (closed)
 - `core/usecases/LoginUseCase.test.ts` — porta de auth (senha obrigatória)
 - `core/usecases/UpsertConversationFromMessageUseCase.test.ts` — cria conversa; ensure não infla não lidas
 - `core/usecases/UpsertContactFromIncomingUseCase.test.ts` — nome do WhatsApp no catálogo de contatos

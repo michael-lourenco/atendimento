@@ -43,7 +43,7 @@ Uma tabela por agregado da spec `02`. IDs `uuid` (default `gen_random_uuid()`), 
 
 FKs onde o domínio já relaciona (`conversation.contact_id`, `chatbot.flow_id`, `agent.department_id`). `Flow.steps` pode ser JSONB na v1 para não explodir o schema.
 
-Migrations em `infra/supabase/migrations/` (SQL versionado). Sem editar schema só no dashboard.
+Migrations em `infra/supabase/migrations/` (SQL versionado). Sem editar schema só no dashboard. `002_flow_session_paused.sql` adiciona `flow_sessions.paused`.
 
 ## Storage
 

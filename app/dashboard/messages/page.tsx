@@ -7,6 +7,7 @@ import { Message } from '@/core/entities/Message';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/ui/components/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/ui/components/table';
 import { MessageMedia } from '@/ui/components/message-media';
+import { MessageThread } from '@/ui/components/message-thread';
 
 export default function MessagesPage() {
   const [messages, setMessages] = useState<Message[]>([]);
@@ -31,10 +32,13 @@ export default function MessagesPage() {
   };
 
   useEffect(() => {
+    if (contactFilter) {
+      return;
+    }
     loadMessages(true);
     const timer = setInterval(() => loadMessages(false), 8000);
     return () => clearInterval(timer);
-  }, []);
+  }, [contactFilter]);
 
   const formatDate = (date: Date) => {
     return new Date(date).toLocaleString('pt-BR');
@@ -59,11 +63,19 @@ export default function MessagesPage() {
     return direction === 'incoming' ? 'Entrada' : 'Saída';
   };
 
-  const visible = contactFilter
-    ? messages.filter(
-        (message) => message.from === contactFilter || message.to === contactFilter
-      )
-    : messages;
+  const visible = messages;
+
+  if (contactFilter) {
+    return (
+      <div>
+        <div className="mb-6">
+          <h1 className="text-3xl font-bold text-foreground">Mensagens</h1>
+          <p className="text-muted-foreground mt-2">Atendimento · {contactFilter}</p>
+        </div>
+        <MessageThread contact={contactFilter} />
+      </div>
+    );
+  }
 
   if (loading) {
     return <div className="text-center py-8 text-foreground">Carregando...</div>;
@@ -75,7 +87,6 @@ export default function MessagesPage() {
         <h1 className="text-3xl font-bold text-foreground">Mensagens</h1>
         <p className="text-muted-foreground mt-2">
           Histórico de mensagens do chatbot
-          {contactFilter ? ` · ${contactFilter}` : ''}
         </p>
       </div>
 

@@ -6,4 +6,10 @@ describe('conversationTabs', () => {
     expect(isIncomingTab(transferred)).toBe(false);
     expect(isWaitingTab(transferred)).toBe(true);
   });
+
+  it('conversa waiting com agente fica em Esperando', () => {
+    const waiting = { status: 'waiting', assignedAgentId: '1' };
+    expect(isIncomingTab(waiting)).toBe(false);
+    expect(isWaitingTab(waiting)).toBe(true);
+  });
 });

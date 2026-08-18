@@ -32,7 +32,7 @@ Novas entidades exigem interface de repositório em `core/repositories` e mock e
 - `IConversationRepository`, `IDepartmentRepository`, `IInternalMessageRepository`
 - `IChatbotRepository`, `IAgentRepository`, `IContactRepository`, `IWhatsAppNumberRepository`, `ITagRepository`, `IScheduledMessageRepository`, `IReportRepository` — CRUD (`ICrudRepository`)
 
-Catálogos do painel usam `CatalogUseCase` (`list` / `save` / `delete`). Conversas: `GetAllConversationsUseCase`, `TransferConversationUseCase`. Relatórios: `GetDashboardMetricsUseCase`, `ReportCatalogUseCase`, `GenerateReportUseCase`.
+Catálogos do painel usam `CatalogUseCase` (`list` / `save` / `delete`). Conversas: `GetAllConversationsUseCase`, `GetConversationByIdUseCase`, `AssignConversationUseCase`, `TransferConversationUseCase`, `CloseConversationUseCase`. Relatórios: `GetDashboardMetricsUseCase`, `ReportCatalogUseCase`, `GenerateReportUseCase`.
 
 ## Use cases existentes
 
@@ -40,17 +40,20 @@ Auth: `LoginUseCase`, `LogoutUseCase`, `GetCurrentUserUseCase`
 Fluxos: `GetAllFlowsUseCase`, `GetFlowByIdUseCase`, `SaveFlowUseCase`, `DeleteFlowUseCase`  
 Mensagens: `GetAllMessagesUseCase`, `GetMessagesByContactUseCase`  
 WhatsApp: `SendWhatsAppMessageUseCase`, `HandleIncomingWhatsAppMessageUseCase`, `UpsertConversationFromMessageUseCase`, `UpsertContactFromIncomingUseCase`  
-Motor: `ProcessIncomingFlowUseCase` (incoming texto → respostas do fluxo)
+Motor: `ProcessIncomingFlowUseCase` (incoming texto → respostas do fluxo)  
+Atendimento humano: `PauseContactFlowUseCase`, `ResumeContactFlowUseCase`, `GetFlowSessionUseCase`  
+Fila: `AssignConversationUseCase` (assumir → `waiting` + agente), `TransferConversationUseCase` (`transferred`), `CloseConversationUseCase` (`closed`)
 
 ## Invariantes
 
 1. Mensagem incoming/outgoing tem `direction` e `status` válidos.
 2. Só fluxo `isActive` entra no motor.
-3. Conversa: status `open` \| `closed` \| `waiting` \| `transferred`. Toda `Message` persistida cria/atualiza `Conversation` (`id` = telefone) e `Contact` (`id`/`phone` = telefone, `name` = `pushName` do WhatsApp quando houver). Não sobrescrever nome real por número.
+3. Conversa: status `open` \| `closed` \| `waiting` \| `transferred`. Toda `Message` persistida cria/atualiza `Conversation` (`id` = telefone) e `Contact` (`id`/`phone` = telefone, `name` = `pushName` do WhatsApp quando houver). Não sobrescrever nome real por número. Incoming em conversa `closed` reabre para `open` (mantém o agente). **Assumir** grava `assignedAgentId` / `assignedAgentName` e `status: waiting` (aba Esperando). **Transferir** usa um agente do catálogo e `status: transferred`. **Finalizar** grava `status: closed`.
 4. Auth **mock (Fases 1–3):** senha irrelevante; `admin@example.com` / `user@example.com`. Auth **Supabase (Fase 4):** senha real; papel em `profiles`; sem usuários de teste na UI — ver `08-supabase.md`.
 5. Use case não chama Axios/Meta/Twilio direto — só `IWhatsAppService`.
 6. Uma sessão por `contactId`. Sem fluxo ativo: incoming é persistida e **nenhuma** resposta automática é enviada.
 7. No máximo 20 passos por turno (ciclo).
+8. Envio pelo painel (`POST /api/messages/send`) **pausa** a sessão (`paused: true`). Enquanto pausado, incoming é persistida e o motor **não** responde. `ResumeContactFlowUseCase` volta `paused: false` e zera `currentStepId` (próxima mensagem recomeça o fluxo). Respostas automáticas do motor **não** pausam.
 
 ## FlowSession
 
@@ -59,6 +62,7 @@ Motor: `ProcessIncomingFlowUseCase` (incoming texto → respostas do fluxo)
   contactId: string;
   flowId: string;
   currentStepId: string | null; // passo aguardando resposta; null = fluxo encerrado / próxima msg recomeça
+  paused: boolean; // true = operador assumiu; motor não responde
   updatedAt: Date;
 }
 ```
@@ -83,10 +87,13 @@ Planejamento puro em `core/engine` (`planFlowTurn`, `evaluateCondition`, `resolv
 - Passo ou `nextStepId` inexistente → encerra (`currentStepId` null). Próxima mensagem recomeça o fluxo resolvido.
 - `question` não valida se a resposta está em `options`.
 
-Entrada do motor: só incoming `type === "text"` com conteúdo não vazio. Mídia: persiste, não avança fluxo. Áudio/imagem/vídeo/documento são reproduzíveis no painel via `GET /api/messages/{id}/media` (cache no Storage; se faltar, a Evolution entrega o base64 pelo `id` da mensagem).
+Entrada do motor: só incoming `type === "text"` com conteúdo não vazio. Mídia: persiste, não avança fluxo. Sessão `paused`: persiste, não avança fluxo. Áudio/imagem/vídeo/documento são reproduzíveis no painel via `GET /api/messages/{id}/media` (cache no Storage; se faltar, a Evolution entrega o base64 pelo `id` da mensagem).
 
 ## Testes obrigatórios (escrever; usuário executa)
 
 - Primeira mensagem cria sessão e envia passos até a primeira `question`.
 - Resposta avança `nextStepId`.
 - `condition` ramos true e false.
+- Sessão `paused` não dispara resposta automática.
+- `PauseContactFlowUseCase` marca pausa; `ResumeContactFlowUseCase` recomeça o fluxo.
+- `AssignConversationUseCase` coloca em Esperando; `CloseConversationUseCase` fecha.

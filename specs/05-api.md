@@ -9,6 +9,7 @@ Route Handlers em `app/api/**/route.ts`. Sem inventar rotas que não estejam aqu
 - Body JSON: `{ to: string, message: string, type?: "text"|"template", templateName?: string, templateParams?: string[] }`
 - 400 se faltar `to`/`message`; 400 se `type=template` sem `templateName`
 - 200: entidade `Message` persistida
+- Após envio bem-sucedido, pausa o fluxo daquele `to` (`PauseContactFlowUseCase`)
 - 401: sem sessão de operador quando o Supabase está configurado
 - 500: falha no provedor
 

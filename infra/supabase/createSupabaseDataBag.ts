@@ -105,6 +105,7 @@ function createSessionRepository(client: SupabaseClient): IFlowSessionRepository
         contact_id: session.contactId,
         flow_id: session.flowId,
         current_step_id: session.currentStepId,
+        paused: session.paused,
         updated_at: session.updatedAt.toISOString(),
       });
       if (error) throw error;

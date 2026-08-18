@@ -7,15 +7,19 @@ import { Badge } from '@/ui/components/badge';
 import { Button } from '@/ui/components/button';
 import { Input } from '@/ui/components/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/ui/components/tabs';
-import { Search, ArrowRight, Building2 } from 'lucide-react';
+import { Search, Building2 } from 'lucide-react';
 import { GetAllConversationsUseCase } from '@/core/usecases/GetAllConversationsUseCase';
-import { TransferConversationUseCase } from '@/core/usecases/TransferConversationUseCase';
+import { AgentCatalogUseCase } from '@/core/usecases/AgentCatalogUseCase';
+import { CloseConversationUseCase } from '@/core/usecases/CloseConversationUseCase';
 import { Conversation } from '@/core/entities/Conversation';
+import { Agent } from '@/core/entities/Agent';
 import { isClosedTab, isIncomingTab, isWaitingTab } from '@/core/entities/conversationTabs';
+import { TransferAgentControl } from '@/ui/components/transfer-agent-control';
 import { useRouter } from 'next/navigation';
 
 export default function ConversationsPage() {
   const [conversations, setConversations] = useState<Conversation[]>([]);
+  const [agents, setAgents] = useState<Agent[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('');
   const [mounted, setMounted] = useState(false);
@@ -30,8 +34,12 @@ export default function ConversationsPage() {
   const loadConversations = async () => {
     setLoading(true);
     try {
-      const allConversations = await new GetAllConversationsUseCase().execute();
+      const [allConversations, agentList] = await Promise.all([
+        new GetAllConversationsUseCase().execute(),
+        new AgentCatalogUseCase().list(),
+      ]);
       setConversations(allConversations);
+      setAgents(agentList);
     } catch (error) {
       console.error('Erro ao carregar conversas:', error);
     } finally {
@@ -39,17 +47,13 @@ export default function ConversationsPage() {
     }
   };
 
-  const handleTransfer = async (conversationId: string, targetAgentId: string, targetAgentName: string) => {
+  const handleClose = async (conversationId: string) => {
     try {
-      await new TransferConversationUseCase().execute({
-        conversationId,
-        targetAgentId,
-        targetAgentName,
-      });
-      setActiveTab('waiting');
+      await new CloseConversationUseCase().execute(conversationId);
+      setActiveTab('closed');
       loadConversations();
     } catch (error) {
-      console.error('Erro ao transferir conversa:', error);
+      console.error('Erro ao finalizar conversa:', error);
     }
   };
 
@@ -166,7 +170,7 @@ export default function ConversationsPage() {
               </TableCell>
               <TableCell>{formatDate(conv.lastActivity)}</TableCell>
               <TableCell>
-                <div className="flex gap-2">
+                <div className="flex flex-wrap gap-2">
                   <Button
                     variant="outline"
                     size="sm"
@@ -177,14 +181,23 @@ export default function ConversationsPage() {
                     Abrir
                   </Button>
                   {activeTab !== 'closed' && (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleTransfer(conv.id, '2', 'Carlos Santos')}
-                      title="Transferir conversa"
-                    >
-                      <ArrowRight className="h-4 w-4" />
-                    </Button>
+                    <>
+                      <TransferAgentControl
+                        conversationId={conv.id}
+                        agents={agents}
+                        onTransferred={() => {
+                          setActiveTab('waiting');
+                          loadConversations();
+                        }}
+                      />
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => void handleClose(conv.id)}
+                      >
+                        Finalizar
+                      </Button>
+                    </>
                   )}
                 </div>
               </TableCell>

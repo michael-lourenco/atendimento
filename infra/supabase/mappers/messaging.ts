@@ -64,6 +64,7 @@ export function sessionFromRow(row: Record<string, unknown>): FlowSession {
     contactId: String(row.contact_id),
     flowId: String(row.flow_id),
     currentStepId: row.current_step_id ? String(row.current_step_id) : null,
+    paused: Boolean(row.paused),
     updatedAt: asDate(row.updated_at),
   };
 }

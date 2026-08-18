@@ -98,6 +98,7 @@ export function planFlowTurn(input: {
       contactId,
       flowId: flow.id,
       currentStepId: waitingStepId,
+      paused: false,
       updatedAt: now,
     },
   };
