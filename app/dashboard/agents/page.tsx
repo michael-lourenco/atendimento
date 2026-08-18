@@ -1,6 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { Agent, AgentStatus } from '@/core/entities/Agent';
+import { AgentCatalogUseCase } from '@/core/usecases/AgentCatalogUseCase';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/ui/components/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/ui/components/table';
 import { Button } from '@/ui/components/button';
@@ -9,41 +11,112 @@ import { Label } from '@/ui/components/label';
 import { Badge } from '@/ui/components/badge';
 import { Plus, Search } from 'lucide-react';
 
+const catalog = () => new AgentCatalogUseCase();
+
 export default function AgentsPage() {
+  const [agents, setAgents] = useState<Agent[]>([]);
+  const [filter, setFilter] = useState('');
   const [showForm, setShowForm] = useState(false);
-  const agents = [
-    {
-      id: '1',
-      name: 'Ana Silva',
-      email: 'ana@example.com',
-      status: 'online',
-      conversationsCount: 12,
-      responseTime: '2 min',
-    },
-    {
-      id: '2',
-      name: 'Carlos Santos',
-      email: 'carlos@example.com',
-      status: 'offline',
-      conversationsCount: 8,
-      responseTime: '5 min',
-    },
-  ];
+  const [editing, setEditing] = useState<Agent | null>(null);
+  const [form, setForm] = useState({ name: '', email: '', status: 'online' as AgentStatus });
+
+  const load = async () => setAgents(await catalog().list());
+
+  useEffect(() => {
+    load();
+  }, []);
+
+  const reset = () => {
+    setShowForm(false);
+    setEditing(null);
+    setForm({ name: '', email: '', status: 'online' });
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    await catalog().save({
+      id: editing?.id || `agent-${Date.now()}`,
+      name: form.name,
+      email: form.email,
+      status: form.status,
+      departmentId: editing?.departmentId,
+      conversationsCount: editing?.conversationsCount || 0,
+      responseTime: editing?.responseTime || '—',
+      createdAt: editing?.createdAt || new Date(),
+    });
+    reset();
+    load();
+  };
+
+  const visible = agents.filter(
+    (agent) =>
+      agent.name.toLowerCase().includes(filter.toLowerCase()) ||
+      agent.email.toLowerCase().includes(filter.toLowerCase())
+  );
 
   return (
     <div>
       <div className="mb-6 flex justify-between items-center">
         <div>
           <h1 className="text-3xl font-bold text-foreground">Multi Atendentes</h1>
-          <p className="text-muted-foreground mt-2">
-            Gerencie sua equipe de atendentes
-          </p>
+          <p className="text-muted-foreground mt-2">Gerencie sua equipe de atendentes</p>
         </div>
         <Button onClick={() => setShowForm(true)}>
           <Plus className="h-4 w-4 mr-2" />
           Novo Atendente
         </Button>
       </div>
+
+      {showForm && (
+        <Card className="mb-6">
+          <CardHeader>
+            <CardTitle>{editing ? 'Editar Atendente' : 'Novo Atendente'}</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="name">Nome</Label>
+                <Input
+                  id="name"
+                  value={form.name}
+                  onChange={(e) => setForm({ ...form, name: e.target.value })}
+                  required
+                  className="bg-background"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="email">Email</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  value={form.email}
+                  onChange={(e) => setForm({ ...form, email: e.target.value })}
+                  required
+                  className="bg-background"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="status">Status</Label>
+                <select
+                  id="status"
+                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
+                  value={form.status}
+                  onChange={(e) => setForm({ ...form, status: e.target.value as AgentStatus })}
+                >
+                  <option value="online">Online</option>
+                  <option value="offline">Offline</option>
+                </select>
+              </div>
+              <div className="flex gap-2">
+                <Button type="submit">Salvar</Button>
+                <Button type="button" variant="outline" onClick={reset}>
+                  Cancelar
+                </Button>
+              </div>
+            </form>
+          </CardContent>
+        </Card>
+      )}
 
       <Card>
         <CardHeader>
@@ -53,19 +126,19 @@ export default function AgentsPage() {
               <CardDescription>Visualize e gerencie seus atendentes</CardDescription>
             </div>
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
                 placeholder="Buscar atendentes..."
                 className="pl-10 w-64 bg-background"
+                value={filter}
+                onChange={(e) => setFilter(e.target.value)}
               />
             </div>
           </div>
         </CardHeader>
         <CardContent>
-          {agents.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">
-              Nenhum atendente encontrado
-            </div>
+          {visible.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground">Nenhum atendente encontrado</div>
           ) : (
             <Table>
               <TableHeader>
@@ -79,7 +152,7 @@ export default function AgentsPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {agents.map((agent) => (
+                {visible.map((agent) => (
                   <TableRow key={agent.id}>
                     <TableCell className="font-medium">{agent.name}</TableCell>
                     <TableCell>{agent.email}</TableCell>
@@ -92,10 +165,27 @@ export default function AgentsPage() {
                     <TableCell>{agent.responseTime}</TableCell>
                     <TableCell>
                       <div className="flex gap-2">
-                        <Button variant="outline" size="sm">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            setEditing(agent);
+                            setForm({ name: agent.name, email: agent.email, status: agent.status });
+                            setShowForm(true);
+                          }}
+                        >
                           Editar
                         </Button>
-                        <Button variant="destructive" size="sm">
+                        <Button
+                          variant="destructive"
+                          size="sm"
+                          onClick={async () => {
+                            if (confirm('Excluir este atendente?')) {
+                              await catalog().delete(agent.id);
+                              load();
+                            }
+                          }}
+                        >
                           Excluir
                         </Button>
                       </div>
@@ -110,4 +200,3 @@ export default function AgentsPage() {
     </div>
   );
 }
-

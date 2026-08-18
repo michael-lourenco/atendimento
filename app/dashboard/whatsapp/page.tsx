@@ -7,6 +7,7 @@ import { RefreshCw, CheckCircle2, XCircle, Loader2, MessageSquare } from 'lucide
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/ui/components/tabs';
 import { Badge } from '@/ui/components/badge';
 import { ScrollArea } from '@/ui/components/scroll-area';
+import { MessageMedia } from '@/ui/components/message-media';
 
 interface QRCodeData {
   qr: string | null;
@@ -399,7 +400,7 @@ export default function WhatsAppPage() {
                                 {userId}
                               </span>
                             </div>
-                            <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
+                            <MessageMedia id={msg.id} type={msg.type} content={msg.content} />
                             <p className="text-xs opacity-70 mt-1">
                               {formatTimestamp(msg.timestamp)}
                             </p>

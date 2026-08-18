@@ -111,3 +111,4 @@ async function handleMessageEvent(data: any) {
   // - Processar mensagem e gerar resposta automática
 }
 
+

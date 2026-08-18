@@ -1,31 +1,40 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { GetAllMessagesUseCase } from '@/core/usecases/GetAllMessagesUseCase';
 import { Message } from '@/core/entities/Message';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/ui/components/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/ui/components/table';
+import { MessageMedia } from '@/ui/components/message-media';
 
 export default function MessagesPage() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [loading, setLoading] = useState(true);
+  const searchParams = useSearchParams();
+  const contactFilter = searchParams.get('contact');
 
-  useEffect(() => {
-    loadMessages();
-  }, []);
-
-  const loadMessages = async () => {
-    setLoading(true);
+  const loadMessages = async (showLoading = false) => {
+    if (showLoading) {
+      setLoading(true);
+    }
     try {
-      const getAllMessagesUseCase = new GetAllMessagesUseCase();
-      const allMessages = await getAllMessagesUseCase.execute();
+      const allMessages = await new GetAllMessagesUseCase().execute();
       setMessages(allMessages);
     } catch (error) {
       console.error('Erro ao carregar mensagens:', error);
     } finally {
-      setLoading(false);
+      if (showLoading) {
+        setLoading(false);
+      }
     }
   };
+
+  useEffect(() => {
+    loadMessages(true);
+    const timer = setInterval(() => loadMessages(false), 8000);
+    return () => clearInterval(timer);
+  }, []);
 
   const formatDate = (date: Date) => {
     return new Date(date).toLocaleString('pt-BR');
@@ -50,6 +59,12 @@ export default function MessagesPage() {
     return direction === 'incoming' ? 'Entrada' : 'Saída';
   };
 
+  const visible = contactFilter
+    ? messages.filter(
+        (message) => message.from === contactFilter || message.to === contactFilter
+      )
+    : messages;
+
   if (loading) {
     return <div className="text-center py-8 text-foreground">Carregando...</div>;
   }
@@ -60,6 +75,7 @@ export default function MessagesPage() {
         <h1 className="text-3xl font-bold text-foreground">Mensagens</h1>
         <p className="text-muted-foreground mt-2">
           Histórico de mensagens do chatbot
+          {contactFilter ? ` · ${contactFilter}` : ''}
         </p>
       </div>
 
@@ -71,7 +87,7 @@ export default function MessagesPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          {messages.length === 0 ? (
+          {visible.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">
               Nenhuma mensagem encontrada
             </div>
@@ -89,7 +105,7 @@ export default function MessagesPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {messages.map((message) => (
+                {visible.map((message) => (
                   <TableRow key={message.id}>
                     <TableCell className="font-medium">
                       {message.direction === 'incoming' ? message.from : message.to}
@@ -105,7 +121,13 @@ export default function MessagesPage() {
                         {getDirectionBadge(message.direction)}
                       </span>
                     </TableCell>
-                    <TableCell className="max-w-md truncate">{message.content}</TableCell>
+                    <TableCell className="max-w-md align-top">
+                      <MessageMedia
+                        id={message.id}
+                        type={message.type}
+                        content={message.content}
+                      />
+                    </TableCell>
                     <TableCell>{message.type}</TableCell>
                     <TableCell>
                       <span

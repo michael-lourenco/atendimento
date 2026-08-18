@@ -1,9 +1,5 @@
 import { InternalMessage } from '../../core/entities/InternalMessage';
-
-export interface IInternalMessageRepository {
-  getByConversation(conversationId: string): Promise<InternalMessage[]>;
-  save(message: InternalMessage): Promise<void>;
-}
+import { IInternalMessageRepository } from '../../core/repositories/IInternalMessageRepository';
 
 export class MockInternalMessageRepository implements IInternalMessageRepository {
   private messages: InternalMessage[] = [
@@ -32,22 +28,17 @@ export class MockInternalMessageRepository implements IInternalMessageRepository
   ];
 
   async getByConversation(conversationId: string): Promise<InternalMessage[]> {
-    const conversationMessages = this.messages.filter(
-      m => m.conversationId === conversationId
-    );
-    return Promise.resolve(
-      conversationMessages.sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime())
-    );
+    return this.messages
+      .filter((message) => message.conversationId === conversationId)
+      .sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime());
   }
 
   async save(message: InternalMessage): Promise<void> {
     this.messages.push({
       ...message,
-      id: `msg-${Date.now()}`,
+      id: message.id || `msg-${Date.now()}`,
     });
-    return Promise.resolve();
   }
 }
 
 export const mockInternalMessageRepository = new MockInternalMessageRepository();
-

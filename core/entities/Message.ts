@@ -7,6 +7,7 @@ export interface Message {
   timestamp: Date;
   flowId?: string;
   stepId?: string;
+  contactName?: string;
   direction: 'incoming' | 'outgoing';
   status: 'sent' | 'delivered' | 'read' | 'failed';
 }

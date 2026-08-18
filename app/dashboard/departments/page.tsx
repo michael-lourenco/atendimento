@@ -9,7 +9,7 @@ import { Label } from '@/ui/components/label';
 import { Textarea } from '@/ui/components/textarea';
 import { Badge } from '@/ui/components/badge';
 import { Plus, Users, MessageSquare } from 'lucide-react';
-import { mockDepartmentRepository } from '@/infra/mocks/MockDepartmentRepository';
+import { DepartmentCatalogUseCase } from '@/core/usecases/DepartmentCatalogUseCase';
 import { Department } from '@/core/entities/Department';
 
 export default function DepartmentsPage() {
@@ -31,7 +31,7 @@ export default function DepartmentsPage() {
   const loadDepartments = async () => {
     setLoading(true);
     try {
-      const allDepartments = await mockDepartmentRepository.getAll();
+      const allDepartments = await new DepartmentCatalogUseCase().list();
       setDepartments(allDepartments);
     } catch (error) {
       console.error('Erro ao carregar setores:', error);
@@ -54,7 +54,7 @@ export default function DepartmentsPage() {
         createdAt: editingDepartment?.createdAt || new Date(),
         updatedAt: new Date(),
       };
-      await mockDepartmentRepository.save(department);
+      await new DepartmentCatalogUseCase().save(department);
       setShowForm(false);
       setEditingDepartment(null);
       setFormData({ name: '', description: '', color: '#3b82f6', isActive: true });
@@ -67,7 +67,7 @@ export default function DepartmentsPage() {
   const handleDelete = async (id: string) => {
     if (confirm('Tem certeza que deseja excluir este setor?')) {
       try {
-        await mockDepartmentRepository.delete(id);
+        await new DepartmentCatalogUseCase().delete(id);
         loadDepartments();
       } catch (error) {
         console.error('Erro ao excluir setor:', error);

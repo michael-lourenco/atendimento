@@ -1,5 +1,5 @@
 import { IFlowRepository } from '../../core/repositories/IFlowRepository';
-import { Flow, FlowStep } from '../../core/entities/Flow';
+import { Flow } from '../../core/entities/Flow';
 
 export class MockFlowRepository implements IFlowRepository {
   private flows: Flow[] = [
@@ -21,6 +21,28 @@ export class MockFlowRepository implements IFlowRepository {
           content: 'Selecione uma opção:',
           options: ['Suporte técnico', 'Vendas', 'Financeiro', 'Outros'],
           nextStepId: 'step3',
+        },
+        {
+          id: 'step3',
+          type: 'condition',
+          content: '',
+          condition: {
+            field: 'content',
+            operator: 'contains',
+            value: 'suporte',
+            trueStepId: 'step_suporte',
+            falseStepId: 'step_geral',
+          },
+        },
+        {
+          id: 'step_suporte',
+          type: 'message',
+          content: 'Você está no canal de suporte técnico. Descreva seu problema:',
+        },
+        {
+          id: 'step_geral',
+          type: 'message',
+          content: 'Certo! Um atendente já vai te responder.',
         },
       ],
       createdAt: new Date('2024-01-01'),

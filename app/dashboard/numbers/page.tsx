@@ -1,6 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { WhatsAppNumber, WhatsAppNumberStatus } from '@/core/entities/WhatsAppNumber';
+import { WhatsAppNumberCatalogUseCase } from '@/core/usecases/WhatsAppNumberCatalogUseCase';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/ui/components/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/ui/components/table';
 import { Button } from '@/ui/components/button';
@@ -9,41 +11,105 @@ import { Label } from '@/ui/components/label';
 import { Badge } from '@/ui/components/badge';
 import { Plus } from 'lucide-react';
 
+const catalog = () => new WhatsAppNumberCatalogUseCase();
+
 export default function NumbersPage() {
+  const [numbers, setNumbers] = useState<WhatsAppNumber[]>([]);
   const [showForm, setShowForm] = useState(false);
-  const numbers = [
-    {
-      id: '1',
-      number: '5511999999999',
-      name: 'Número Principal',
-      status: 'active',
-      provider: 'WhatsApp Business API',
-      createdAt: new Date('2024-01-01'),
-    },
-    {
-      id: '2',
-      number: '5511888888888',
-      name: 'Número Secundário',
-      status: 'active',
-      provider: 'WhatsApp Business API',
-      createdAt: new Date('2024-01-05'),
-    },
-  ];
+  const [editing, setEditing] = useState<WhatsAppNumber | null>(null);
+  const [form, setForm] = useState({
+    name: '',
+    number: '',
+    provider: 'WhatsApp Business API',
+    status: 'active' as WhatsAppNumberStatus,
+  });
+
+  const load = async () => setNumbers(await catalog().list());
+
+  useEffect(() => {
+    load();
+  }, []);
+
+  const reset = () => {
+    setShowForm(false);
+    setEditing(null);
+    setForm({ name: '', number: '', provider: 'WhatsApp Business API', status: 'active' });
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    await catalog().save({
+      id: editing?.id || `number-${Date.now()}`,
+      name: form.name,
+      number: form.number,
+      provider: form.provider,
+      status: form.status,
+      createdAt: editing?.createdAt || new Date(),
+    });
+    reset();
+    load();
+  };
 
   return (
     <div>
       <div className="mb-6 flex justify-between items-center">
         <div>
           <h1 className="text-3xl font-bold text-foreground">Diversos Números</h1>
-          <p className="text-muted-foreground mt-2">
-            Gerencie os números do WhatsApp conectados
-          </p>
+          <p className="text-muted-foreground mt-2">Gerencie os números do WhatsApp conectados</p>
         </div>
         <Button onClick={() => setShowForm(true)}>
           <Plus className="h-4 w-4 mr-2" />
           Adicionar Número
         </Button>
       </div>
+
+      {showForm && (
+        <Card className="mb-6">
+          <CardHeader>
+            <CardTitle>{editing ? 'Editar Número' : 'Novo Número'}</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="name">Nome</Label>
+                <Input
+                  id="name"
+                  value={form.name}
+                  onChange={(e) => setForm({ ...form, name: e.target.value })}
+                  required
+                  className="bg-background"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="number">Número</Label>
+                <Input
+                  id="number"
+                  value={form.number}
+                  onChange={(e) => setForm({ ...form, number: e.target.value })}
+                  required
+                  className="bg-background"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="provider">Provedor</Label>
+                <Input
+                  id="provider"
+                  value={form.provider}
+                  onChange={(e) => setForm({ ...form, provider: e.target.value })}
+                  required
+                  className="bg-background"
+                />
+              </div>
+              <div className="flex gap-2">
+                <Button type="submit">Salvar</Button>
+                <Button type="button" variant="outline" onClick={reset}>
+                  Cancelar
+                </Button>
+              </div>
+            </form>
+          </CardContent>
+        </Card>
+      )}
 
       <Card>
         <CardHeader>
@@ -52,9 +118,7 @@ export default function NumbersPage() {
         </CardHeader>
         <CardContent>
           {numbers.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">
-              Nenhum número encontrado
-            </div>
+            <div className="text-center py-8 text-muted-foreground">Nenhum número encontrado</div>
           ) : (
             <Table>
               <TableHeader>
@@ -63,7 +127,7 @@ export default function NumbersPage() {
                   <TableHead>Número</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Provedor</TableHead>
-                  <TableHead>Data de Conexão</TableHead>
+                  <TableHead>Conexão</TableHead>
                   <TableHead>Ações</TableHead>
                 </TableRow>
               </TableHeader>
@@ -78,15 +142,35 @@ export default function NumbersPage() {
                       </Badge>
                     </TableCell>
                     <TableCell>{num.provider}</TableCell>
-                    <TableCell>
-                      {new Date(num.createdAt).toLocaleDateString('pt-BR')}
-                    </TableCell>
+                    <TableCell>{new Date(num.createdAt).toLocaleDateString('pt-BR')}</TableCell>
                     <TableCell>
                       <div className="flex gap-2">
-                        <Button variant="outline" size="sm">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            setEditing(num);
+                            setForm({
+                              name: num.name,
+                              number: num.number,
+                              provider: num.provider,
+                              status: num.status,
+                            });
+                            setShowForm(true);
+                          }}
+                        >
                           Editar
                         </Button>
-                        <Button variant="destructive" size="sm">
+                        <Button
+                          variant="destructive"
+                          size="sm"
+                          onClick={async () => {
+                            if (confirm('Desconectar este número?')) {
+                              await catalog().delete(num.id);
+                              load();
+                            }
+                          }}
+                        >
                           Desconectar
                         </Button>
                       </div>
@@ -101,4 +185,3 @@ export default function NumbersPage() {
     </div>
   );
 }
-

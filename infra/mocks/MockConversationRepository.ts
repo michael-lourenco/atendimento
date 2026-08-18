@@ -1,13 +1,5 @@
 import { Conversation } from '../../core/entities/Conversation';
-
-export interface IConversationRepository {
-  getAll(): Promise<Conversation[]>;
-  getById(id: string): Promise<Conversation | null>;
-  getByDepartment(departmentId: string): Promise<Conversation[]>;
-  getByAgent(agentId: string): Promise<Conversation[]>;
-  save(conversation: Conversation): Promise<void>;
-  delete(id: string): Promise<void>;
-}
+import { IConversationRepository } from '../../core/repositories/IConversationRepository';
 
 export class MockConversationRepository implements IConversationRepository {
   private conversations: Conversation[] = [
@@ -98,49 +90,39 @@ export class MockConversationRepository implements IConversationRepository {
   ];
 
   async getAll(): Promise<Conversation[]> {
-    return Promise.resolve(this.conversations.sort((a, b) => 
-      b.lastActivity.getTime() - a.lastActivity.getTime()
-    ));
+    return [...this.conversations].sort(
+      (a, b) => b.lastActivity.getTime() - a.lastActivity.getTime()
+    );
   }
 
   async getById(id: string): Promise<Conversation | null> {
-    const conversation = this.conversations.find(c => c.id === id);
-    return Promise.resolve(conversation || null);
+    return this.conversations.find((item) => item.id === id) ?? null;
   }
 
   async getByDepartment(departmentId: string): Promise<Conversation[]> {
-    const deptConversations = this.conversations.filter(
-      c => c.departmentId === departmentId
-    );
-    return Promise.resolve(deptConversations.sort((a, b) => 
-      b.lastActivity.getTime() - a.lastActivity.getTime()
-    ));
+    return this.conversations
+      .filter((item) => item.departmentId === departmentId)
+      .sort((a, b) => b.lastActivity.getTime() - a.lastActivity.getTime());
   }
 
   async getByAgent(agentId: string): Promise<Conversation[]> {
-    const agentConversations = this.conversations.filter(
-      c => c.assignedAgentId === agentId
-    );
-    return Promise.resolve(agentConversations.sort((a, b) => 
-      b.lastActivity.getTime() - a.lastActivity.getTime()
-    ));
+    return this.conversations
+      .filter((item) => item.assignedAgentId === agentId)
+      .sort((a, b) => b.lastActivity.getTime() - a.lastActivity.getTime());
   }
 
   async save(conversation: Conversation): Promise<void> {
-    const existingIndex = this.conversations.findIndex(c => c.id === conversation.id);
-    if (existingIndex >= 0) {
-      this.conversations[existingIndex] = conversation;
+    const index = this.conversations.findIndex((item) => item.id === conversation.id);
+    if (index >= 0) {
+      this.conversations[index] = conversation;
     } else {
       this.conversations.push(conversation);
     }
-    return Promise.resolve();
   }
 
   async delete(id: string): Promise<void> {
-    this.conversations = this.conversations.filter(c => c.id !== id);
-    return Promise.resolve();
+    this.conversations = this.conversations.filter((item) => item.id !== id);
   }
 }
 
 export const mockConversationRepository = new MockConversationRepository();
-

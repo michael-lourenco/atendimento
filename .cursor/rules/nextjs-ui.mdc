@@ -1,0 +1,24 @@
+---
+description: Padrões do painel Next.js (páginas, sidebar, tema)
+globs:
+  - app/**/*.tsx
+  - ui/**/*.tsx
+alwaysApply: false
+---
+
+# UI do painel
+
+- Componentes em `ui/components`. Páginas em `app/`. Menu em `sidebarItems`.
+- Tela nova funcional: use case, não array hardcoded. Vitrine só se `specs/04-dashboard.md` disser que é vitrine.
+- Não importar `infra/whatsapp` nas páginas; usar use case ou `fetch` para `/api/*`.
+
+```tsx
+// ❌ BAD
+const chatbots = [{ id: '1', name: 'Atendimento Inicial' }];
+
+// ✅ GOOD
+const list = await new GetAllChatbotsUseCase().execute();
+```
+
+- Manter `'use client'` só onde há estado/hooks. Respeitar `ThemeContext` / `Providers`.
+- Ao adicionar rota de dashboard, atualizar `specs/04-dashboard.md`.

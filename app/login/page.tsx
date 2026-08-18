@@ -30,7 +30,7 @@ export default function LoginPage() {
       } else {
         setError('Email ou senha inválidos');
       }
-    } catch (err) {
+    } catch {
       setError('Erro ao fazer login. Tente novamente.');
     } finally {
       setLoading(false);
@@ -56,7 +56,7 @@ export default function LoginPage() {
               <Input
                 id="email"
                 type="email"
-                placeholder="admin@example.com"
+                placeholder="voce@empresa.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
@@ -84,13 +84,13 @@ export default function LoginPage() {
               {loading ? 'Entrando...' : 'Entrar'}
             </Button>
           </form>
-          <div className="mt-4 text-sm text-muted-foreground bg-muted/50 p-4 rounded-md">
-            <p className="font-medium mb-2">Usuários de teste:</p>
-            <ul className="list-disc list-inside space-y-1">
-              <li>admin@example.com (qualquer senha)</li>
-              <li>user@example.com (qualquer senha)</li>
-            </ul>
-          </div>
+          {!process.env.NEXT_PUBLIC_SUPABASE_URL && (
+            <p className="mt-4 text-sm text-muted-foreground bg-muted/50 p-4 rounded-md">
+              Configure <code>NEXT_PUBLIC_SUPABASE_URL</code>,{' '}
+              <code>NEXT_PUBLIC_SUPABASE_ANON_KEY</code> e <code>SUPABASE_SERVICE_ROLE_KEY</code> no
+              .env.local e rode a migration em <code>infra/supabase/migrations/001_init.sql</code>.
+            </p>
+          )}
         </CardContent>
       </Card>
     </div>

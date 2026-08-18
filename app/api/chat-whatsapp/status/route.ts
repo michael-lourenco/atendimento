@@ -1,19 +1,11 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { ChatWhatsAppService } from '@/infra/whatsapp/ChatWhatsAppService';
+import { NextResponse } from 'next/server';
+import { getDashboardWhatsAppStatus } from '@/infra/whatsapp/dashboardConnection';
 
-/**
- * API Route para obter status da conexão WhatsApp
- * GET /api/chat-whatsapp/status
- */
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
-    const service = new ChatWhatsAppService();
-    const status = await service.getStatus();
-    
+    const status = await getDashboardWhatsAppStatus();
     return NextResponse.json(status, { status: 200 });
   } catch (error) {
-    console.error('Erro ao obter status:', error);
-    
     return NextResponse.json(
       {
         error: 'Erro ao obter status',
@@ -23,4 +15,3 @@ export async function GET(request: NextRequest) {
     );
   }
 }
-

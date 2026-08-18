@@ -1,0 +1,4 @@
+# Evolution API (WhatsApp) local. O Next.js continua com `npm run dev`.
+# Uso na raiz: docker compose up -d
+include:
+  - path: infra/evolution/docker-compose.yml

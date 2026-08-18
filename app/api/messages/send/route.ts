@@ -1,18 +1,23 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { serverLocator } from '@/infra/adapters/serverLocator';
 import { SendWhatsAppMessageUseCase } from '@/core/usecases/SendWhatsAppMessageUseCase';
+import { UpsertConversationFromMessageUseCase } from '@/core/usecases/UpsertConversationFromMessageUseCase';
+import { UpsertContactFromIncomingUseCase } from '@/core/usecases/UpsertContactFromIncomingUseCase';
+import { isPublicSupabaseConfigured } from '@/infra/supabase/env';
+import { getOperatorUser } from '@/infra/supabase/getOperatorUser';
 
-/**
- * API para enviar mensagens via WhatsApp
- * 
- * POST /api/messages/send
- * Body: { to: string, message: string, type?: 'text' | 'template', templateName?: string, templateParams?: string[] }
- */
 export async function POST(request: NextRequest) {
   try {
+    if (isPublicSupabaseConfigured()) {
+      const operator = await getOperatorUser();
+      if (!operator) {
+        return NextResponse.json({ error: 'Não autenticado' }, { status: 401 });
+      }
+    }
+
     const body = await request.json();
     const { to, message, type, templateName, templateParams } = body;
 
-    // Validação básica
     if (!to || !message) {
       return NextResponse.json(
         { error: 'Campos obrigatórios: to, message' },
@@ -20,7 +25,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Validação para templates
     if (type === 'template' && !templateName) {
       return NextResponse.json(
         { error: 'templateName é obrigatório quando type é "template"' },
@@ -28,7 +32,16 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const useCase = new SendWhatsAppMessageUseCase();
+    const locator = serverLocator;
+    const repos = locator.getRepos();
+    const upsert = new UpsertConversationFromMessageUseCase(repos.conversation, repos.contact);
+    const upsertContact = new UpsertContactFromIncomingUseCase(repos.contact);
+    const useCase = new SendWhatsAppMessageUseCase(
+      locator.getWhatsAppService(),
+      repos.message,
+      upsert,
+      upsertContact
+    );
     const result = await useCase.execute({
       to,
       message,
@@ -40,7 +53,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(result, { status: 200 });
   } catch (error) {
     console.error('Erro ao enviar mensagem:', error);
-    
+
     return NextResponse.json(
       {
         error: 'Erro ao enviar mensagem',
@@ -50,7 +63,3 @@ export async function POST(request: NextRequest) {
     );
   }
 }
-
-
-
-

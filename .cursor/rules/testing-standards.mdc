@@ -1,0 +1,18 @@
+---
+description: Escrever testes sem executá-los; fakes nas portas
+globs:
+  - "**/*.test.ts"
+  - "**/*.test.tsx"
+  - "**/*.spec.ts"
+  - "**/*.spec.tsx"
+alwaysApply: false
+---
+
+# Testes
+
+- Use cases: fake de `IFlowRepository` / `IWhatsAppService`, sem rede.
+- Não chamar `npm test`, `yarn test` nem Jest. No final, listar o comando para o usuário.
+- Sem credenciais reais. Sem snapshot de página inteira.
+- Contratos HTTP: status + shape, com serviço WhatsApp fake.
+
+Ver `specs/06-testing.md`.

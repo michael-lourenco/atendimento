@@ -1,32 +1,43 @@
 import { IWhatsAppService, WhatsAppWebhookEntry } from '../services/IWhatsAppService';
-import { serviceLocator } from '../../infra/adapters/ServiceLocator';
+import { IMessageRepository } from '../repositories/IMessageRepository';
 import { Message } from '../entities/Message';
+import { ProcessIncomingFlowUseCase } from './ProcessIncomingFlowUseCase';
+import {
+  UpsertConversationFromMessageUseCase,
+  contactPhoneFromMessage,
+} from './UpsertConversationFromMessageUseCase';
+import { UpsertContactFromIncomingUseCase } from './UpsertContactFromIncomingUseCase';
 
 export class HandleIncomingWhatsAppMessageUseCase {
-  private whatsAppService: IWhatsAppService;
-
-  constructor(whatsAppService?: IWhatsAppService) {
-    this.whatsAppService = whatsAppService || serviceLocator.getWhatsAppService();
-  }
+  constructor(
+    private whatsAppService: IWhatsAppService,
+    private messageRepository: IMessageRepository,
+    private processIncomingFlow: ProcessIncomingFlowUseCase,
+    private upsertConversation: UpsertConversationFromMessageUseCase,
+    private upsertContact: UpsertContactFromIncomingUseCase
+  ) {}
 
   async execute(entry: WhatsAppWebhookEntry): Promise<Message[]> {
-    // Processar webhook e converter para entidades Message
     const messages = await this.whatsAppService.processWebhook(entry);
+    return this.persistAndRunFlow(messages);
+  }
 
-    // Salvar todas as mensagens no repositório
-    const messageRepository = serviceLocator.getMessageRepository();
+  async executeMessages(messages: Message[]): Promise<Message[]> {
+    return this.persistAndRunFlow(messages);
+  }
+
+  private async persistAndRunFlow(messages: Message[]): Promise<Message[]> {
     for (const message of messages) {
-      await messageRepository.save(message);
+      await this.messageRepository.save(message);
+      await this.upsertContact.execute(
+        contactPhoneFromMessage(message),
+        message.contactName
+      );
+      await this.upsertConversation.execute(message);
     }
 
-    // TODO: Aqui você pode adicionar lógica de fluxos
-    // Por exemplo, processar a mensagem e determinar qual resposta enviar
-    // baseado nos fluxos configurados
+    await this.processIncomingFlow.executeForMessages(messages);
 
     return messages;
   }
 }
-
-
-
-

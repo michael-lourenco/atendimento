@@ -1,0 +1,24 @@
+---
+description: Specs, AGENTS, skills e rules são a fonte de verdade. Sem step-by-step. Sem rodar testes.
+alwaysApply: true
+---
+
+# Fonte de verdade
+
+- Decisões de produto e comportamento: `specs/*.md` e `AGENTS.md`.
+- Como implementar: `.cursor/skills/*/SKILL.md`.
+- Restrições permanentes: estas rules.
+
+Antes de codar: ler as specs afetadas. Se o comportamento mudar, atualizar a spec **no mesmo trabalho**.
+
+Não criar, completar nem “atualizar o diário” em `step-by-step/`. Pastas e arquivos já existentes ali não são fonte de verdade.
+
+Não usar `CHATBOT_DOCUMENTACAO.md` para comportamento novo.
+
+Não inventar rotas, provedores (`WHATSAPP_PROVIDER`) ou entidades fora das specs.
+
+Persistência alvo: Supabase (`specs/08-supabase.md`). Não introduzir Firestore nem D1 como banco.
+
+Não executar a suíte de testes (`npm test`, `yarn test`, Jest, Playwright). Escreva testes e informe o comando ao usuário.
+
+Não sobrescrever `.env` / `.env.local` sem confirmação explícita.

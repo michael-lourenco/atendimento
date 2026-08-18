@@ -389,3 +389,4 @@ WHATSAPP_PROVIDER=twilio  # ou 'meta', 'evolution', 'baileys'
 
 
 
+

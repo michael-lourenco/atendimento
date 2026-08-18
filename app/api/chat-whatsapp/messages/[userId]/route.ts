@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { ChatWhatsAppService } from '@/infra/whatsapp/ChatWhatsAppService';
+import { isEvolutionProvider } from '@/infra/whatsapp/isEvolutionProvider';
 
 /**
  * API Route para obter mensagens de um usuário específico
@@ -19,6 +20,10 @@ export async function GET(
       );
     }
     
+    if (isEvolutionProvider()) {
+      return NextResponse.json({ messages: [], total: 0 }, { status: 200 });
+    }
+
     const service = new ChatWhatsAppService();
     const messages = await service.getMessagesByUser(userId);
     

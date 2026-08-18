@@ -8,8 +8,11 @@ import { Button } from '@/ui/components/button';
 import { Input } from '@/ui/components/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/ui/components/tabs';
 import { Search, ArrowRight, Building2 } from 'lucide-react';
-import { mockConversationRepository } from '@/infra/mocks/MockConversationRepository';
+import { GetAllConversationsUseCase } from '@/core/usecases/GetAllConversationsUseCase';
+import { TransferConversationUseCase } from '@/core/usecases/TransferConversationUseCase';
 import { Conversation } from '@/core/entities/Conversation';
+import { isClosedTab, isIncomingTab, isWaitingTab } from '@/core/entities/conversationTabs';
+import { useRouter } from 'next/navigation';
 
 export default function ConversationsPage() {
   const [conversations, setConversations] = useState<Conversation[]>([]);
@@ -17,6 +20,7 @@ export default function ConversationsPage() {
   const [filter, setFilter] = useState('');
   const [mounted, setMounted] = useState(false);
   const [activeTab, setActiveTab] = useState('incoming');
+  const router = useRouter();
 
   useEffect(() => {
     setMounted(true);
@@ -26,7 +30,7 @@ export default function ConversationsPage() {
   const loadConversations = async () => {
     setLoading(true);
     try {
-      const allConversations = await mockConversationRepository.getAll();
+      const allConversations = await new GetAllConversationsUseCase().execute();
       setConversations(allConversations);
     } catch (error) {
       console.error('Erro ao carregar conversas:', error);
@@ -37,17 +41,13 @@ export default function ConversationsPage() {
 
   const handleTransfer = async (conversationId: string, targetAgentId: string, targetAgentName: string) => {
     try {
-      const conversation = await mockConversationRepository.getById(conversationId);
-      if (conversation) {
-        const updated = {
-          ...conversation,
-          assignedAgentId: targetAgentId,
-          assignedAgentName: targetAgentName,
-          status: 'transferred' as const,
-        };
-        await mockConversationRepository.save(updated);
-        loadConversations();
-      }
+      await new TransferConversationUseCase().execute({
+        conversationId,
+        targetAgentId,
+        targetAgentName,
+      });
+      setActiveTab('waiting');
+      loadConversations();
     } catch (error) {
       console.error('Erro ao transferir conversa:', error);
     }
@@ -59,13 +59,13 @@ export default function ConversationsPage() {
     // Filtrar por aba
     switch (activeTab) {
       case 'incoming':
-        filtered = filtered.filter(conv => conv.status === 'open' && !conv.assignedAgentId);
+        filtered = filtered.filter((conv) => isIncomingTab(conv));
         break;
       case 'waiting':
-        filtered = filtered.filter(conv => conv.status === 'waiting' || (conv.status === 'open' && conv.assignedAgentId));
+        filtered = filtered.filter((conv) => isWaitingTab(conv));
         break;
       case 'closed':
-        filtered = filtered.filter(conv => conv.status === 'closed');
+        filtered = filtered.filter((conv) => isClosedTab(conv));
         break;
       default:
         break;
@@ -167,7 +167,13 @@ export default function ConversationsPage() {
               <TableCell>{formatDate(conv.lastActivity)}</TableCell>
               <TableCell>
                 <div className="flex gap-2">
-                  <Button variant="outline" size="sm">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() =>
+                      router.push(`/dashboard/messages?contact=${encodeURIComponent(conv.contactPhone)}`)
+                    }
+                  >
                     Abrir
                   </Button>
                   {activeTab !== 'closed' && (
@@ -189,9 +195,9 @@ export default function ConversationsPage() {
     );
   };
 
-  const incomingCount = conversations.filter(conv => conv.status === 'open' && !conv.assignedAgentId).length;
-  const waitingCount = conversations.filter(conv => conv.status === 'waiting' || (conv.status === 'open' && conv.assignedAgentId)).length;
-  const closedCount = conversations.filter(conv => conv.status === 'closed').length;
+  const incomingCount = conversations.filter((conv) => isIncomingTab(conv)).length;
+  const waitingCount = conversations.filter((conv) => isWaitingTab(conv)).length;
+  const closedCount = conversations.filter((conv) => isClosedTab(conv)).length;
 
   return (
     <div>

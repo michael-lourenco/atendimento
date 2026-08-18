@@ -1,6 +1,8 @@
 import { IWhatsAppService, SendMessageParams, WhatsAppMessageResponse, WhatsAppWebhookEntry } from '../../core/services/IWhatsAppService';
 import { Message } from '../../core/entities/Message';
 import axios, { AxiosInstance } from 'axios';
+import { mapEvolutionIncomingMessages } from './mapEvolutionIncoming';
+import { parseEvolutionMediaResponse, DownloadedMedia } from './evolutionMedia';
 
 /**
  * Implementação do serviço WhatsApp usando Evolution API como intermediário
@@ -42,7 +44,7 @@ export class EvolutionWhatsAppService implements IWhatsAppService {
         'apikey': this.apiKey,
         'Content-Type': 'application/json',
       },
-      timeout: 30000, // 30 segundos
+      timeout: 30000,
     });
   }
 
@@ -173,69 +175,64 @@ export class EvolutionWhatsAppService implements IWhatsAppService {
    * Evolution envia webhooks em formato diferente, então precisamos adaptar
    */
   async processEvolutionWebhook(evolutionPayload: any): Promise<Message[]> {
-    const messages: Message[] = [];
-
-    // Evolution API envia webhooks com estrutura:
-    // {
-    //   event: 'messages.upsert',
-    //   instance: 'instance-name',
-    //   data: {
-    //     key: { id: '...', remoteJid: '...' },
-    //     message: { ... },
-    //     messageTimestamp: 1234567890
-    //   }
-    // }
-
-    if (evolutionPayload.event === 'messages.upsert' && evolutionPayload.data) {
-      const data = evolutionPayload.data;
-      const message = data.message;
-      const key = data.key;
-      
-      if (!message || !key) {
-        return messages;
+    const messages = mapEvolutionIncomingMessages(evolutionPayload, this.instanceName);
+    for (const message of messages) {
+      if (!message.contactName) {
+        message.contactName = await this.lookupPushName(message.from);
       }
-
-      let content = '';
-      let type: 'text' | 'image' | 'document' | 'audio' | 'video' = 'text';
-
-      // Processar diferentes tipos de mensagem do Evolution
-      if (message.conversation || message.extendedTextMessage) {
-        content = message.conversation || message.extendedTextMessage?.text || '';
-        type = 'text';
-      } else if (message.imageMessage) {
-        content = message.imageMessage.caption || 'Imagem recebida';
-        type = 'image';
-      } else if (message.audioMessage) {
-        content = 'Áudio recebido';
-        type = 'audio';
-      } else if (message.videoMessage) {
-        content = message.videoMessage.caption || 'Vídeo recebido';
-        type = 'video';
-      } else if (message.documentMessage) {
-        content = message.documentMessage.caption || message.documentMessage.fileName || 'Documento recebido';
-        type = 'document';
-      }
-
-      // Extrair número do remetente (remoteJid tem formato: 5511999999999@s.whatsapp.net)
-      const from = key.remoteJid?.split('@')[0] || '';
-
-      const messageEntity: Message = {
-        id: key.id || `evolution_${Date.now()}`,
-        from,
-        to: this.instanceName,
-        content,
-        type,
-        timestamp: new Date((data.messageTimestamp || Date.now()) * 1000),
-        direction: 'incoming',
-        status: 'delivered',
-      };
-
-      messages.push(messageEntity);
     }
-
     return messages;
   }
+
+  async downloadMedia(input: {
+    messageId: string;
+    webhookItem?: Record<string, unknown>;
+    convertToMp4?: boolean;
+    remoteJid?: string;
+    fromMe?: boolean;
+  }): Promise<DownloadedMedia | null> {
+    if (!this.apiKey || !this.instanceName) {
+      return null;
+    }
+    try {
+      const response = await this.axiosClient.post(
+        `/chat/getBase64FromMediaMessage/${this.instanceName}`,
+        {
+          message:
+            input.webhookItem ?? {
+              key: {
+                id: input.messageId,
+                remoteJid: input.remoteJid,
+                fromMe: Boolean(input.fromMe),
+              },
+            },
+          convertToMp4: Boolean(input.convertToMp4),
+        },
+        { timeout: 120000 }
+      );
+      return parseEvolutionMediaResponse(response.data);
+    } catch {
+      return null;
+    }
+  }
+
+  private async lookupPushName(phone: string): Promise<string | undefined> {
+    if (!this.apiKey || !phone) {
+      return undefined;
+    }
+    try {
+      const response = await this.axiosClient.post(`/chat/fetchProfile/${this.instanceName}`, {
+        number: phone,
+      });
+      const body = response.data ?? {};
+      const name = body.name || body.pushName || body.pushname || body.numberName;
+      return typeof name === 'string' && name.trim() ? name.trim() : undefined;
+    } catch {
+      return undefined;
+    }
+  }
 }
+
 
 
 

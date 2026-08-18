@@ -1,0 +1,14 @@
+---
+description: Idioma, tamanho de arquivo e mudanças mínimas no chatbot-atimo
+alwaysApply: true
+---
+
+# Comunicação e código
+
+- Responder ao usuário em português.
+- Identificadores de código em inglês, alinhados ao que já existe (`UseCase`, `Flow`, `ServiceLocator`).
+- Preferir a solução mais simples. Sem duplicar o que já está em `core` / `ui`.
+- Arquivo ≤ 300 linhas; função longa → extrair.
+- Só alterar o que a tarefa pede. Sem refatoração oportunista.
+- Ambientes: mocks em `infra/mocks` (dev/test); sem dados simulados em prod.
+- Correção de bug: esgotar o padrão atual antes de nova lib; se trocar, remover a implementação antiga.

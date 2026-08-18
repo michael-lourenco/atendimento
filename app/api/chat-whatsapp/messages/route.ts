@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { ChatWhatsAppService } from '@/infra/whatsapp/ChatWhatsAppService';
+import { getDashboardWhatsAppMessages } from '@/infra/whatsapp/dashboardConnection';
 
 /**
  * API Route para listar mensagens do chat-whatsapp
@@ -11,8 +12,7 @@ export async function GET(request: NextRequest) {
     const limit = parseInt(searchParams.get('limit') || '50');
     const offset = parseInt(searchParams.get('offset') || '0');
     
-    const service = new ChatWhatsAppService();
-    const messages = await service.getMessages(limit, offset);
+    const messages = await getDashboardWhatsAppMessages(limit, offset);
     
     return NextResponse.json(messages, { status: 200 });
   } catch (error) {
@@ -61,4 +61,5 @@ export async function POST(request: NextRequest) {
     );
   }
 }
+
 

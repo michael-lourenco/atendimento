@@ -158,3 +158,4 @@ curl http://3.84.228.243:3000/api/messages?limit=10
 **Última atualização**: 2025-01-27
 **Status**: Funcional com fallback para versão antiga
 
+

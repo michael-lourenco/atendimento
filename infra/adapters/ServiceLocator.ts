@@ -1,96 +1,71 @@
-import { IFlowRepository } from '../../core/repositories/IFlowRepository';
-import { IMessageRepository } from '../../core/repositories/IMessageRepository';
-import { IAuthRepository } from '../../core/repositories/IAuthRepository';
-import { IWhatsAppService } from '../../core/services/IWhatsAppService';
-import { mockFlowRepository } from '../mocks/MockFlowRepository';
-import { mockMessageRepository } from '../mocks/MockMessageRepository';
-import { mockAuthRepository } from '../mocks/MockAuthRepository';
-import { WhatsAppService } from '../whatsapp/WhatsAppService';
-import { TwilioWhatsAppService } from '../whatsapp/TwilioWhatsAppService';
-import { EvolutionWhatsAppService } from '../whatsapp/EvolutionWhatsAppService';
+import { RepositoryBag, createMockRepositoryBag } from './createMockRepositoryBag';
+import { isPublicSupabaseConfigured, isTestEnv } from '../supabase/env';
+import { createBrowserSupabase } from '../supabase/browserClient';
+import { createSupabaseDataBag } from '../supabase/createSupabaseDataBag';
+import { SupabaseAuthRepository } from '../supabase/SupabaseAuthRepository';
+
+function createBag(): RepositoryBag {
+  if (isTestEnv()) {
+    return createMockRepositoryBag();
+  }
+  if (isPublicSupabaseConfigured()) {
+    return createSupabaseDataBag(createBrowserSupabase(), new SupabaseAuthRepository());
+  }
+  return createMockRepositoryBag();
+}
 
 class ServiceLocator {
-  private flowRepository: IFlowRepository;
-  private messageRepository: IMessageRepository;
-  private authRepository: IAuthRepository;
-  private whatsAppService: IWhatsAppService;
+  private repos: RepositoryBag | null = null;
 
-  constructor() {
-    // Inicializa com mocks - pode ser trocado facilmente no futuro
-    this.flowRepository = mockFlowRepository;
-    this.messageRepository = mockMessageRepository;
-    this.authRepository = mockAuthRepository;
-    
-    // Inicializa serviço WhatsApp baseado na variável de ambiente
-    // Opções: 'meta' (padrão), 'twilio', ou outros serviços intermediários
-    this.whatsAppService = this.createWhatsAppService();
-  }
-
-  /**
-   * Cria a instância do serviço WhatsApp baseado na variável de ambiente WHATSAPP_PROVIDER
-   * 
-   * Variáveis de ambiente suportadas:
-   * - WHATSAPP_PROVIDER=meta (padrão) -> Usa Meta Cloud API diretamente
-   * - WHATSAPP_PROVIDER=twilio -> Usa Twilio como intermediário
-   * - WHATSAPP_PROVIDER=evolution -> Usa Evolution API como intermediário
-   * 
-   * Para adicionar novos provedores:
-   * 1. Crie uma nova classe que implementa IWhatsAppService
-   * 2. Adicione o import aqui
-   * 3. Adicione um case no switch abaixo
-   */
-  private createWhatsAppService(): IWhatsAppService {
-    const provider = (process.env.WHATSAPP_PROVIDER || 'meta').toLowerCase();
-
-    switch (provider) {
-      case 'twilio':
-        console.log('📱 Usando Twilio como serviço intermediário WhatsApp');
-        return new TwilioWhatsAppService();
-      
-      case 'evolution':
-        console.log('📱 Usando Evolution API como serviço intermediário WhatsApp');
-        return new EvolutionWhatsAppService();
-      
-      case 'meta':
-      default:
-        console.log('📱 Usando Meta Cloud API diretamente');
-        return new WhatsAppService();
+  private getRepos(): RepositoryBag {
+    if (!this.repos) {
+      this.repos = createBag();
     }
+    return this.repos;
   }
 
-  getFlowRepository(): IFlowRepository {
-    return this.flowRepository;
+  getFlowRepository() {
+    return this.getRepos().flow;
   }
-
-  getMessageRepository(): IMessageRepository {
-    return this.messageRepository;
+  getMessageRepository() {
+    return this.getRepos().message;
   }
-
-  getAuthRepository(): IAuthRepository {
-    return this.authRepository;
+  getAuthRepository() {
+    return this.getRepos().auth;
   }
-
-  getWhatsAppService(): IWhatsAppService {
-    return this.whatsAppService;
+  getFlowSessionRepository() {
+    return this.getRepos().flowSession;
   }
-
-  // Métodos para trocar implementações (útil quando migrar para backends reais)
-  setFlowRepository(repository: IFlowRepository): void {
-    this.flowRepository = repository;
+  getConversationRepository() {
+    return this.getRepos().conversation;
   }
-
-  setMessageRepository(repository: IMessageRepository): void {
-    this.messageRepository = repository;
+  getDepartmentRepository() {
+    return this.getRepos().department;
   }
-
-  setAuthRepository(repository: IAuthRepository): void {
-    this.authRepository = repository;
+  getInternalMessageRepository() {
+    return this.getRepos().internalMessage;
   }
-
-  setWhatsAppService(service: IWhatsAppService): void {
-    this.whatsAppService = service;
+  getChatbotRepository() {
+    return this.getRepos().chatbot;
+  }
+  getAgentRepository() {
+    return this.getRepos().agent;
+  }
+  getContactRepository() {
+    return this.getRepos().contact;
+  }
+  getWhatsAppNumberRepository() {
+    return this.getRepos().whatsAppNumber;
+  }
+  getTagRepository() {
+    return this.getRepos().tag;
+  }
+  getScheduledMessageRepository() {
+    return this.getRepos().scheduledMessage;
+  }
+  getReportRepository() {
+    return this.getRepos().report;
   }
 }
 
 export const serviceLocator = new ServiceLocator();
-

@@ -1,0 +1,18 @@
+---
+description: Provedores WhatsApp, webhooks e envelope de envio
+globs:
+  - infra/whatsapp/**/*.ts
+  - app/api/webhook/**/*.ts
+  - app/api/messages/**/*.ts
+  - app/api/chat-whatsapp/**/*.ts
+alwaysApply: false
+---
+
+# WhatsApp
+
+- Envio/recebimento: `IWhatsAppService`. Registrar no `ServiceLocator` via `WHATSAPP_PROVIDER`.
+- `sendMessage` devolve o envelope com `contacts` e `messages[].id` (use cases dependem disso).
+- Payload Evolution ≠ Meta: webhook próprio (`/api/webhook/evolution`).
+- QR/status: `ChatWhatsAppService` + `/api/chat-whatsapp/*`, separado da porta até a spec `03` unificar.
+- ACK 200 nos webhooks que reenviam em falha. Não logar access tokens.
+- Env vars: listar em `specs/03-whatsapp.md`. Não inventar nomes.

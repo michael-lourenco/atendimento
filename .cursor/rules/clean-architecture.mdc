@@ -1,0 +1,31 @@
+---
+description: Camadas core/infra, portas e ServiceLocator
+globs:
+  - core/**/*.ts
+  - infra/**/*.ts
+alwaysApply: false
+---
+
+# Clean Architecture (Fase 1)
+
+```ts
+// ❌ BAD — Axios no use case
+export class SendWhatsAppMessageUseCase {
+  async execute(input: SendWhatsAppMessageInput) {
+    await axios.post('https://graph.facebook.com/...', input);
+  }
+}
+
+// ✅ GOOD — porta
+export class SendWhatsAppMessageUseCase {
+  constructor(private whatsApp: IWhatsAppService = serviceLocator.getWhatsAppService()) {}
+  async execute(input: SendWhatsAppMessageInput) {
+    return this.whatsApp.sendMessage(input);
+  }
+}
+```
+
+- Entidades e interfaces só em `core/`.
+- Implementações em `infra/mocks` ou `infra/whatsapp`.
+- Novo I/O: porta + mock + `ServiceLocator` (ou construtor).
+- `core` não importa `app/` nem `ui/`.

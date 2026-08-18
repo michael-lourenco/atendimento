@@ -1,9 +1,10 @@
 import { serviceLocator } from '../../infra/adapters/ServiceLocator';
+import { IAuthRepository } from '../repositories/IAuthRepository';
 
 export class LogoutUseCase {
-  async execute(): Promise<void> {
-    const repository = serviceLocator.getAuthRepository();
-    return repository.logout();
+  constructor(private repository: IAuthRepository = serviceLocator.getAuthRepository()) {}
+
+  execute(): Promise<void> {
+    return this.repository.logout();
   }
 }
-

@@ -7,8 +7,10 @@ import { Input } from '@/ui/components/input';
 import { Badge } from '@/ui/components/badge';
 import { ScrollArea } from '@/ui/components/scroll-area';
 import { Send, User, ArrowRight, MessageCircle } from 'lucide-react';
-import { mockInternalMessageRepository } from '@/infra/mocks/MockInternalMessageRepository';
-import { mockConversationRepository } from '@/infra/mocks/MockConversationRepository';
+import { GetInternalMessagesUseCase } from '@/core/usecases/GetInternalMessagesUseCase';
+import { SaveInternalMessageUseCase } from '@/core/usecases/SaveInternalMessageUseCase';
+import { GetAllConversationsUseCase } from '@/core/usecases/GetAllConversationsUseCase';
+import { TransferConversationUseCase } from '@/core/usecases/TransferConversationUseCase';
 import { InternalMessage } from '@/core/entities/InternalMessage';
 import { Conversation } from '@/core/entities/Conversation';
 
@@ -39,7 +41,7 @@ export default function InternalChatPage() {
 
   const loadConversations = async () => {
     try {
-      const allConversations = await mockConversationRepository.getAll();
+      const allConversations = await new GetAllConversationsUseCase().execute();
       setConversations(allConversations);
       if (allConversations.length > 0 && !selectedConversation) {
         setSelectedConversation(allConversations[0]);
@@ -51,9 +53,7 @@ export default function InternalChatPage() {
 
   const loadMessages = async (conversationId: string) => {
     try {
-      const conversationMessages = await mockInternalMessageRepository.getByConversation(
-        conversationId
-      );
+      const conversationMessages = await new GetInternalMessagesUseCase().execute(conversationId);
       setMessages(conversationMessages);
     } catch (error) {
       console.error('Erro ao carregar mensagens:', error);
@@ -80,7 +80,7 @@ export default function InternalChatPage() {
     };
 
     try {
-      await mockInternalMessageRepository.save(message);
+      await new SaveInternalMessageUseCase().execute(message);
       setNewMessage('');
       loadMessages(selectedConversation.id);
     } catch (error) {
@@ -105,15 +105,15 @@ export default function InternalChatPage() {
     };
 
     try {
-      await mockInternalMessageRepository.save(transferMessage);
-      const updatedConversation = {
-        ...selectedConversation,
-        assignedAgentId: targetAgentId,
-        assignedAgentName: targetAgentName,
-        status: 'transferred' as const,
-      };
-      await mockConversationRepository.save(updatedConversation);
-      setSelectedConversation(updatedConversation);
+      await new SaveInternalMessageUseCase().execute(transferMessage);
+      const updatedConversation = await new TransferConversationUseCase().execute({
+        conversationId: selectedConversation.id,
+        targetAgentId,
+        targetAgentName,
+      });
+      if (updatedConversation) {
+        setSelectedConversation(updatedConversation);
+      }
       loadMessages(selectedConversation.id);
       loadConversations();
     } catch (error) {
