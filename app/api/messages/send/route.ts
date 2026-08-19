@@ -6,6 +6,7 @@ import { UpsertContactFromIncomingUseCase } from '@/core/usecases/UpsertContactF
 import { isPublicSupabaseConfigured } from '@/infra/supabase/env';
 import { getOperatorUser } from '@/infra/supabase/getOperatorUser';
 import { PauseContactFlowUseCase } from '@/core/usecases/PauseContactFlowUseCase';
+import { parseSendRequest, SendRequestError } from './parseSendRequest';
 
 export async function POST(request: NextRequest) {
   try {
@@ -16,23 +17,7 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    const body = await request.json();
-    const { to, message, type, templateName, templateParams } = body;
-
-    if (!to || !message) {
-      return NextResponse.json(
-        { error: 'Campos obrigatórios: to, message' },
-        { status: 400 }
-      );
-    }
-
-    if (type === 'template' && !templateName) {
-      return NextResponse.json(
-        { error: 'templateName é obrigatório quando type é "template"' },
-        { status: 400 }
-      );
-    }
-
+    const input = await parseSendRequest(request);
     const locator = serverLocator;
     const repos = locator.getRepos();
     const upsert = new UpsertConversationFromMessageUseCase(repos.conversation, repos.contact);
@@ -41,24 +26,22 @@ export async function POST(request: NextRequest) {
       locator.getWhatsAppService(),
       repos.message,
       upsert,
-      upsertContact
+      upsertContact,
+      locator.getMediaStorage()
     );
-    const result = await useCase.execute({
-      to,
-      message,
-      type,
-      templateName,
-      templateParams,
-    });
+    const result = await useCase.execute(input);
 
     try {
-      await new PauseContactFlowUseCase(repos.flowSession, repos.flow).execute(to);
+      await new PauseContactFlowUseCase(repos.flowSession, repos.flow).execute(input.to);
     } catch (pauseError) {
       console.error('Falha ao pausar fluxo após envio do operador:', pauseError);
     }
 
     return NextResponse.json(result, { status: 200 });
   } catch (error) {
+    if (error instanceof SendRequestError) {
+      return NextResponse.json({ error: error.message }, { status: error.status });
+    }
     console.error('Erro ao enviar mensagem:', error);
 
     return NextResponse.json(

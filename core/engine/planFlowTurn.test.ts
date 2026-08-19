@@ -49,6 +49,7 @@ describe('planFlowTurn', () => {
       'Olá',
       'Qual área?\n- Suporte\n- Vendas',
     ]);
+    expect(plan.effects).toEqual([]);
     expect(plan.nextSession).toEqual({
       contactId: '5511999999999',
       flowId: 'inicio',
@@ -94,5 +95,44 @@ describe('planFlowTurn', () => {
 
     expect(plan.replies).toEqual([{ content: 'Outro ok', stepId: 'other' }]);
     expect(plan.nextSession.currentStepId).toBeNull();
+  });
+
+  it('action setDepartment vira efeito e não envia WhatsApp', () => {
+    const withAction: Flow = {
+      ...flow,
+      steps: [
+        {
+          id: 'ask',
+          type: 'question',
+          content: 'Qual área?',
+          nextStepId: 'set_vendas',
+        },
+        {
+          id: 'set_vendas',
+          type: 'action',
+          content: 'não enviar',
+          nextStepId: 'ok',
+          action: { type: 'setDepartment', departmentId: '1' },
+        },
+        { id: 'ok', type: 'message', content: 'Vendas ok' },
+      ],
+    };
+
+    const plan = planFlowTurn({
+      flow: withAction,
+      session: {
+        contactId: '5511999999999',
+        flowId: 'inicio',
+        currentStepId: 'ask',
+        paused: false,
+        updatedAt: now,
+      },
+      contactId: '5511999999999',
+      incomingText: 'Vendas',
+      now,
+    });
+
+    expect(plan.effects).toEqual([{ type: 'setDepartment', departmentId: '1' }]);
+    expect(plan.replies).toEqual([{ content: 'Vendas ok', stepId: 'ok' }]);
   });
 });

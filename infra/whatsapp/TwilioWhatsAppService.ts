@@ -1,4 +1,4 @@
-import { IWhatsAppService, SendMessageParams, WhatsAppMessageResponse, WhatsAppWebhookEntry } from '../../core/services/IWhatsAppService';
+import { IWhatsAppService, SendMessageParams, WhatsAppMessageResponse, WhatsAppWebhookEntry, assertNoOutgoingMedia } from '../../core/services/IWhatsAppService';
 import { Message } from '../../core/entities/Message';
 
 /**
@@ -44,6 +44,7 @@ export class TwilioWhatsAppService implements IWhatsAppService {
   }
 
   async sendMessage(params: SendMessageParams): Promise<WhatsAppMessageResponse> {
+    assertNoOutgoingMedia(params);
     if (!this.accountSid || !this.authToken || !this.whatsappNumber) {
       throw new Error('Credenciais Twilio não configuradas. Verifique as variáveis de ambiente: TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, TWILIO_WHATSAPP_NUMBER');
     }

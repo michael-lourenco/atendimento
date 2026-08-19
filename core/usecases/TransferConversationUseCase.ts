@@ -6,6 +6,8 @@ export interface TransferConversationInput {
   conversationId: string;
   targetAgentId: string;
   targetAgentName: string;
+  departmentId?: string;
+  departmentName?: string;
 }
 
 export class TransferConversationUseCase {
@@ -19,10 +21,14 @@ export class TransferConversationUseCase {
       return null;
     }
 
+    const departmentId = input.departmentId?.trim() || conversation.departmentId;
+    const departmentName = input.departmentName?.trim() || conversation.departmentName;
     const updated: Conversation = {
       ...conversation,
       assignedAgentId: input.targetAgentId,
       assignedAgentName: input.targetAgentName,
+      departmentId,
+      departmentName,
       status: 'transferred',
       lastActivity: new Date(),
     };

@@ -1,11 +1,15 @@
 import { Flow } from '../entities/Flow';
 import { Message } from '../entities/Message';
+import { Conversation } from '../entities/Conversation';
 import { IFlowRepository } from '../repositories/IFlowRepository';
 import { IFlowSessionRepository } from '../repositories/IFlowSessionRepository';
 import { IMessageRepository } from '../repositories/IMessageRepository';
+import { IConversationRepository } from '../repositories/IConversationRepository';
+import { IDepartmentRepository } from '../repositories/IDepartmentRepository';
 import { IWhatsAppService, SendMessageParams, WhatsAppMessageResponse, WhatsAppWebhookEntry } from '../services/IWhatsAppService';
 import { FlowSession } from '../entities/FlowSession';
 import { SendWhatsAppMessageUseCase } from './SendWhatsAppMessageUseCase';
+import { SetConversationDepartmentUseCase } from './SetConversationDepartmentUseCase';
 import { ProcessIncomingFlowUseCase } from './ProcessIncomingFlowUseCase';
 
 const now = new Date('2026-08-18T15:00:00Z');
@@ -157,5 +161,86 @@ describe('ProcessIncomingFlowUseCase', () => {
     const session = await sessions.getByContactId('5511999999999');
     expect(session?.paused).toBe(true);
     expect(session?.currentStepId).toBe('ask');
+  });
+
+  it('action setDepartment grava o setor da conversa', async () => {
+    const triage: Flow = {
+      ...sampleFlow,
+      steps: [
+        { id: 'ask', type: 'question', content: 'Qual área?', nextStepId: 'set_vendas' },
+        {
+          id: 'set_vendas',
+          type: 'action',
+          content: '',
+          nextStepId: 'ok',
+          action: { type: 'setDepartment', departmentId: '1' },
+        },
+        { id: 'ok', type: 'message', content: 'Vendas ok' },
+      ],
+    };
+    const conversations: Conversation[] = [
+      {
+        id: '5511999999999',
+        contactId: '5511999999999',
+        contactName: 'Cliente',
+        contactPhone: '5511999999999',
+        status: 'open',
+        unreadCount: 1,
+        lastActivity: now,
+        createdAt: now,
+        tags: [],
+      },
+    ];
+    const conversationRepo: IConversationRepository = {
+      getAll: async () => conversations,
+      getById: async (id) => conversations.find((item) => item.id === id) ?? null,
+      getByDepartment: async () => [],
+      getByAgent: async () => [],
+      save: async (conversation) => {
+        conversations[0] = conversation;
+      },
+      delete: async () => {},
+    };
+    const departmentRepo: IDepartmentRepository = {
+      getAll: async () => [],
+      getById: async (id) =>
+        id === '1'
+          ? {
+              id: '1',
+              name: 'Vendas',
+              color: '#3b82f6',
+              isActive: true,
+              agentsCount: 0,
+              conversationsCount: 0,
+              createdAt: now,
+              updatedAt: now,
+            }
+          : null,
+      save: async () => {},
+      delete: async () => {},
+    };
+    const whatsApp = new FakeWhatsAppService();
+    const send = new SendWhatsAppMessageUseCase(whatsApp, new InMemoryMessageRepository());
+    const sessions = new InMemorySessionRepository();
+    await sessions.save({
+      contactId: '5511999999999',
+      flowId: 'inicio',
+      currentStepId: 'ask',
+      paused: false,
+      updatedAt: now,
+    });
+    const useCase = new ProcessIncomingFlowUseCase(
+      new InMemoryFlowRepository([triage]),
+      sessions,
+      send,
+      new SetConversationDepartmentUseCase(conversationRepo),
+      departmentRepo
+    );
+
+    await useCase.execute({ contactId: '5511999999999', text: 'Vendas' });
+
+    expect(conversations[0].departmentId).toBe('1');
+    expect(conversations[0].departmentName).toBe('Vendas');
+    expect(whatsApp.sent.map((item) => item.message)).toEqual(['Vendas ok']);
   });
 });

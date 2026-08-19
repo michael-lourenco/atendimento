@@ -32,7 +32,7 @@ Novas entidades exigem interface de repositório em `core/repositories` e mock e
 - `IConversationRepository`, `IDepartmentRepository`, `IInternalMessageRepository`
 - `IChatbotRepository`, `IAgentRepository`, `IContactRepository`, `IWhatsAppNumberRepository`, `ITagRepository`, `IScheduledMessageRepository`, `IReportRepository` — CRUD (`ICrudRepository`)
 
-Catálogos do painel usam `CatalogUseCase` (`list` / `save` / `delete`). Conversas: `GetAllConversationsUseCase`, `GetConversationByIdUseCase`, `AssignConversationUseCase`, `TransferConversationUseCase`, `CloseConversationUseCase`. Relatórios: `GetDashboardMetricsUseCase`, `ReportCatalogUseCase`, `GenerateReportUseCase`.
+Catálogos do painel usam `CatalogUseCase` (`list` / `save` / `delete`). Conversas: `GetAllConversationsUseCase`, `GetConversationByIdUseCase`, `AssignConversationUseCase`, `TransferConversationUseCase`, `CloseConversationUseCase`, `MarkConversationReadUseCase`, `SetConversationDepartmentUseCase`. Relatórios: `GetDashboardMetricsUseCase`, `ReportCatalogUseCase`, `GenerateReportUseCase`.
 
 ## Use cases existentes
 
@@ -42,18 +42,18 @@ Mensagens: `GetAllMessagesUseCase`, `GetMessagesByContactUseCase`
 WhatsApp: `SendWhatsAppMessageUseCase`, `HandleIncomingWhatsAppMessageUseCase`, `UpsertConversationFromMessageUseCase`, `UpsertContactFromIncomingUseCase`  
 Motor: `ProcessIncomingFlowUseCase` (incoming texto → respostas do fluxo)  
 Atendimento humano: `PauseContactFlowUseCase`, `ResumeContactFlowUseCase`, `GetFlowSessionUseCase`  
-Fila: `AssignConversationUseCase` (assumir → `waiting` + agente), `TransferConversationUseCase` (`transferred`), `CloseConversationUseCase` (`closed`)
+Fila: `AssignConversationUseCase` (assumir → `waiting` + agente), `TransferConversationUseCase` (`transferred`), `CloseConversationUseCase` (`closed`), `MarkConversationReadUseCase` (`unreadCount: 0`), `SetConversationDepartmentUseCase` (`departmentId` / `departmentName`)
 
 ## Invariantes
 
 1. Mensagem incoming/outgoing tem `direction` e `status` válidos.
 2. Só fluxo `isActive` entra no motor.
-3. Conversa: status `open` \| `closed` \| `waiting` \| `transferred`. Toda `Message` persistida cria/atualiza `Conversation` (`id` = telefone) e `Contact` (`id`/`phone` = telefone, `name` = `pushName` do WhatsApp quando houver). Não sobrescrever nome real por número. Incoming em conversa `closed` reabre para `open` (mantém o agente). **Assumir** grava `assignedAgentId` / `assignedAgentName` e `status: waiting` (aba Esperando). **Transferir** usa um agente do catálogo e `status: transferred`. **Finalizar** grava `status: closed`.
+3. Conversa: status `open` \| `closed` \| `waiting` \| `transferred`. Toda `Message` persistida cria/atualiza `Conversation` (`id` = telefone) e `Contact` (`id`/`phone` = telefone, `name` = `pushName` do WhatsApp quando houver). Não sobrescrever nome real por número. Incoming em conversa `closed` reabre para `open` (mantém o agente) e incrementa `unreadCount`. Conversa nova **não** ganha setor no upsert. Passo `action` `setDepartment` no fluxo grava o setor no mesmo turno (antes da fila). `SetConversationDepartmentUseCase` grava `departmentId` / `departmentName` (id vazio remove o setor). **Assumir** grava `assignedAgentId` / `assignedAgentName` e `status: waiting` (aba Esperando); se a conversa não tem setor e o agente do operador tem, copia o setor. **Transferir** usa um agente do catálogo e `status: transferred`; se o destino tem setor, a conversa passa a esse setor. **Finalizar** grava `status: closed`. Abrir a thread (`?contact=`) zera `unreadCount` (`MarkConversationReadUseCase`); não altera `lastActivity`. Enquanto a thread estiver aberta, o poll também zera (operador está vendo). Fila: **Entrada** é de todos (sem dono). **Esperando** e **Finalizados** filtram por padrão as do operador (`assignedAgentId` = mesmo id do Assumir); toogle **Ver o time** mostra as dos outros. Sem usuário logado, não filtra. Filtro de setor (padrão = setor do agente do operador, senão todos): em Entrada, um setor específico ainda inclui conversas sem setor; em Esperando/Finalizados, só o setor escolhido. Transferir lista agentes do mesmo setor da conversa; se nenhum, lista todos.
 4. Auth **mock (Fases 1–3):** senha irrelevante; `admin@example.com` / `user@example.com`. Auth **Supabase (Fase 4):** senha real; papel em `profiles`; sem usuários de teste na UI — ver `08-supabase.md`.
 5. Use case não chama Axios/Meta/Twilio direto — só `IWhatsAppService`.
 6. Uma sessão por `contactId`. Sem fluxo ativo: incoming é persistida e **nenhuma** resposta automática é enviada.
 7. No máximo 20 passos por turno (ciclo).
-8. Envio pelo painel (`POST /api/messages/send`) **pausa** a sessão (`paused: true`). Enquanto pausado, incoming é persistida e o motor **não** responde. `ResumeContactFlowUseCase` volta `paused: false` e zera `currentStepId` (próxima mensagem recomeça o fluxo). Respostas automáticas do motor **não** pausam.
+8. Envio pelo painel (`POST /api/messages/send`) **pausa** a sessão (`paused: true`). Texto ou mídia (imagem/áudio/vídeo/documento). Mídia outgoing é cacheada em `IMediaStorage` (`messages/{id}`). Enquanto pausado, incoming é persistida e o motor **não** responde. `ResumeContactFlowUseCase` volta `paused: false` e zera `currentStepId` (próxima mensagem recomeça o fluxo). Respostas automáticas do motor **não** pausam.
 
 ## FlowSession
 
@@ -81,7 +81,8 @@ Planejamento puro em `core/engine` (`planFlowTurn`, `evaluateCondition`, `resolv
 
 - **Sem sessão ou `currentStepId` null:** começa no primeiro passo do fluxo. A mensagem do usuário só dispara o fluxo; o texto alimenta `condition` encontradas **antes** de uma `question` no mesmo turno.
 - **`currentStepId` em `question`:** o texto é a resposta; o motor segue `nextStepId` (não reenvia a pergunta).
-- **`message` / `action`:** envia `content` se não vazio; segue `nextStepId`. `action` na Fase 2 não dispara efeito externo.
+- **`message`:** envia `content` se não vazio; segue `nextStepId`.
+- **`action`:** se `action.type === "setDepartment"` e `action.departmentId` existe no catálogo e está ativo, grava o setor da conversa (`SetConversationDepartmentUseCase`) e **não** envia `content` no WhatsApp. Sem `setDepartment`, comporta-se como `message`. Segue `nextStepId`.
 - **`question`:** envia `content`; se houver `options`, concatena uma linha `- opção` por item; grava `currentStepId` nessa pergunta e **para**.
 - **`condition`:** `field` suportado: `content` (texto incoming do turno). Outro `field` → ramo `false`. Operadores: `equals` e `contains` (trim, case-insensitive); `greaterThan` / `lessThan` numéricos (`Number`); `NaN` → `false`. Segue `trueStepId` ou `falseStepId`.
 - Passo ou `nextStepId` inexistente → encerra (`currentStepId` null). Próxima mensagem recomeça o fluxo resolvido.
@@ -94,6 +95,9 @@ Entrada do motor: só incoming `type === "text"` com conteúdo não vazio. Mídi
 - Primeira mensagem cria sessão e envia passos até a primeira `question`.
 - Resposta avança `nextStepId`.
 - `condition` ramos true e false.
+- `action` `setDepartment` grava o setor da conversa.
 - Sessão `paused` não dispara resposta automática.
 - `PauseContactFlowUseCase` marca pausa; `ResumeContactFlowUseCase` recomeça o fluxo.
 - `AssignConversationUseCase` coloca em Esperando; `CloseConversationUseCase` fecha.
+- `MarkConversationReadUseCase` zera `unreadCount`.
+- Fila “minhas”: Esperando/Finalizados com `assignedAgentId` do operador; Entrada sem filtro de dono.

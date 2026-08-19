@@ -4,7 +4,10 @@ import { useEffect, useState } from 'react';
 import { GetAllFlowsUseCase } from '@/core/usecases/GetAllFlowsUseCase';
 import { DeleteFlowUseCase } from '@/core/usecases/DeleteFlowUseCase';
 import { SaveFlowUseCase } from '@/core/usecases/SaveFlowUseCase';
-import { Flow } from '@/core/entities/Flow';
+import { Flow, FlowStep } from '@/core/entities/Flow';
+import { Department } from '@/core/entities/Department';
+import { DepartmentCatalogUseCase } from '@/core/usecases/DepartmentCatalogUseCase';
+import { FlowStepsEditor } from '@/ui/components/flow-steps-editor';
 import { Button } from '@/ui/components/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/ui/components/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/ui/components/table';
@@ -14,6 +17,8 @@ import { Textarea } from '@/ui/components/textarea';
 
 export default function FlowsPage() {
   const [flows, setFlows] = useState<Flow[]>([]);
+  const [departments, setDepartments] = useState<Department[]>([]);
+  const [steps, setSteps] = useState<FlowStep[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [editingFlow, setEditingFlow] = useState<Flow | null>(null);
@@ -31,9 +36,12 @@ export default function FlowsPage() {
   const loadFlows = async () => {
     setLoading(true);
     try {
-      const getAllFlowsUseCase = new GetAllFlowsUseCase();
-      const allFlows = await getAllFlowsUseCase.execute();
+      const [allFlows, departmentList] = await Promise.all([
+        new GetAllFlowsUseCase().execute(),
+        new DepartmentCatalogUseCase().list(),
+      ]);
       setFlows(allFlows);
+      setDepartments(departmentList);
     } catch (error) {
       console.error('Erro ao carregar fluxos:', error);
     } finally {
@@ -61,6 +69,7 @@ export default function FlowsPage() {
       description: flow.description || '',
       isActive: flow.isActive,
     });
+    setSteps(flow.steps);
     setShowForm(true);
   };
 
@@ -73,13 +82,14 @@ export default function FlowsPage() {
         name: formData.name,
         description: formData.description,
         isActive: formData.isActive,
-        steps: editingFlow?.steps || [],
+        steps,
         createdAt: editingFlow?.createdAt || new Date(),
         updatedAt: new Date(),
       };
       await saveFlowUseCase.execute(flow);
       setShowForm(false);
       setEditingFlow(null);
+      setSteps([]);
       setFormData({ id: '', name: '', description: '', isActive: true });
       loadFlows();
     } catch (error) {
@@ -90,7 +100,15 @@ export default function FlowsPage() {
   const handleCancel = () => {
     setShowForm(false);
     setEditingFlow(null);
+    setSteps([]);
     setFormData({ id: '', name: '', description: '', isActive: true });
+  };
+
+  const openNew = () => {
+    setEditingFlow(null);
+    setSteps([]);
+    setFormData({ id: '', name: '', description: '', isActive: true });
+    setShowForm(true);
   };
 
   if (loading) {
@@ -100,8 +118,8 @@ export default function FlowsPage() {
   return (
     <div>
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold text-foreground">Fluxos de Atendimento</h1>
-        <Button onClick={() => setShowForm(true)}>Novo Fluxo</Button>
+        <h1 className="text-3xl font-bold text-foreground">Fluxos</h1>
+        <Button onClick={openNew}>Novo Fluxo</Button>
       </div>
 
       {showForm && (
@@ -109,7 +127,9 @@ export default function FlowsPage() {
           <CardHeader>
             <CardTitle>{editingFlow ? 'Editar Fluxo' : 'Novo Fluxo'}</CardTitle>
             <CardDescription>
-              {editingFlow ? 'Edite as informações do fluxo' : 'Crie um novo fluxo de atendimento'}
+              {editingFlow
+                ? 'Ajuste as mensagens, perguntas e o destino de cada passo'
+                : 'Monte o roteiro: o cliente recebe as mensagens nesta ordem'}
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -143,6 +163,7 @@ export default function FlowsPage() {
                 />
                 <Label htmlFor="isActive" className="cursor-pointer">Ativo</Label>
               </div>
+              <FlowStepsEditor steps={steps} departments={departments} onChange={setSteps} />
               <div className="flex space-x-2">
                 <Button type="submit">Salvar</Button>
                 <Button type="button" variant="outline" onClick={handleCancel}>

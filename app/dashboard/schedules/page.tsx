@@ -55,7 +55,7 @@ export default function SchedulesPage() {
     <div>
       <div className="mb-6 flex justify-between items-center">
         <div>
-          <h1 className="text-3xl font-bold text-foreground">Agendamento</h1>
+          <h1 className="text-3xl font-bold text-foreground">Agendamentos</h1>
           <p className="text-muted-foreground mt-2">Agende o envio de mensagens para o futuro</p>
         </div>
         <Button onClick={() => setShowForm(true)}>

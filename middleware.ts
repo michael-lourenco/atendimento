@@ -47,7 +47,7 @@ export async function middleware(request: NextRequest) {
 
   if (user && path === '/login') {
     const url = request.nextUrl.clone();
-    url.pathname = '/dashboard/flows';
+    url.pathname = '/dashboard/conversations';
     return copyCookies(supabaseResponse, NextResponse.redirect(url));
   }
 

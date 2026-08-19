@@ -6,10 +6,11 @@ Route Handlers em `app/api/**/route.ts`. Sem inventar rotas que não estejam aqu
 
 `POST /api/messages/send`
 
-- Body JSON: `{ to: string, message: string, type?: "text"|"template", templateName?: string, templateParams?: string[] }`
-- 400 se faltar `to`/`message`; 400 se `type=template` sem `templateName`
-- 200: entidade `Message` persistida
-- Após envio bem-sucedido, pausa o fluxo daquele `to` (`PauseContactFlowUseCase`)
+- JSON: `{ to: string, message: string, type?: "text"|"template", templateName?: string, templateParams?: string[] }`
+- Multipart: `to`, `message` (legenda, opcional se houver arquivo), `file`
+- 400 se faltar `to`; 400 se não houver `message` nem arquivo; 400 se `type=template` sem `templateName`; 400 se arquivo > 16 MB
+- 200: entidade `Message` persistida (`type` image/audio/video/document quando houver arquivo)
+- Após envio bem-sucedido, pausa o fluxo daquele `to` (`PauseContactFlowUseCase`) e, se houver mídia, grava no Storage
 - 401: sem sessão de operador quando o Supabase está configurado
 - 500: falha no provedor
 

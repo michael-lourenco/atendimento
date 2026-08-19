@@ -4,7 +4,7 @@
 
 `core/services/IWhatsAppService`:
 
-- `sendMessage(params)` → envelope estilo Meta (`contacts`, `messages[].id`)
+- `sendMessage(params)` → envelope estilo Meta (`contacts`, `messages[].id`). `params.media` opcional (`mimeType`, `fileName`, `bytes`) para imagem/áudio/vídeo/documento. Sem mídia, texto/template como hoje.
 - `verifyWebhook(mode, token, challenge)` → string do challenge ou `null`
 - `processWebhook(entry)` → `Message[]`
 
@@ -39,7 +39,7 @@ Mídia (imagem, áudio, vídeo, documento): o webhook baixa o arquivo (`POST /ch
 
 ## Envio
 
-`POST /api/messages/send` → `SendWhatsAppMessageUseCase`. Body: `to`, `message`, opcional `type` (`text` \| `template`), `templateName`, `templateParams`.
+`POST /api/messages/send` → `SendWhatsAppMessageUseCase`. JSON: `to`, `message`, opcional `type` (`text` \| `template`), `templateName`, `templateParams`. Multipart: `to`, `message` (legenda opcional), `file` (imagem/áudio/vídeo/documento, máx. 16 MB). Evolution envia via `sendMedia` / `sendWhatsAppAudio` e o arquivo vai ao bucket `media` em `messages/{id}`. Meta/Twilio recusam mídia nesta versão. Após sucesso, pausa o fluxo.
 
 ## BFF QR / status (`/api/chat-whatsapp/*`)
 

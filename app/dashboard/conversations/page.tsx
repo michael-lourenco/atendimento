@@ -1,287 +1,229 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/ui/components/card';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/ui/components/table';
+import { useState, useEffect, useRef } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { Badge } from '@/ui/components/badge';
 import { Button } from '@/ui/components/button';
 import { Input } from '@/ui/components/input';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/ui/components/tabs';
-import { Search, Building2 } from 'lucide-react';
+import { Tabs, TabsList, TabsTrigger } from '@/ui/components/tabs';
+import { Search } from 'lucide-react';
 import { GetAllConversationsUseCase } from '@/core/usecases/GetAllConversationsUseCase';
 import { AgentCatalogUseCase } from '@/core/usecases/AgentCatalogUseCase';
-import { CloseConversationUseCase } from '@/core/usecases/CloseConversationUseCase';
+import { DepartmentCatalogUseCase } from '@/core/usecases/DepartmentCatalogUseCase';
+import { GetCurrentUserUseCase } from '@/core/usecases/GetCurrentUserUseCase';
 import { Conversation } from '@/core/entities/Conversation';
 import { Agent } from '@/core/entities/Agent';
-import { isClosedTab, isIncomingTab, isWaitingTab } from '@/core/entities/conversationTabs';
-import { TransferAgentControl } from '@/ui/components/transfer-agent-control';
-import { useRouter } from 'next/navigation';
+import { Department } from '@/core/entities/Department';
+import { User } from '@/core/entities/User';
+import { assignmentFromOperator } from '@/core/entities/assignmentFromOperator';
+import { isClosedTab, isIncomingTab, isWaitingTab, matchesMineFilter } from '@/core/entities/conversationTabs';
+import {
+  DepartmentFilter,
+  QueueTab,
+  matchesDepartmentFilter,
+} from '@/core/entities/conversationDepartment';
+import { ConversationInboxList } from '@/ui/components/conversation-inbox-list';
+import { MessageThread } from '@/ui/components/message-thread';
+import { DASHBOARD_POLL_MS } from '@/ui/lib/dashboard-poll';
 
 export default function ConversationsPage() {
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [agents, setAgents] = useState<Agent[]>([]);
+  const [departments, setDepartments] = useState<Department[]>([]);
+  const [operator, setOperator] = useState<User | null>(null);
+  const [mineOnly, setMineOnly] = useState(true);
+  const [departmentFilter, setDepartmentFilter] = useState<DepartmentFilter>('all');
+  const departmentFilterReady = useRef(false);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('');
   const [mounted, setMounted] = useState(false);
   const [activeTab, setActiveTab] = useState('incoming');
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const selectedPhone = searchParams.get('contact') ?? '';
 
   useEffect(() => {
     setMounted(true);
-    loadConversations();
+    loadConversations(true);
+    const timer = setInterval(() => loadConversations(false), DASHBOARD_POLL_MS);
+    return () => clearInterval(timer);
   }, []);
 
-  const loadConversations = async () => {
-    setLoading(true);
+  const loadConversations = async (showLoading = false) => {
+    if (showLoading) {
+      setLoading(true);
+    }
     try {
-      const [allConversations, agentList] = await Promise.all([
+      const [allConversations, agentList, departmentList, user] = await Promise.all([
         new GetAllConversationsUseCase().execute(),
         new AgentCatalogUseCase().list(),
+        new DepartmentCatalogUseCase().list(),
+        new GetCurrentUserUseCase().execute(),
       ]);
       setConversations(allConversations);
       setAgents(agentList);
+      setDepartments(departmentList);
+      setOperator(user);
+      if (!departmentFilterReady.current) {
+        departmentFilterReady.current = true;
+        const assignment = user ? assignmentFromOperator(user, agentList) : null;
+        if (assignment?.departmentId) {
+          setDepartmentFilter(assignment.departmentId);
+        }
+      }
     } catch (error) {
       console.error('Erro ao carregar conversas:', error);
     } finally {
-      setLoading(false);
+      if (showLoading) {
+        setLoading(false);
+      }
     }
   };
 
-  const handleClose = async (conversationId: string) => {
-    try {
-      await new CloseConversationUseCase().execute(conversationId);
-      setActiveTab('closed');
-      loadConversations();
-    } catch (error) {
-      console.error('Erro ao finalizar conversa:', error);
-    }
+  const openContact = (phone: string) => {
+    router.push(`/dashboard/conversations?contact=${encodeURIComponent(phone)}`);
   };
 
-  const getFilteredConversations = () => {
-    let filtered = conversations;
+  const operatorAgentId = operator
+    ? assignmentFromOperator(operator, agents).agentId
+    : undefined;
+  const tab = activeTab as QueueTab;
 
-    // Filtrar por aba
-    switch (activeTab) {
-      case 'incoming':
-        filtered = filtered.filter((conv) => isIncomingTab(conv));
-        break;
-      case 'waiting':
-        filtered = filtered.filter((conv) => isWaitingTab(conv));
-        break;
-      case 'closed':
-        filtered = filtered.filter((conv) => isClosedTab(conv));
-        break;
-      default:
-        break;
-    }
+  const filteredConversations = conversations.filter((conv) => {
+    if (tab === 'incoming' && !isIncomingTab(conv)) return false;
+    if (tab === 'waiting' && !isWaitingTab(conv)) return false;
+    if (tab === 'closed' && !isClosedTab(conv)) return false;
+    if (!matchesMineFilter(conv, tab, mineOnly, operatorAgentId)) return false;
+    if (!matchesDepartmentFilter(conv, tab, departmentFilter)) return false;
+    if (!filter) return true;
+    const searchTerm = filter.toLowerCase();
+    return (
+      conv.contactName.toLowerCase().includes(searchTerm) ||
+      conv.contactPhone.includes(searchTerm) ||
+      conv.departmentName?.toLowerCase().includes(searchTerm) ||
+      conv.assignedAgentName?.toLowerCase().includes(searchTerm)
+    );
+  });
 
-    // Filtrar por busca
-    if (filter) {
-      const searchTerm = filter.toLowerCase();
-      filtered = filtered.filter(
-        (conv) =>
-          conv.contactName.toLowerCase().includes(searchTerm) ||
-          conv.contactPhone.includes(searchTerm) ||
-          conv.departmentName?.toLowerCase().includes(searchTerm) ||
-          conv.assignedAgentName?.toLowerCase().includes(searchTerm)
-      );
-    }
-
-    return filtered;
-  };
-
-  const filteredConversations = getFilteredConversations();
+  const incomingCount = conversations.filter(
+    (conv) => isIncomingTab(conv) && matchesDepartmentFilter(conv, 'incoming', departmentFilter)
+  ).length;
+  const waitingCount = conversations.filter(
+    (conv) =>
+      isWaitingTab(conv) &&
+      matchesMineFilter(conv, 'waiting', mineOnly, operatorAgentId) &&
+      matchesDepartmentFilter(conv, 'waiting', departmentFilter)
+  ).length;
+  const closedCount = conversations.filter(
+    (conv) =>
+      isClosedTab(conv) &&
+      matchesMineFilter(conv, 'closed', mineOnly, operatorAgentId) &&
+      matchesDepartmentFilter(conv, 'closed', departmentFilter)
+  ).length;
 
   if (loading) {
     return <div className="text-center py-8 text-foreground">Carregando...</div>;
   }
 
-  const formatDate = (date: Date) => {
-    if (!mounted) return '';
-    return new Date(date).toLocaleString('pt-BR');
-  };
-
-  const renderConversationsTable = () => {
-    if (filteredConversations.length === 0) {
-      return (
-        <div className="text-center py-8 text-muted-foreground">
-          Nenhuma conversa encontrada
-        </div>
-      );
-    }
-
-    return (
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Contato</TableHead>
-            <TableHead>Nome</TableHead>
-            <TableHead>Setor</TableHead>
-            <TableHead>Atendente</TableHead>
-            <TableHead>Status</TableHead>
-            <TableHead>Não Lidas</TableHead>
-            <TableHead>Última Atividade</TableHead>
-            <TableHead>Ações</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {filteredConversations.map((conv) => (
-            <TableRow key={conv.id}>
-              <TableCell className="font-medium">{conv.contactPhone}</TableCell>
-              <TableCell>{conv.contactName}</TableCell>
-              <TableCell>
-                {conv.departmentName ? (
-                  <Badge variant="secondary" className="flex items-center gap-1 w-fit">
-                    <Building2 className="h-3 w-3" />
-                    {conv.departmentName}
-                  </Badge>
-                ) : (
-                  <span className="text-muted-foreground">-</span>
-                )}
-              </TableCell>
-              <TableCell>
-                {conv.assignedAgentName || (
-                  <span className="text-muted-foreground">Não atribuído</span>
-                )}
-              </TableCell>
-              <TableCell>
-                <Badge
-                  variant={
-                    conv.status === 'open'
-                      ? 'default'
-                      : conv.status === 'closed'
-                      ? 'secondary'
-                      : 'outline'
-                  }
-                >
-                  {conv.status === 'open'
-                    ? 'Aberta'
-                    : conv.status === 'closed'
-                    ? 'Fechada'
-                    : conv.status === 'transferred'
-                    ? 'Transferida'
-                    : 'Aguardando'}
-                </Badge>
-              </TableCell>
-              <TableCell>
-                {conv.unreadCount > 0 && (
-                  <Badge variant="destructive">{conv.unreadCount}</Badge>
-                )}
-              </TableCell>
-              <TableCell>{formatDate(conv.lastActivity)}</TableCell>
-              <TableCell>
-                <div className="flex flex-wrap gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() =>
-                      router.push(`/dashboard/messages?contact=${encodeURIComponent(conv.contactPhone)}`)
-                    }
-                  >
-                    Abrir
-                  </Button>
-                  {activeTab !== 'closed' && (
-                    <>
-                      <TransferAgentControl
-                        conversationId={conv.id}
-                        agents={agents}
-                        onTransferred={() => {
-                          setActiveTab('waiting');
-                          loadConversations();
-                        }}
-                      />
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => void handleClose(conv.id)}
-                      >
-                        Finalizar
-                      </Button>
-                    </>
-                  )}
-                </div>
-              </TableCell>
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
-    );
-  };
-
-  const incomingCount = conversations.filter((conv) => isIncomingTab(conv)).length;
-  const waitingCount = conversations.filter((conv) => isWaitingTab(conv)).length;
-  const closedCount = conversations.filter((conv) => isClosedTab(conv)).length;
-
   return (
-    <div>
-      <div className="mb-6">
-        <h1 className="text-3xl font-bold text-foreground">Conversas</h1>
-        <p className="text-muted-foreground mt-2">
-          Gerencie todas as conversas do WhatsApp
-        </p>
+    <div className="flex h-[calc(100dvh-8.5rem)] min-h-[520px] flex-col gap-3">
+      <div className="flex flex-wrap items-center justify-end gap-2">
+        <select
+          className="h-9 rounded-md border border-input bg-background px-2 text-sm"
+          value={departmentFilter}
+          aria-label="Filtrar por setor"
+          onChange={(event) => setDepartmentFilter(event.target.value)}
+        >
+          <option value="all">Todos os setores</option>
+          <option value="none">Sem setor</option>
+          {departments
+            .filter((item) => item.isActive)
+            .map((department) => (
+              <option key={department.id} value={department.id}>
+                {department.name}
+              </option>
+            ))}
+        </select>
+        <Button
+          type="button"
+          variant={mineOnly ? 'outline' : 'default'}
+          size="sm"
+          onClick={() => setMineOnly((value) => !value)}
+        >
+          {mineOnly ? 'Ver o time' : 'Só as minhas'}
+        </Button>
       </div>
 
-      <Card>
-        <CardHeader>
-          <div className="flex justify-between items-center">
-            <div>
-              <CardTitle>Lista de Conversas</CardTitle>
-              <CardDescription>Visualize e gerencie suas conversas</CardDescription>
+      <div className="grid min-h-0 flex-1 gap-3 lg:grid-cols-[minmax(260px,340px)_1fr]">
+        <aside
+          className={`flex min-h-0 flex-col rounded-lg border border-border bg-card ${
+            selectedPhone ? 'hidden lg:flex' : 'flex'
+          }`}
+        >
+          <div className="shrink-0 space-y-3 border-b border-border p-3">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                placeholder="Buscar..."
+                className="bg-background pl-10"
+                value={filter}
+                onChange={(event) => setFilter(event.target.value)}
+              />
             </div>
-            <div className="flex gap-2">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Buscar conversas..."
-                  className="pl-10 w-64 bg-background"
-                  value={filter}
-                  onChange={(e) => setFilter(e.target.value)}
-                />
-              </div>
-            </div>
+            <Tabs value={activeTab} onValueChange={setActiveTab}>
+              <TabsList className="grid w-full grid-cols-3">
+                <TabsTrigger value="incoming" className="text-xs sm:text-sm">
+                  Entrada
+                  {incomingCount > 0 ? (
+                    <Badge variant="destructive" className="ml-1">
+                      {incomingCount}
+                    </Badge>
+                  ) : null}
+                </TabsTrigger>
+                <TabsTrigger value="waiting" className="text-xs sm:text-sm">
+                  Esperando
+                  {waitingCount > 0 ? (
+                    <Badge variant="secondary" className="ml-1">
+                      {waitingCount}
+                    </Badge>
+                  ) : null}
+                </TabsTrigger>
+                <TabsTrigger value="closed" className="text-xs sm:text-sm">
+                  Finalizados
+                  {closedCount > 0 ? (
+                    <Badge variant="outline" className="ml-1">
+                      {closedCount}
+                    </Badge>
+                  ) : null}
+                </TabsTrigger>
+              </TabsList>
+            </Tabs>
           </div>
-        </CardHeader>
-        <CardContent>
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList className="grid w-full grid-cols-3">
-              <TabsTrigger value="incoming">
-                Entrada
-                {incomingCount > 0 && (
-                  <Badge variant="destructive" className="ml-2">
-                    {incomingCount}
-                  </Badge>
-                )}
-              </TabsTrigger>
-              <TabsTrigger value="waiting">
-                Esperando
-                {waitingCount > 0 && (
-                  <Badge variant="secondary" className="ml-2">
-                    {waitingCount}
-                  </Badge>
-                )}
-              </TabsTrigger>
-              <TabsTrigger value="closed">
-                Finalizados
-                {closedCount > 0 && (
-                  <Badge variant="outline" className="ml-2">
-                    {closedCount}
-                  </Badge>
-                )}
-              </TabsTrigger>
-            </TabsList>
-            <TabsContent value="incoming" className="mt-4">
-              {renderConversationsTable()}
-            </TabsContent>
-            <TabsContent value="waiting" className="mt-4">
-              {renderConversationsTable()}
-            </TabsContent>
-            <TabsContent value="closed" className="mt-4">
-              {renderConversationsTable()}
-            </TabsContent>
-          </Tabs>
-        </CardContent>
-      </Card>
+          <div className="min-h-0 flex-1 overflow-y-auto">
+            <ConversationInboxList
+              conversations={filteredConversations}
+              departments={departments}
+              selectedPhone={selectedPhone}
+              mounted={mounted}
+              onSelect={openContact}
+            />
+          </div>
+        </aside>
+
+        <section className={selectedPhone ? 'min-h-0' : 'hidden min-h-0 lg:block'}>
+          {selectedPhone ? (
+            <MessageThread
+              contact={selectedPhone}
+              onBack={() => router.push('/dashboard/conversations')}
+              onConversationChanged={() => loadConversations()}
+            />
+          ) : (
+            <div className="flex h-full items-center justify-center rounded-lg border border-dashed border-border bg-card text-sm text-muted-foreground">
+              Selecione uma conversa para atender
+            </div>
+          )}
+        </section>
+      </div>
     </div>
   );
 }
-

@@ -11,12 +11,27 @@ export interface WhatsAppMessageResponse {
   }>;
 }
 
+export type OutgoingMedia = {
+  mimeType: string;
+  fileName: string;
+  bytes: Uint8Array;
+};
+
 export interface SendMessageParams {
   to: string;
   message: string;
   type?: 'text' | 'template';
   templateName?: string;
   templateParams?: string[];
+  media?: OutgoingMedia;
+}
+
+export function assertNoOutgoingMedia(params: SendMessageParams): void {
+  if (params.media) {
+    throw new Error(
+      'Envio de mídia pelo painel só está disponível com Evolution nesta versão.'
+    );
+  }
 }
 
 export interface WhatsAppWebhookEntry {

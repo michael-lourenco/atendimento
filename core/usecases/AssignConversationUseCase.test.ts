@@ -59,6 +59,34 @@ describe('AssignConversationUseCase', () => {
     expect(updated?.assignedAgentName).toBe('Ana Silva');
   });
 
+  it('copia setor do agente se a conversa não tiver', async () => {
+    const repo = new FakeConversations([openConversation()]);
+    const updated = await new AssignConversationUseCase(repo).execute({
+      conversationId: '5521982790723',
+      agentId: '1',
+      agentName: 'Ana Silva',
+      departmentId: '1',
+      departmentName: 'Vendas',
+    });
+    expect(updated?.departmentId).toBe('1');
+    expect(updated?.departmentName).toBe('Vendas');
+  });
+
+  it('não sobrescreve setor já definido', async () => {
+    const repo = new FakeConversations([
+      { ...openConversation(), departmentId: '2', departmentName: 'Suporte' },
+    ]);
+    const updated = await new AssignConversationUseCase(repo).execute({
+      conversationId: '5521982790723',
+      agentId: '1',
+      agentName: 'Ana Silva',
+      departmentId: '1',
+      departmentName: 'Vendas',
+    });
+    expect(updated?.departmentId).toBe('2');
+    expect(updated?.departmentName).toBe('Suporte');
+  });
+
   it('cria conversa se ainda não existir', async () => {
     const repo = new FakeConversations([]);
     const updated = await new AssignConversationUseCase(repo).execute({
@@ -94,12 +122,13 @@ describe('assignmentFromOperator', () => {
           name: 'Ana Silva',
           email: 'ana@example.com',
           status: 'online',
+          departmentId: '1',
           conversationsCount: 0,
           responseTime: '',
           createdAt: now,
         },
       ]
     );
-    expect(assignment).toEqual({ agentId: '1', agentName: 'Ana Silva' });
+    expect(assignment).toEqual({ agentId: '1', agentName: 'Ana Silva', departmentId: '1' });
   });
 });

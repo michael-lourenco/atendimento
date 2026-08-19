@@ -58,7 +58,7 @@ export default function AgentsPage() {
     <div>
       <div className="mb-6 flex justify-between items-center">
         <div>
-          <h1 className="text-3xl font-bold text-foreground">Multi Atendentes</h1>
+          <h1 className="text-3xl font-bold text-foreground">Agentes</h1>
           <p className="text-muted-foreground mt-2">Gerencie sua equipe de atendentes</p>
         </div>
         <Button onClick={() => setShowForm(true)}>

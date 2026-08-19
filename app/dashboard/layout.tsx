@@ -9,6 +9,7 @@ import { ThemeToggle } from '@/ui/components/theme-toggle';
 import { Sidebar, MobileSidebar } from '@/ui/components/sidebar';
 import { Menu } from 'lucide-react';
 import { User } from '@/core/entities/User';
+import { pageTitleFromPath } from '@/ui/lib/sidebar-nav';
 
 export default function DashboardLayout({
   children,
@@ -73,9 +74,14 @@ export default function DashboardLayout({
                 >
                   <Menu className="h-5 w-5" />
                 </Button>
-                <h1 className="ml-2 lg:ml-0 text-xl font-bold text-foreground">
-                  Chatbot Atendimento
-                </h1>
+                <div className="ml-2 lg:ml-0">
+                  <p className="text-xs text-muted-foreground leading-none">
+                    Chatbot Atendimento
+                  </p>
+                  <h1 className="text-lg font-semibold text-foreground">
+                    {pageTitleFromPath(pathname)}
+                  </h1>
+                </div>
               </div>
               <div className="flex items-center gap-4">
                 <span className="text-sm text-muted-foreground hidden md:inline">

@@ -1,9 +1,11 @@
 import { Message } from '../entities/Message';
 import { IFlowRepository } from '../repositories/IFlowRepository';
 import { IFlowSessionRepository } from '../repositories/IFlowSessionRepository';
+import { IDepartmentRepository } from '../repositories/IDepartmentRepository';
 import { planFlowTurn } from '../engine/planFlowTurn';
 import { resolveActiveFlow } from '../engine/resolveActiveFlow';
 import { SendWhatsAppMessageUseCase } from './SendWhatsAppMessageUseCase';
+import { SetConversationDepartmentUseCase } from './SetConversationDepartmentUseCase';
 
 export interface ProcessIncomingFlowInput {
   contactId: string;
@@ -14,7 +16,9 @@ export class ProcessIncomingFlowUseCase {
   constructor(
     private flowRepository: IFlowRepository,
     private sessionRepository: IFlowSessionRepository,
-    private sendMessage: SendWhatsAppMessageUseCase
+    private sendMessage: SendWhatsAppMessageUseCase,
+    private setDepartment: SetConversationDepartmentUseCase | null = null,
+    private departments: IDepartmentRepository | null = null
   ) {}
 
   async executeForMessages(messages: Message[]): Promise<void> {
@@ -51,6 +55,10 @@ export class ProcessIncomingFlowUseCase {
       now: new Date(),
     });
 
+    for (const effect of plan.effects) {
+      await this.applySetDepartment(input.contactId, effect.departmentId);
+    }
+
     for (const reply of plan.replies) {
       await this.sendMessage.execute({
         to: input.contactId,
@@ -61,5 +69,21 @@ export class ProcessIncomingFlowUseCase {
     }
 
     await this.sessionRepository.save(plan.nextSession);
+  }
+
+  private async applySetDepartment(contactId: string, departmentId: string): Promise<void> {
+    if (!this.setDepartment || !this.departments) {
+      return;
+    }
+    const department = await this.departments.getById(departmentId);
+    if (!department?.isActive) {
+      console.warn('[ProcessIncomingFlow] Setor do fluxo não encontrado ou inativo:', departmentId);
+      return;
+    }
+    await this.setDepartment.execute({
+      conversationId: contactId,
+      departmentId: department.id,
+      departmentName: department.name,
+    });
   }
 }

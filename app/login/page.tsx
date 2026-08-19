@@ -26,7 +26,7 @@ export default function LoginPage() {
       const user = await loginUseCase.execute(email, password);
       
       if (user) {
-        router.push('/dashboard/flows');
+        router.push('/dashboard/conversations');
       } else {
         setError('Email ou senha inválidos');
       }
@@ -44,10 +44,8 @@ export default function LoginPage() {
       </div>
       <Card className="w-full max-w-md shadow-lg">
         <CardHeader>
-          <CardTitle className="text-2xl">Login</CardTitle>
-          <CardDescription>
-            Entre com suas credenciais para acessar o sistema
-          </CardDescription>
+          <CardTitle className="text-2xl">Chatbot Atendimento</CardTitle>
+          <CardDescription>Entre para atender as conversas do WhatsApp</CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">

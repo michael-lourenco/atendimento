@@ -1,17 +1,18 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useSearchParams } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { GetAllMessagesUseCase } from '@/core/usecases/GetAllMessagesUseCase';
 import { Message } from '@/core/entities/Message';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/ui/components/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/ui/components/table';
 import { MessageMedia } from '@/ui/components/message-media';
-import { MessageThread } from '@/ui/components/message-thread';
+import { DASHBOARD_POLL_MS } from '@/ui/lib/dashboard-poll';
 
 export default function MessagesPage() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [loading, setLoading] = useState(true);
+  const router = useRouter();
   const searchParams = useSearchParams();
   const contactFilter = searchParams.get('contact');
 
@@ -33,12 +34,13 @@ export default function MessagesPage() {
 
   useEffect(() => {
     if (contactFilter) {
+      router.replace(`/dashboard/conversations?contact=${encodeURIComponent(contactFilter)}`);
       return;
     }
     loadMessages(true);
-    const timer = setInterval(() => loadMessages(false), 8000);
+    const timer = setInterval(() => loadMessages(false), DASHBOARD_POLL_MS);
     return () => clearInterval(timer);
-  }, [contactFilter]);
+  }, [contactFilter, router]);
 
   const formatDate = (date: Date) => {
     return new Date(date).toLocaleString('pt-BR');
@@ -66,15 +68,7 @@ export default function MessagesPage() {
   const visible = messages;
 
   if (contactFilter) {
-    return (
-      <div>
-        <div className="mb-6">
-          <h1 className="text-3xl font-bold text-foreground">Mensagens</h1>
-          <p className="text-muted-foreground mt-2">Atendimento · {contactFilter}</p>
-        </div>
-        <MessageThread contact={contactFilter} />
-      </div>
-    );
+    return <div className="py-8 text-center text-muted-foreground">Abrindo conversa...</div>;
   }
 
   if (loading) {

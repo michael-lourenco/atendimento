@@ -133,7 +133,7 @@ export default function InternalChatPage() {
     return (
       <div className="h-[calc(100vh-12rem)]">
         <div className="mb-6">
-          <h1 className="text-3xl font-bold text-foreground">Chat Interno</h1>
+          <h1 className="text-3xl font-bold text-foreground">Chat interno</h1>
           <p className="text-muted-foreground mt-2">
             Comunicação em tempo real entre atendentes
           </p>
@@ -150,7 +150,7 @@ export default function InternalChatPage() {
   return (
     <div className="h-[calc(100vh-12rem)]">
       <div className="mb-6">
-        <h1 className="text-3xl font-bold text-foreground">Chat Interno</h1>
+        <h1 className="text-3xl font-bold text-foreground">Chat interno</h1>
         <p className="text-muted-foreground mt-2">
           Comunicação em tempo real entre atendentes
         </p>

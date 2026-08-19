@@ -3,6 +3,7 @@ import { Message } from '../../core/entities/Message';
 import axios, { AxiosInstance } from 'axios';
 import { mapEvolutionIncomingMessages } from './mapEvolutionIncoming';
 import { parseEvolutionMediaResponse, DownloadedMedia } from './evolutionMedia';
+import { evolutionSendEnvelope, sendEvolutionMedia } from './evolutionSendMedia';
 
 /**
  * Implementação do serviço WhatsApp usando Evolution API como intermediário
@@ -57,31 +58,16 @@ export class EvolutionWhatsAppService implements IWhatsAppService {
     const toNumber = this.formatPhoneNumber(params.to);
 
     try {
-      // Evolution API - Enviar mensagem de texto
-      const response = await this.axiosClient.post(
-        `/message/sendText/${this.instanceName}`,
-        {
-          number: toNumber,
-          text: params.message,
-        }
-      );
+      if (params.media) {
+        return await sendEvolutionMedia(this.axiosClient, this.instanceName, toNumber, params);
+      }
 
-      // Evolution API retorna estrutura diferente, adaptamos para formato esperado
-      const messageId = response.data?.key?.id || response.data?.messageId || `evolution_${Date.now()}`;
-
-      return {
-        messaging_product: 'whatsapp',
-        contacts: [{
-          input: toNumber,
-          wa_id: toNumber,
-        }],
-        messages: [{
-          id: messageId,
-        }],
-      };
+      const response = await this.axiosClient.post(`/message/sendText/${this.instanceName}`, {
+        number: toNumber,
+        text: params.message,
+      });
+      return evolutionSendEnvelope(toNumber, response.data);
     } catch (error: any) {
-      console.error('Erro ao enviar mensagem via Evolution API:', error);
-      
       const errorMessage = error.response?.data?.message || error.message || 'Erro desconhecido';
       throw new Error(`Erro ao enviar mensagem WhatsApp via Evolution API: ${errorMessage}`);
     }

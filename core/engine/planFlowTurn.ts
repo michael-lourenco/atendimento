@@ -9,8 +9,14 @@ export interface FlowReply {
   stepId: string;
 }
 
+export type FlowEffect = {
+  type: 'setDepartment';
+  departmentId: string;
+};
+
 export interface FlowTurnPlan {
   replies: FlowReply[];
+  effects: FlowEffect[];
   nextSession: FlowSession;
 }
 
@@ -57,12 +63,22 @@ export function planFlowTurn(input: {
 }): FlowTurnPlan {
   const { flow, session, contactId, incomingText, now } = input;
   const replies: FlowReply[] = [];
+  const effects: FlowEffect[] = [];
   let cursor = initialCursor(flow, session);
   let waitingStepId: string | null = null;
   let steps = 0;
 
   while (cursor && steps < MAX_FLOW_STEPS_PER_TURN) {
     steps += 1;
+
+    if (cursor.type === 'action' && cursor.action?.type === 'setDepartment') {
+      const departmentId = cursor.action.departmentId.trim();
+      if (departmentId) {
+        effects.push({ type: 'setDepartment', departmentId });
+      }
+      cursor = findStep(flow, cursor.nextStepId);
+      continue;
+    }
 
     if (cursor.type === 'message' || cursor.type === 'action') {
       if (cursor.content.trim()) {
@@ -94,6 +110,7 @@ export function planFlowTurn(input: {
 
   return {
     replies,
+    effects,
     nextSession: {
       contactId,
       flowId: flow.id,

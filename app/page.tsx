@@ -12,7 +12,7 @@ export default function Home() {
       const getCurrentUserUseCase = new GetCurrentUserUseCase();
       const user = await getCurrentUserUseCase.execute();
       if (user) {
-        router.push('/dashboard/flows');
+        router.push('/dashboard/conversations');
       } else {
         router.push('/login');
       }

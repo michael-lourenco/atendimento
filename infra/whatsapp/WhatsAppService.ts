@@ -1,4 +1,4 @@
-import { IWhatsAppService, SendMessageParams, WhatsAppMessageResponse, WhatsAppWebhookEntry } from '../../core/services/IWhatsAppService';
+import { IWhatsAppService, SendMessageParams, WhatsAppMessageResponse, WhatsAppWebhookEntry, assertNoOutgoingMedia } from '../../core/services/IWhatsAppService';
 import { Message } from '../../core/entities/Message';
 
 export class WhatsAppService implements IWhatsAppService {
@@ -17,6 +17,7 @@ export class WhatsAppService implements IWhatsAppService {
   }
 
   async sendMessage(params: SendMessageParams): Promise<WhatsAppMessageResponse> {
+    assertNoOutgoingMedia(params);
     if (!this.phoneNumberId || !this.accessToken) {
       throw new Error('WhatsApp credentials não configuradas. Verifique as variáveis de ambiente.');
     }

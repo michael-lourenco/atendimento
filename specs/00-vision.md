@@ -35,7 +35,7 @@ Atender muitos contatos no WhatsApp com triagem, automação e histórico, sem d
 
 ## Estado atual
 
-Fases 1–4 feitas (painel, motor, dashboard via use cases, Supabase). Atendimento humano: thread + envio pausa o chatbot; Assumir / Transferir / Finalizar na conversa.
+Fases 1–4 feitas. Atendimento humano: inbox (lista + chat), pausa do bot, Assumir/Transferir/Finalizar, setor na conversa, triagem pelo fluxo, lidas ao abrir, filtro minhas conversas, envio de mídia.
 
 ## Fonte de verdade
 

@@ -4,6 +4,10 @@ export interface FlowStep {
   content: string;
   options?: string[];
   nextStepId?: string;
+  action?: {
+    type: 'setDepartment';
+    departmentId: string;
+  };
   condition?: {
     field: string;
     operator: 'equals' | 'contains' | 'greaterThan' | 'lessThan';

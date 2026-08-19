@@ -50,6 +50,36 @@ describe('TransferConversationUseCase', () => {
     expect(updated?.assignedAgentName).toBe('Carlos Santos');
   });
 
+  it('herda o setor do agente destino', async () => {
+    const now = new Date('2026-08-18T15:00:00Z');
+    const repo = new FakeConversations([
+      {
+        id: 'c1',
+        contactId: '1',
+        contactName: 'João',
+        contactPhone: '5511',
+        departmentId: '1',
+        departmentName: 'Vendas',
+        status: 'open',
+        unreadCount: 0,
+        lastActivity: now,
+        createdAt: now,
+        tags: [],
+      },
+    ]);
+
+    const updated = await new TransferConversationUseCase(repo).execute({
+      conversationId: 'c1',
+      targetAgentId: '2',
+      targetAgentName: 'Carlos Santos',
+      departmentId: '2',
+      departmentName: 'Suporte',
+    });
+
+    expect(updated?.departmentId).toBe('2');
+    expect(updated?.departmentName).toBe('Suporte');
+  });
+
   it('retorna null se a conversa não existe', async () => {
     const result = await new TransferConversationUseCase(new FakeConversations([])).execute({
       conversationId: 'missing',

@@ -13,3 +13,15 @@ export function isWaitingTab(conversation: { status: string; assignedAgentId?: s
 export function isClosedTab(conversation: { status: string }): boolean {
   return conversation.status === 'closed';
 }
+
+export function matchesMineFilter(
+  conversation: { assignedAgentId?: string },
+  tab: 'incoming' | 'waiting' | 'closed',
+  mineOnly: boolean,
+  operatorAgentId?: string
+): boolean {
+  if (tab === 'incoming' || !mineOnly || !operatorAgentId) {
+    return true;
+  }
+  return conversation.assignedAgentId === operatorAgentId;
+}

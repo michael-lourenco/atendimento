@@ -14,7 +14,7 @@ import { UpsertConversationFromMessageUseCase } from '../../core/usecases/Upsert
 import { UpsertContactFromIncomingUseCase } from '../../core/usecases/UpsertContactFromIncomingUseCase';
 import { IWhatsAppService } from '../../core/services/IWhatsAppService';
 import { IMediaStorage } from '../../core/services/IMediaStorage';
-import { SupabaseMediaStorage } from '../supabase/SupabaseMediaStorage';
+import { SetConversationDepartmentUseCase } from '../../core/usecases/SetConversationDepartmentUseCase';
 
 class ServerLocator {
   private repos: RepositoryBag | null = null;
@@ -56,7 +56,14 @@ class ServerLocator {
     const upsertContact = new UpsertContactFromIncomingUseCase(repos.contact);
     const upsert = new UpsertConversationFromMessageUseCase(repos.conversation, repos.contact);
     const send = new SendWhatsAppMessageUseCase(whatsApp, repos.message, upsert, upsertContact);
-    const flow = new ProcessIncomingFlowUseCase(repos.flow, repos.flowSession, send);
+    const setDepartment = new SetConversationDepartmentUseCase(repos.conversation);
+    const flow = new ProcessIncomingFlowUseCase(
+      repos.flow,
+      repos.flowSession,
+      send,
+      setDepartment,
+      repos.department
+    );
     return new HandleIncomingWhatsAppMessageUseCase(
       whatsApp,
       repos.message,
