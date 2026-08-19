@@ -38,29 +38,48 @@ export async function PATCH(
   }
   try {
     const { id } = await context.params;
-    const { role } = await parseJsonBody(request, setOperatorRoleBodySchema);
+    const body = await parseJsonBody(request, setOperatorRoleBodySchema);
     const supabase = await createCookieSupabase();
     const { data, error } = await supabase.from('profiles').select('*');
     if (error) {
       logApiError(requestIdFrom(request), 'Erro ao listar operadores', error);
-      return apiJson(request, { error: 'Erro ao alterar papel' }, { status: 500 });
+      return apiJson(request, { error: 'Erro ao alterar operador' }, { status: 500 });
     }
     const operators = (data ?? []).map((row) => profileToUser(row as Record<string, unknown>));
-    if (!canChangeOperatorRole(gate.user, operators, id, role)) {
-      return apiJson(request, { error: 'Não é possível rebaixar o último admin' }, { status: 400 });
+    const target = operators.find((item) => item.id === id);
+    if (!target) {
+      return apiJson(request, { error: 'Operador não encontrado' }, { status: 404 });
     }
-    const { error: updateError } = await supabase.from('profiles').update({ role }).eq('id', id);
-    if (updateError) {
-      logApiError(requestIdFrom(request), 'Erro ao alterar papel', updateError);
-      return apiJson(request, { error: 'Erro ao alterar papel' }, { status: 500 });
+    if (body.role) {
+      if (!canChangeOperatorRole(gate.user, operators, id, body.role)) {
+        return apiJson(request, { error: 'Não é possível rebaixar o último admin' }, { status: 400 });
+      }
+      const { error: updateError } = await supabase.from('profiles').update({ role: body.role }).eq('id', id);
+      if (updateError) {
+        logApiError(requestIdFrom(request), 'Erro ao alterar papel', updateError);
+        return apiJson(request, { error: 'Erro ao alterar papel' }, { status: 500 });
+      }
+    }
+    if (body.password) {
+      if (!isServiceRoleConfigured()) {
+        return apiJson(request, { error: 'Supabase não configurado' }, { status: 503 });
+      }
+      const adminClient = createServiceRoleClient();
+      const { error: passwordError } = await adminClient.auth.admin.updateUserById(id, {
+        password: body.password,
+      });
+      if (passwordError) {
+        logApiError(requestIdFrom(request), 'Erro ao redefinir senha', passwordError);
+        return apiJson(request, { error: 'Erro ao redefinir senha' }, { status: 500 });
+      }
     }
     return apiJson(request, { ok: true });
   } catch (error) {
     if (error instanceof HttpBodyError) {
       return apiJson(request, { error: error.message }, { status: 400 });
     }
-    logApiError(requestIdFrom(request), 'Erro ao alterar papel', error);
-    return apiJson(request, { error: 'Erro ao alterar papel' }, { status: 500 });
+    logApiError(requestIdFrom(request), 'Erro ao alterar operador', error);
+    return apiJson(request, { error: 'Erro ao alterar operador' }, { status: 500 });
   }
 }
 

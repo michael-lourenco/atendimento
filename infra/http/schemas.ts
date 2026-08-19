@@ -14,9 +14,16 @@ export const createOperatorBodySchema = z.object({
   departmentId: z.string().optional(),
 });
 
-export const setOperatorRoleBodySchema = z.object({
-  role: z.enum(['admin', 'user'], { errorMap: () => ({ message: 'Papel inválido' }) }),
-});
+export const patchOperatorBodySchema = z
+  .object({
+    role: z.enum(['admin', 'user'], { errorMap: () => ({ message: 'Papel inválido' }) }).optional(),
+    password: z.string().min(6, 'Senha mínima de 6 caracteres').optional(),
+  })
+  .refine((value) => value.role !== undefined || Boolean(value.password), {
+    message: 'Informe papel ou senha',
+  });
+
+export const setOperatorRoleBodySchema = patchOperatorBodySchema;
 
 export const sendMessageJsonSchema = z
   .object({

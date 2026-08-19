@@ -2,15 +2,18 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { Zap } from 'lucide-react';
 import { QuickReply, sortQuickReplies } from '@/core/entities/QuickReply';
 import { QuickReplyCatalogUseCase } from '@/core/usecases/QuickReplyCatalogUseCase';
+import { cn } from '@/ui/lib/utils';
 
 type QuickReplyPickerProps = {
   disabled?: boolean;
+  compact?: boolean;
   onPick: (body: string) => void;
 };
 
-export function QuickReplyPicker({ disabled, onPick }: QuickReplyPickerProps) {
+export function QuickReplyPicker({ disabled, compact, onPick }: QuickReplyPickerProps) {
   const [open, setOpen] = useState(false);
   const [replies, setReplies] = useState<QuickReply[]>([]);
 
@@ -25,13 +28,17 @@ export function QuickReplyPicker({ disabled, onPick }: QuickReplyPickerProps) {
     <div className="relative">
       <button
         type="button"
-        className="inline-flex h-9 items-center rounded-md border border-input bg-background px-2.5 text-sm hover:bg-accent disabled:opacity-50"
+        className={cn(
+          compact
+            ? 'inline-flex h-10 w-10 items-center justify-center rounded-full text-muted-foreground hover:bg-background disabled:opacity-50'
+            : 'inline-flex h-9 items-center rounded-md border border-input bg-background px-2.5 text-sm hover:bg-accent disabled:opacity-50'
+        )}
         aria-label="Resposta rápida"
         aria-expanded={open}
         disabled={disabled}
         onClick={() => setOpen((value) => !value)}
       >
-        Resposta
+        {compact ? <Zap className="h-5 w-5" /> : 'Resposta'}
       </button>
       {open ? (
         <div

@@ -69,6 +69,16 @@ export class SupabaseAuthRepository implements IAuthRepository {
     return response.ok;
   }
 
+  async setOperatorPassword(id: string, password: string): Promise<boolean> {
+    const response = await fetch(`/api/operators/${id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({ password }),
+    });
+    return response.ok;
+  }
+
   async deleteOperator(id: string): Promise<boolean> {
     const response = await fetch(`/api/operators/${id}`, {
       method: 'DELETE',

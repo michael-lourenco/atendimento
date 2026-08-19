@@ -1,7 +1,7 @@
 'use client';
 
 import { ChangeEvent, FormEvent, KeyboardEvent, useRef, useState } from 'react';
-import { Paperclip } from 'lucide-react';
+import { Paperclip, Send } from 'lucide-react';
 import { Button } from '@/ui/components/button';
 import { Textarea } from '@/ui/components/textarea';
 import { EmojiPicker } from '@/ui/components/emoji-picker';
@@ -22,6 +22,8 @@ export function MessageComposer({ disabled, sending, error, onSend }: MessageCom
   const [sizeError, setSizeError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const textRef = useRef<HTMLTextAreaElement>(null);
+  const busy = sending || disabled;
+  const canSend = Boolean(draft.trim() || file) && !busy;
 
   const clearFile = () => {
     setFile(null);
@@ -80,19 +82,9 @@ export function MessageComposer({ disabled, sending, error, onSend }: MessageCom
   };
 
   return (
-    <form onSubmit={onSubmit} className="space-y-2">
-      <Textarea
-        ref={textRef}
-        value={draft}
-        onChange={(event) => setDraft(event.target.value)}
-        onKeyDown={onKeyDown}
-        placeholder="Mensagem"
-        title="Enter envia. Shift+Enter quebra a linha."
-        rows={2}
-        disabled={sending || disabled}
-      />
+    <form onSubmit={onSubmit} className="bg-muted">
       {file ? (
-        <div className="flex items-center justify-between rounded-md border border-border bg-muted/40 px-3 py-2 text-sm">
+        <div className="flex items-center justify-between border-b border-border px-3 py-2 text-sm">
           <span className="truncate">{file.name}</span>
           <Button type="button" variant="ghost" size="sm" onClick={clearFile} disabled={sending}>
             Remover
@@ -100,34 +92,47 @@ export function MessageComposer({ disabled, sending, error, onSend }: MessageCom
         </div>
       ) : null}
       {sizeError || error ? (
-        <p className="text-sm text-destructive">{sizeError || error}</p>
+        <p className="px-3 pt-2 text-sm text-destructive">{sizeError || error}</p>
       ) : null}
-      <div className="flex items-center justify-between gap-2">
-        <div className="flex items-center gap-2">
-          <input
-            ref={fileInputRef}
-            type="file"
-            className="hidden"
-            accept="image/*,audio/*,video/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.zip"
-            onChange={onFileChange}
-            disabled={sending || disabled}
-          />
-          <EmojiPicker disabled={sending || disabled} onPick={insertText} />
-          <QuickReplyPicker disabled={sending || disabled} onPick={insertText} />
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={() => fileInputRef.current?.click()}
-            disabled={sending || disabled}
-          >
-            <Paperclip className="mr-2 h-4 w-4" />
-            Anexar
-          </Button>
-        </div>
-        <Button type="submit" disabled={sending || disabled || (!draft.trim() && !file)}>
-          {sending ? 'Enviando...' : 'Enviar'}
-        </Button>
+      <div className="flex items-end gap-1.5 px-2 py-2">
+        <input
+          ref={fileInputRef}
+          type="file"
+          className="hidden"
+          accept="image/*,audio/*,video/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.zip"
+          onChange={onFileChange}
+          disabled={busy}
+        />
+        <EmojiPicker compact disabled={busy} onPick={insertText} />
+        <QuickReplyPicker compact disabled={busy} onPick={insertText} />
+        <button
+          type="button"
+          className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-muted-foreground hover:bg-background disabled:opacity-50"
+          aria-label="Anexar"
+          onClick={() => fileInputRef.current?.click()}
+          disabled={busy}
+        >
+          <Paperclip className="h-5 w-5" />
+        </button>
+        <Textarea
+          ref={textRef}
+          value={draft}
+          onChange={(event) => setDraft(event.target.value)}
+          onKeyDown={onKeyDown}
+          placeholder="Mensagem"
+          title="Enter envia. Shift+Enter quebra a linha."
+          rows={1}
+          disabled={busy}
+          className="min-h-10 max-h-24 flex-1 resize-none rounded-3xl border-0 bg-card px-4 py-2.5 shadow-sm focus-visible:ring-1"
+        />
+        <button
+          type="submit"
+          className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-sm hover:bg-primary/90 disabled:opacity-40"
+          aria-label={sending ? 'Enviando' : 'Enviar'}
+          disabled={!canSend}
+        >
+          <Send className="h-5 w-5" />
+        </button>
       </div>
     </form>
   );

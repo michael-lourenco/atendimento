@@ -33,6 +33,9 @@ describe('schemas HTTP', () => {
     ).toBe(false);
     expect(setOperatorRoleBodySchema.safeParse({ role: 'admin' }).success).toBe(true);
     expect(setOperatorRoleBodySchema.safeParse({ role: 'guest' }).success).toBe(false);
+    expect(setOperatorRoleBodySchema.safeParse({ password: 'secret1' }).success).toBe(true);
+    expect(setOperatorRoleBodySchema.safeParse({ password: '123' }).success).toBe(false);
+    expect(setOperatorRoleBodySchema.safeParse({}).success).toBe(false);
   });
 
   it('Evolution aceita data ou body com key', () => {

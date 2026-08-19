@@ -117,6 +117,10 @@ export class MockAuthRepository implements IAuthRepository {
     return true;
   }
 
+  async setOperatorPassword(id: string, _password: string): Promise<boolean> {
+    return this.users.some((item) => item.id === id);
+  }
+
   async deleteOperator(id: string): Promise<boolean> {
     const before = this.users.length;
     this.users = this.users.filter((item) => item.id !== id);

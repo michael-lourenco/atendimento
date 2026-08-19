@@ -69,6 +69,7 @@ Runner: Jest + `ts-jest` (`npm test`). Testing Library só quando houver teste d
 - `core/usecases/AgentCatalogUseCase.test.ts` — save recusa outro id com o mesmo e-mail
 - `core/usecases/DeleteOperatorUseCase.test.ts` — exclui login + agente; bloqueia último admin
 - `core/usecases/SetOperatorRoleUseCase.test.ts` — promove; bloqueia último admin
+- `core/usecases/SetOperatorPasswordUseCase.test.ts` — só admin; senha curta falha; id inexistente 404
 - `ui/lib/emoji.test.ts` — insere emoji na posição do cursor e substitui a seleção; o mesmo helper insere `body` de resposta rápida (texto Unicode, inclusive com emoji)
 - `core/entities/QuickReply.test.ts` — lista ordenada pelo título
 - `ui/lib/catalog-persist-error.test.ts` — PGRST205 vira aviso de migration
@@ -81,7 +82,7 @@ Runner: Jest + `ts-jest` (`npm test`). Testing Library só quando houver teste d
 - `infra/supabase/missingColumn.test.ts` — PGRST204 de `last_message` é coluna ausente
 - `infra/supabase/mappers/messaging.test.ts` — `conversationToRow` só manda `last_message` se houver snapshot
 - `infra/http/apiLog.test.ts` — formato `[requestId] mensagem: detalhe`; não inclui token, apikey, service_role, JWT, Authorization, base64, nem `error.response.data` completo
-- `infra/http/schemas.test.ts` — login; operators POST/PATCH; Evolution `data` ou `key`; chat-whatsapp `{ event, data }`; Meta `object` + `entry`
+- `infra/http/schemas.test.ts` — login; operators POST/PATCH (papel e/ou senha); Evolution `data` ou `key`; chat-whatsapp `{ event, data }`; Meta `object` + `entry`
 - `app/api/messages/send/parseSendRequest.test.ts` — JSON (Zod) e multipart; máx. 16 MB; JSON inválido → 400; `conversationId` opcional (JSON e multipart)
 - `core/entities/inboxFilterHint.test.ts` — filtro de linha esconde as outras; “Ver todas” via hiddenCount
 - `ui/lib/inbox-notify.test.ts` — `document.title` `(N) Conversas` com não lidas

@@ -1,6 +1,6 @@
 import { IAuthRepository, CreateOperatorInput } from '../repositories/IAuthRepository';
 import { AuthUser, User } from '../entities/User';
-import { SetOperatorRoleUseCase } from './SetOperatorRoleUseCase';
+import { SetOperatorPasswordUseCase } from './SetOperatorPasswordUseCase';
 
 const admin: User = {
   id: 'a1',
@@ -12,6 +12,7 @@ const admin: User = {
 
 class FakeAuth implements IAuthRepository {
   users: User[] = [admin];
+  passwords = new Map<string, string>([[admin.id, 'oldpass']]);
   async login(): Promise<AuthUser | null> {
     return null;
   }
@@ -34,26 +35,23 @@ class FakeAuth implements IAuthRepository {
       createdAt: admin.createdAt,
     };
   }
-  async setOperatorRole(id: string, role: 'admin' | 'user') {
-    const user = this.users.find((item) => item.id === id);
-    if (!user) {
+  async setOperatorRole() {
+    return false;
+  }
+  async setOperatorPassword(id: string, password: string) {
+    if (!this.users.some((item) => item.id === id)) {
       return false;
     }
-    user.role = role;
+    this.passwords.set(id, password);
     return true;
   }
-  async setOperatorPassword(id: string) {
-    return this.users.some((item) => item.id === id);
-  }
-  async deleteOperator(id: string) {
-    const before = this.users.length;
-    this.users = this.users.filter((item) => item.id !== id);
-    return this.users.length < before;
+  async deleteOperator() {
+    return false;
   }
 }
 
-describe('SetOperatorRoleUseCase', () => {
-  it('promove atendente', async () => {
+describe('SetOperatorPasswordUseCase', () => {
+  it('admin redefine senha', async () => {
     const auth = new FakeAuth();
     auth.users.push({
       id: 'u2',
@@ -62,14 +60,17 @@ describe('SetOperatorRoleUseCase', () => {
       role: 'user',
       createdAt: admin.createdAt,
     });
-    await new SetOperatorRoleUseCase(auth).execute(admin, 'u2', 'admin');
-    expect(auth.users.find((item) => item.id === 'u2')?.role).toBe('admin');
+    await new SetOperatorPasswordUseCase(auth).execute(admin, 'u2', 'nova12');
+    expect(auth.passwords.get('u2')).toBe('nova12');
   });
 
-  it('bloqueia rebaixar o último admin', async () => {
+  it('recusa senha curta, não-admin e id inexistente', async () => {
     const auth = new FakeAuth();
-    await expect(new SetOperatorRoleUseCase(auth).execute(admin, 'a1', 'user')).rejects.toMatchObject({
-      status: 400,
-    });
+    const useCase = new SetOperatorPasswordUseCase(auth);
+    await expect(useCase.execute(admin, 'a1', '123')).rejects.toMatchObject({ status: 400 });
+    await expect(
+      useCase.execute({ ...admin, role: 'user' }, 'a1', 'secret1')
+    ).rejects.toMatchObject({ status: 403 });
+    await expect(useCase.execute(admin, 'missing', 'secret1')).rejects.toMatchObject({ status: 404 });
   });
 });

@@ -31,6 +31,7 @@ export function OperatorForm({
   error,
   departments,
   lastAdmin,
+  canSetPassword,
   onChange,
   onSubmit,
   onCancel,
@@ -40,6 +41,7 @@ export function OperatorForm({
   error: string;
   departments: Department[];
   lastAdmin: boolean;
+  canSetPassword?: boolean;
   onChange: (next: OperatorFormState) => void;
   onSubmit: (e: React.FormEvent) => void;
   onCancel: () => void;
@@ -50,7 +52,7 @@ export function OperatorForm({
         <CardTitle>{editing ? 'Editar atendente' : 'Novo atendente'}</CardTitle>
         <CardDescription>
           {editing
-            ? 'Setor e status entram na fila. Papel controla o menu de configuração.'
+            ? 'Setor, status e papel entram na fila. Nova senha é opcional (mín. 6).'
             : 'Cria o login e o agente com o mesmo id. O atendente entra com e-mail e senha.'}
         </CardDescription>
       </CardHeader>
@@ -79,7 +81,22 @@ export function OperatorForm({
               className="bg-background"
             />
           </div>
-          {editing ? null : (
+          {editing ? (
+            canSetPassword ? (
+              <div className="space-y-2">
+                <Label htmlFor="password">Nova senha</Label>
+                <Input
+                  id="password"
+                  type="password"
+                  value={form.password}
+                  onChange={(e) => onChange({ ...form, password: e.target.value })}
+                  minLength={6}
+                  placeholder="Deixe em branco para manter"
+                  className="bg-background"
+                />
+              </div>
+            ) : null
+          ) : (
             <div className="space-y-2">
               <Label htmlFor="password">Senha</Label>
               <Input

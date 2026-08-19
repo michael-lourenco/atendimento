@@ -46,6 +46,7 @@ O domínio é relacional (conversa, contato, agente, `FlowSession`, mensagens). 
 - `GET`/`POST /api/schedules/dispatch`: sessão de operador **ou** Bearer `CRON_SECRET` (cron HTTP; o job in-process não passa por HTTP).
 - Webhooks (`/api/webhook/*`) **não** usam sessão de operador; continuam verify token do provedor + client `service_role`.
 - `DELETE /api/operators/{id}` usa `service_role` para `auth.admin.deleteUser` e para apagar o agente.
+- `PATCH /api/operators/{id}` com senha usa `service_role` para `auth.admin.updateUserById`.
 
 ## RLS (mínimo)
 

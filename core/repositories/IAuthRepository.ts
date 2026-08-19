@@ -16,5 +16,6 @@ export interface IAuthRepository {
   listOperators(): Promise<User[]>;
   createOperator(input: CreateOperatorInput): Promise<User | null>;
   setOperatorRole(id: string, role: 'admin' | 'user'): Promise<boolean>;
+  setOperatorPassword(id: string, password: string): Promise<boolean>;
   deleteOperator(id: string): Promise<boolean>;
 }

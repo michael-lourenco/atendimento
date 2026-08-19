@@ -68,6 +68,9 @@ class FakeAuth implements IAuthRepository {
     user.role = role;
     return true;
   }
+  async setOperatorPassword(id: string) {
+    return this.users.some((item) => item.id === id);
+  }
   async deleteOperator(id: string) {
     const before = this.users.length;
     this.users = this.users.filter((item) => item.id !== id);

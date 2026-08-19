@@ -11,6 +11,7 @@ import { DeleteOperatorUseCase } from '@/core/usecases/DeleteOperatorUseCase';
 import { DepartmentCatalogUseCase } from '@/core/usecases/DepartmentCatalogUseCase';
 import { GetCurrentUserUseCase } from '@/core/usecases/GetCurrentUserUseCase';
 import { ListOperatorsUseCase } from '@/core/usecases/ListOperatorsUseCase';
+import { SetOperatorPasswordUseCase } from '@/core/usecases/SetOperatorPasswordUseCase';
 import { SetOperatorRoleUseCase } from '@/core/usecases/SetOperatorRoleUseCase';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/ui/components/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/ui/components/table';
@@ -97,6 +98,9 @@ export default function AgentsPage() {
         if (linked && linked.role !== form.role) {
           await new SetOperatorRoleUseCase().execute(actor, linked.id, form.role);
         }
+        if (linked && form.password.trim()) {
+          await new SetOperatorPasswordUseCase().execute(actor, linked.id, form.password.trim());
+        }
       } else {
         await new CreateOperatorUseCase().execute(actor, {
           email: form.email,
@@ -151,6 +155,7 @@ export default function AgentsPage() {
           error={formError}
           departments={departments}
           lastAdmin={lastAdmin}
+          canSetPassword={Boolean(editingOperator)}
           onChange={setForm}
           onSubmit={handleSubmit}
           onCancel={reset}

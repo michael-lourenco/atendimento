@@ -1,7 +1,6 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { ArrowLeft } from 'lucide-react';
 import { Message } from '@/core/entities/Message';
 import { Agent } from '@/core/entities/Agent';
 import { Conversation } from '@/core/entities/Conversation';
@@ -22,11 +21,11 @@ import { MessageMedia } from '@/ui/components/message-media';
 import { MessageComposer } from '@/ui/components/message-composer';
 import { ConversationActions } from '@/ui/components/conversation-actions';
 import { ConversationSchedulePanel } from '@/ui/components/conversation-schedule-panel';
+import { ConversationThreadHeader } from '@/ui/components/conversation-thread-header';
 import { TeamNotes } from '@/ui/components/team-notes';
 import { MessageStatusTicks } from '@/ui/components/message-status-ticks';
 import { Button } from '@/ui/components/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/ui/components/card';
-import { Badge } from '@/ui/components/badge';
+import { Card, CardContent } from '@/ui/components/card';
 import { DASHBOARD_POLL_MS } from '@/ui/lib/dashboard-poll';
 import { queueToneOf } from '@/ui/lib/status-tone';
 
@@ -46,6 +45,7 @@ export function MessageThread({ conversationId, onBack, onConversationChanged }:
   const [sending, setSending] = useState(false);
   const [pendingSend, setPendingSend] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [lineName, setLineName] = useState('');
   const bottomRef = useRef<HTMLDivElement>(null);
 
   const lineRef = useRef<WhatsAppNumber | null>(null);
@@ -65,12 +65,14 @@ export function MessageThread({ conversationId, onBack, onConversationChanged }:
         listWhatsAppNumbersCached(),
       ]);
       lineRef.current = numberList.find((item) => item.id === conv?.whatsappNumberId) ?? null;
+      setLineName(lineRef.current?.name ?? '');
       setAgents(agentList);
       setDepartments(departmentList);
       setOperator(user);
     } else if (conv?.whatsappNumberId && lineRef.current?.id !== conv.whatsappNumberId) {
       const numberList = await listWhatsAppNumbersCached();
       lineRef.current = numberList.find((item) => item.id === conv.whatsappNumberId) ?? null;
+      setLineName(lineRef.current?.name ?? '');
     }
     const phone = conv?.contactPhone ?? conversationId;
     const [list, session] = await Promise.all([
@@ -88,6 +90,7 @@ export function MessageThread({ conversationId, onBack, onConversationChanged }:
 
   useEffect(() => {
     lineRef.current = null;
+    setLineName('');
     load(true).catch((err) => console.error('Erro ao carregar conversa:', err));
     const timer = setInterval(() => {
       load(false).catch((err) => console.error('Erro ao atualizar conversa:', err));
@@ -155,41 +158,14 @@ export function MessageThread({ conversationId, onBack, onConversationChanged }:
   const queueTone = conversation ? queueToneOf(conversation) : null;
 
   return (
-    <Card className="flex h-full min-h-0 flex-col">
-      <CardHeader className="shrink-0 space-y-3">
-        <div className="flex items-start gap-2">
-          {onBack ? (
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon"
-              className="lg:hidden"
-              onClick={onBack}
-              aria-label="Voltar à lista"
-            >
-              <ArrowLeft className="h-4 w-4" />
-            </Button>
-          ) : null}
-          <div className="min-w-0 flex-1">
-            <CardTitle className="truncate">{title}</CardTitle>
-            <CardDescription className="flex flex-wrap items-center gap-2">
-              <span>{phone}</span>
-              {queueTone ? (
-                <Badge
-                  variant={
-                    queueTone === 'incoming' ? 'warning' : queueTone === 'waiting' ? 'info' : 'muted'
-                  }
-                >
-                  {queueTone === 'incoming'
-                    ? 'Entrada'
-                    : queueTone === 'waiting'
-                      ? 'Em atendimento'
-                      : 'Finalizada'}
-                </Badge>
-              ) : null}
-            </CardDescription>
-          </div>
-        </div>
+    <Card className="flex h-full min-h-0 flex-col overflow-hidden">
+      <ConversationThreadHeader
+        title={title}
+        phone={phone}
+        lineName={lineName || undefined}
+        queueTone={queueTone}
+        onBack={onBack}
+      >
         <ConversationActions
           conversation={conversation}
           agents={agents}
@@ -208,9 +184,9 @@ export function MessageThread({ conversationId, onBack, onConversationChanged }:
             </Button>
           </div>
         ) : null}
-      </CardHeader>
-      <CardContent className="flex min-h-0 flex-1 flex-col space-y-3">
-        <div className="min-h-0 flex-1 overflow-y-auto rounded-md border border-border bg-chat p-4">
+      </ConversationThreadHeader>
+      <CardContent className="flex min-h-0 flex-1 flex-col p-0">
+        <div className="min-h-0 flex-1 overflow-y-auto bg-chat p-4">
           {messages.length === 0 && !pendingSend ? (
             <p className="py-8 text-center text-sm text-muted-foreground">
               Nenhuma mensagem neste contato
@@ -268,7 +244,11 @@ export function MessageThread({ conversationId, onBack, onConversationChanged }:
             </div>
           )}
         </div>
-        {conversation ? <TeamNotes conversationId={conversation.id} operator={operator} /> : null}
+        {conversation ? (
+          <div className="border-t border-border px-3 py-2">
+            <TeamNotes conversationId={conversation.id} operator={operator} />
+          </div>
+        ) : null}
         <MessageComposer
           sending={sending}
           error={error}
