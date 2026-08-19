@@ -7,9 +7,11 @@ import { LogoutUseCase } from '@/core/usecases/LogoutUseCase';
 import { Button } from '@/ui/components/button';
 import { ThemeToggle } from '@/ui/components/theme-toggle';
 import { Sidebar, MobileSidebar } from '@/ui/components/sidebar';
+import { WhatsAppStatusChip } from '@/ui/components/whatsapp-status';
 import { Menu } from 'lucide-react';
 import { User } from '@/core/entities/User';
-import { pageTitleFromPath } from '@/ui/lib/sidebar-nav';
+import { pageTitleFromPath, SIDEBAR_EXPANDED_STORAGE_KEY } from '@/ui/lib/sidebar-nav';
+import { cn } from '@/ui/lib/utils';
 
 export default function DashboardLayout({
   children,
@@ -19,8 +21,16 @@ export default function DashboardLayout({
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [sidebarExpanded, setSidebarExpanded] = useState(true);
   const router = useRouter();
   const pathname = usePathname();
+
+  useEffect(() => {
+    const stored = window.localStorage.getItem(SIDEBAR_EXPANDED_STORAGE_KEY);
+    if (stored === '0') {
+      setSidebarExpanded(false);
+    }
+  }, []);
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -35,6 +45,14 @@ export default function DashboardLayout({
     };
     checkAuth();
   }, [router]);
+
+  const toggleSidebar = () => {
+    setSidebarExpanded((value) => {
+      const next = !value;
+      window.localStorage.setItem(SIDEBAR_EXPANDED_STORAGE_KEY, next ? '1' : '0');
+      return next;
+    });
+  };
 
   const handleLogout = async () => {
     const logoutUseCase = new LogoutUseCase();
@@ -58,10 +76,10 @@ export default function DashboardLayout({
 
   return (
     <div className="min-h-screen bg-background">
-      <Sidebar className="hidden lg:block" />
+      <Sidebar className="hidden lg:block" expanded={sidebarExpanded} onToggle={toggleSidebar} />
       <MobileSidebar isOpen={mobileMenuOpen} onClose={() => setMobileMenuOpen(false)} />
-      
-      <div className="lg:pl-16">
+
+      <div className={cn(sidebarExpanded ? 'lg:pl-56' : 'lg:pl-16')}>
         <nav className="sticky top-0 z-30 bg-card border-b border-border">
           <div className="px-4 sm:px-6 lg:px-8">
             <div className="flex justify-between h-16">
@@ -83,7 +101,8 @@ export default function DashboardLayout({
                   </h1>
                 </div>
               </div>
-              <div className="flex items-center gap-4">
+              <div className="flex items-center gap-3">
+                <WhatsAppStatusChip />
                 <span className="text-sm text-muted-foreground hidden md:inline">
                   {user.name} ({user.email})
                 </span>
@@ -102,4 +121,3 @@ export default function DashboardLayout({
     </div>
   );
 }
-

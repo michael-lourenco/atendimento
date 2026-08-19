@@ -78,10 +78,7 @@ export default function MessagesPage() {
   return (
     <div>
       <div className="mb-6">
-        <h1 className="text-3xl font-bold text-foreground">Mensagens</h1>
-        <p className="text-muted-foreground mt-2">
-          Histórico de mensagens do chatbot
-        </p>
+        <p className="text-muted-foreground">Histórico geral. O atendimento fica em Conversas.</p>
       </div>
 
       <Card>

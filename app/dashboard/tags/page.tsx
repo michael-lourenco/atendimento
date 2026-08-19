@@ -10,6 +10,7 @@ import { Input } from '@/ui/components/input';
 import { Label } from '@/ui/components/label';
 import { Badge } from '@/ui/components/badge';
 import { Plus } from 'lucide-react';
+import { useConfirm } from '@/ui/components/confirm-dialog';
 
 const catalog = () => new TagCatalogUseCase();
 
@@ -18,6 +19,7 @@ export default function TagsPage() {
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState<Tag | null>(null);
   const [form, setForm] = useState({ name: '', color: '#3b82f6' });
+  const { confirm, dialog } = useConfirm();
 
   const load = async () => setTags(await catalog().list());
 
@@ -46,11 +48,9 @@ export default function TagsPage() {
 
   return (
     <div>
+      {dialog}
       <div className="mb-6 flex justify-between items-center">
-        <div>
-          <h1 className="text-3xl font-bold text-foreground">Etiquetas</h1>
-          <p className="text-muted-foreground mt-2">Organize contatos com etiquetas personalizadas</p>
-        </div>
+        <p className="text-muted-foreground">Organize contatos com etiquetas</p>
         <Button onClick={() => setShowForm(true)}>
           <Plus className="h-4 w-4 mr-2" />
           Nova Etiqueta
@@ -152,10 +152,9 @@ export default function TagsPage() {
                           variant="destructive"
                           size="sm"
                           onClick={async () => {
-                            if (confirm('Excluir esta etiqueta?')) {
-                              await catalog().delete(tag.id);
-                              load();
-                            }
+                            if (!(await confirm('Excluir esta etiqueta?'))) return;
+                            await catalog().delete(tag.id);
+                            load();
                           }}
                         >
                           Excluir

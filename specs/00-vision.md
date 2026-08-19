@@ -20,9 +20,9 @@ Atender muitos contatos no WhatsApp com triagem, automação e histórico, sem d
 
 - Receber e enviar mensagens (texto e mídia)
 - Triagem por **setores** e **atendentes**
-- **Chatbots** e **fluxos** (mensagem, pergunta, condição, ação)
+- **Chatbots** e **fluxos** (o roteiro no WhatsApp é o fluxo)
 - **Contatos**, **etiquetas**, **vários números**, **agendamentos**
-- **Chat interno** entre a equipe
+- **Notas da equipe** na conversa
 - **Relatórios** de volume e atendimento
 - Conexão WhatsApp via provedor configurável (`WHATSAPP_PROVIDER`)
 

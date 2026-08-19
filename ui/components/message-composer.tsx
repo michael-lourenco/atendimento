@@ -69,7 +69,8 @@ export function MessageComposer({ disabled, sending, error, onSend }: MessageCom
         value={draft}
         onChange={(event) => setDraft(event.target.value)}
         onKeyDown={onKeyDown}
-        placeholder="Mensagem. Enter envia, Shift+Enter quebra linha."
+        placeholder="Mensagem"
+        title="Enter envia. Shift+Enter quebra a linha."
         rows={2}
         disabled={sending || disabled}
       />

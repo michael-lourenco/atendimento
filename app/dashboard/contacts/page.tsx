@@ -10,6 +10,7 @@ import { Input } from '@/ui/components/input';
 import { Label } from '@/ui/components/label';
 import { Badge } from '@/ui/components/badge';
 import { Search, Plus } from 'lucide-react';
+import { useConfirm } from '@/ui/components/confirm-dialog';
 
 const catalog = () => new ContactCatalogUseCase();
 
@@ -19,6 +20,7 @@ export default function ContactsPage() {
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState<Contact | null>(null);
   const [form, setForm] = useState({ name: '', phone: '', email: '', tags: '' });
+  const { confirm, dialog } = useConfirm();
 
   const load = async () => setContacts(await catalog().list());
 
@@ -63,11 +65,9 @@ export default function ContactsPage() {
 
   return (
     <div>
+      {dialog}
       <div className="mb-6 flex justify-between items-center">
-        <div>
-          <h1 className="text-3xl font-bold text-foreground">Contatos</h1>
-          <p className="text-muted-foreground mt-2">Gerencie seus contatos do WhatsApp</p>
-        </div>
+        <p className="text-muted-foreground">Contatos do WhatsApp</p>
         <Button onClick={() => setShowForm(true)}>
           <Plus className="h-4 w-4 mr-2" />
           Novo Contato
@@ -202,10 +202,9 @@ export default function ContactsPage() {
                           variant="destructive"
                           size="sm"
                           onClick={async () => {
-                            if (confirm('Excluir este contato?')) {
-                              await catalog().delete(contact.id);
-                              load();
-                            }
+                            if (!(await confirm('Excluir este contato?'))) return;
+                            await catalog().delete(contact.id);
+                            load();
                           }}
                         >
                           Excluir

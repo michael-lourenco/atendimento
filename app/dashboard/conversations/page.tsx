@@ -24,7 +24,9 @@ import {
 } from '@/core/entities/conversationDepartment';
 import { ConversationInboxList } from '@/ui/components/conversation-inbox-list';
 import { MessageThread } from '@/ui/components/message-thread';
+import { WhatsAppDisconnectedBanner } from '@/ui/components/whatsapp-status';
 import { DASHBOARD_POLL_MS } from '@/ui/lib/dashboard-poll';
+import { playInboxChime, shouldPlayInboxSound } from '@/ui/lib/inbox-notify';
 
 export default function ConversationsPage() {
   const [conversations, setConversations] = useState<Conversation[]>([]);
@@ -41,6 +43,7 @@ export default function ConversationsPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const selectedPhone = searchParams.get('contact') ?? '';
+  const previousConversations = useRef<Conversation[] | null>(null);
 
   useEffect(() => {
     setMounted(true);
@@ -61,6 +64,10 @@ export default function ConversationsPage() {
         new GetCurrentUserUseCase().execute(),
       ]);
       setConversations(allConversations);
+      if (shouldPlayInboxSound(previousConversations.current, allConversations)) {
+        playInboxChime();
+      }
+      previousConversations.current = allConversations;
       setAgents(agentList);
       setDepartments(departmentList);
       setOperator(user);
@@ -127,6 +134,7 @@ export default function ConversationsPage() {
 
   return (
     <div className="flex h-[calc(100dvh-8.5rem)] min-h-[520px] flex-col gap-3">
+      <WhatsAppDisconnectedBanner />
       <div className="flex flex-wrap items-center justify-end gap-2">
         <select
           className="h-9 rounded-md border border-input bg-background px-2 text-sm"

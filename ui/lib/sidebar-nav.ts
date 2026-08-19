@@ -2,7 +2,6 @@ import type { ComponentType } from 'react';
 import {
   MessageSquare,
   Users,
-  Bot,
   BarChart3,
   UserCog,
   Workflow,
@@ -10,7 +9,6 @@ import {
   Tag,
   Calendar,
   Building2,
-  MessageCircle,
   Smartphone,
 } from 'lucide-react';
 
@@ -34,7 +32,6 @@ export const sidebarGroups: SidebarGroup[] = [
       { title: 'Conversas', href: '/dashboard/conversations', icon: MessageSquare },
       { title: 'WhatsApp', href: '/dashboard/whatsapp', icon: Smartphone },
       { title: 'Contatos', href: '/dashboard/contacts', icon: Users },
-      { title: 'Chat interno', href: '/dashboard/internal-chat', icon: MessageCircle },
       { title: 'Relatórios', href: '/dashboard/reports', icon: BarChart3 },
     ],
   },
@@ -43,7 +40,6 @@ export const sidebarGroups: SidebarGroup[] = [
     label: 'Configuração',
     items: [
       { title: 'Fluxos', href: '/dashboard/flows', icon: Workflow },
-      { title: 'Chatbots', href: '/dashboard/chatbots', icon: Bot },
       { title: 'Agentes', href: '/dashboard/agents', icon: UserCog },
       { title: 'Setores', href: '/dashboard/departments', icon: Building2 },
       { title: 'Números', href: '/dashboard/numbers', icon: Phone },
@@ -55,11 +51,14 @@ export const sidebarGroups: SidebarGroup[] = [
 
 const extraTitles: { href: string; title: string }[] = [
   { href: '/dashboard/messages', title: 'Mensagens' },
+  { href: '/dashboard/chatbots', title: 'Chatbots' },
 ];
 
 export function isSidebarItemActive(pathname: string, href: string): boolean {
   return pathname === href || pathname.startsWith(`${href}/`);
 }
+
+export const SIDEBAR_EXPANDED_STORAGE_KEY = 'chatbot-atimo-sidebar-expanded';
 
 export function pageTitleFromPath(pathname: string): string {
   const items: { href: string; title: string }[] = [

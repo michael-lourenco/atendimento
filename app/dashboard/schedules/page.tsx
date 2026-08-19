@@ -11,6 +11,7 @@ import { Label } from '@/ui/components/label';
 import { Textarea } from '@/ui/components/textarea';
 import { Badge } from '@/ui/components/badge';
 import { Plus } from 'lucide-react';
+import { useConfirm } from '@/ui/components/confirm-dialog';
 
 const catalog = () => new ScheduledMessageCatalogUseCase();
 
@@ -24,6 +25,7 @@ export default function SchedulesPage() {
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState<ScheduledMessage | null>(null);
   const [form, setForm] = useState({ contact: '', message: '', scheduledDate: '' });
+  const { confirm, dialog } = useConfirm();
 
   const load = async () => setSchedules(await catalog().list());
 
@@ -53,11 +55,9 @@ export default function SchedulesPage() {
 
   return (
     <div>
+      {dialog}
       <div className="mb-6 flex justify-between items-center">
-        <div>
-          <h1 className="text-3xl font-bold text-foreground">Agendamentos</h1>
-          <p className="text-muted-foreground mt-2">Agende o envio de mensagens para o futuro</p>
-        </div>
+        <p className="text-muted-foreground">Envio de mensagens para o futuro</p>
         <Button onClick={() => setShowForm(true)}>
           <Plus className="h-4 w-4 mr-2" />
           Novo Agendamento
@@ -181,10 +181,9 @@ export default function SchedulesPage() {
                           size="sm"
                           onClick={async () => {
                             const label = schedule.status === 'pending' ? 'Cancelar' : 'Excluir';
-                            if (confirm(`${label} este agendamento?`)) {
-                              await catalog().delete(schedule.id);
-                              load();
-                            }
+                            if (!(await confirm(`${label} este agendamento?`))) return;
+                            await catalog().delete(schedule.id);
+                            load();
                           }}
                         >
                           {schedule.status === 'pending' ? 'Cancelar' : 'Excluir'}

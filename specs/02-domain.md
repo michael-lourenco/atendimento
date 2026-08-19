@@ -10,7 +10,7 @@
 | `Message` | Mensagem WhatsApp (in/out, tipo, status) |
 | `Conversation` | Atendimento com contato, setor, agente, tags, status |
 | `Department` | Setor (cor, ativos, contagens) |
-| `InternalMessage` | Chat interno / nota / transferência |
+| `InternalMessage` | Nota da equipe na conversa |
 | `Chatbot` | Bot cadastrado no painel (pode apontar `flowId`) |
 | `Agent` | Atendente (`online` \| `offline`) |
 | `Contact` | Contato WhatsApp + etiquetas |
@@ -39,7 +39,7 @@ Catálogos do painel usam `CatalogUseCase` (`list` / `save` / `delete`). Convers
 Auth: `LoginUseCase`, `LogoutUseCase`, `GetCurrentUserUseCase`  
 Fluxos: `GetAllFlowsUseCase`, `GetFlowByIdUseCase`, `SaveFlowUseCase`, `DeleteFlowUseCase`  
 Mensagens: `GetAllMessagesUseCase`, `GetMessagesByContactUseCase`  
-WhatsApp: `SendWhatsAppMessageUseCase`, `HandleIncomingWhatsAppMessageUseCase`, `UpsertConversationFromMessageUseCase`, `UpsertContactFromIncomingUseCase`  
+WhatsApp: `SendWhatsAppMessageUseCase`, `HandleIncomingWhatsAppMessageUseCase`, `UpsertConversationFromMessageUseCase`, `UpsertContactFromIncomingUseCase`, `SyncLiveWhatsAppNumberUseCase`  
 Motor: `ProcessIncomingFlowUseCase` (incoming texto → respostas do fluxo)  
 Atendimento humano: `PauseContactFlowUseCase`, `ResumeContactFlowUseCase`, `GetFlowSessionUseCase`  
 Fila: `AssignConversationUseCase` (assumir → `waiting` + agente), `TransferConversationUseCase` (`transferred`), `CloseConversationUseCase` (`closed`), `MarkConversationReadUseCase` (`unreadCount: 0`), `SetConversationDepartmentUseCase` (`departmentId` / `departmentName`)

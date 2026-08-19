@@ -1,5 +1,5 @@
 import { FlowStep } from '@/core/entities/Flow';
-import { createOptionPaths, hasCompleteOptionPaths } from './flow-option-paths';
+import { createOptionPaths, defaultOptionDestinations, hasCompleteOptionPaths } from './flow-option-paths';
 
 const question = (id: string, options: string[], nextStepId?: string): FlowStep => ({
   id,
@@ -99,10 +99,30 @@ describe('createOptionPaths', () => {
     expect(next.map((step) => step.id)).toEqual(['q', 'c0', 'c1']);
     expect(hasCompleteOptionPaths(next, 0)).toBe(true);
   });
+
+  it('creates a set-department action when the option destination is a sector', () => {
+    const steps = [question('q', ['Vendas'])];
+    const next = createOptionPaths(steps, 0, (index) => `n${index}`, {
+      Vendas: { type: 'department', departmentId: 'dep-1' },
+    });
+    const action = next.find((step) => step.type === 'action');
+    expect(action?.action).toEqual({ type: 'setDepartment', departmentId: 'dep-1' });
+    expect(next.find((step) => step.type === 'condition')?.condition?.trueStepId).toBe(action?.id);
+  });
 });
 
 describe('hasCompleteOptionPaths', () => {
   it('is false until the question points at a full chain', () => {
     expect(hasCompleteOptionPaths([question('q', ['Vendas'])], 0)).toBe(false);
+  });
+});
+
+describe('defaultOptionDestinations', () => {
+  it('picks a department with the same name as the option', () => {
+    const dest = defaultOptionDestinations(['Vendas', 'Outros'], [
+      { id: '1', name: 'Vendas' },
+    ]);
+    expect(dest.Vendas).toEqual({ type: 'department', departmentId: '1' });
+    expect(dest.Outros).toEqual({ type: 'end' });
   });
 });

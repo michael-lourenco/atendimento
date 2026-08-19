@@ -4,7 +4,7 @@ import React from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { cn } from '../lib/utils';
-import { X } from 'lucide-react';
+import { ChevronsLeft, ChevronsRight, X } from 'lucide-react';
 import { Button } from './button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './tooltip';
 import {
@@ -15,34 +15,44 @@ import {
 
 interface SidebarProps {
   className?: string;
+  expanded: boolean;
+  onToggle: () => void;
 }
 
-function NavIconLink({
+function NavLink({
   item,
   pathname,
+  expanded,
 }: {
   item: SidebarItem;
   pathname: string;
+  expanded: boolean;
 }) {
   const Icon = item.icon;
   const isActive = isSidebarItemActive(pathname, item.href);
+  const link = (
+    <Link
+      href={item.href}
+      className={cn(
+        'flex items-center rounded-lg p-3 text-sm font-medium transition-colors',
+        expanded ? 'gap-3 px-3' : 'w-full justify-center',
+        isActive
+          ? 'bg-primary text-primary-foreground'
+          : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
+      )}
+    >
+      <Icon className="h-5 w-5 shrink-0" />
+      {expanded ? <span className="truncate">{item.title}</span> : <span className="sr-only">{item.title}</span>}
+    </Link>
+  );
+
+  if (expanded) {
+    return link;
+  }
 
   return (
     <Tooltip>
-      <TooltipTrigger asChild>
-        <Link
-          href={item.href}
-          className={cn(
-            'flex w-full items-center justify-center rounded-lg p-3 text-sm font-medium transition-colors',
-            isActive
-              ? 'bg-primary text-primary-foreground'
-              : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
-          )}
-        >
-          <Icon className="h-5 w-5" />
-          <span className="sr-only">{item.title}</span>
-        </Link>
-      </TooltipTrigger>
+      <TooltipTrigger asChild>{link}</TooltipTrigger>
       <TooltipContent side="right" sideOffset={5}>
         <p>{item.title}</p>
       </TooltipContent>
@@ -50,23 +60,32 @@ function NavIconLink({
   );
 }
 
-export const Sidebar: React.FC<SidebarProps> = ({ className }) => {
+export const Sidebar: React.FC<SidebarProps> = ({ className, expanded, onToggle }) => {
   const pathname = usePathname();
 
   return (
     <TooltipProvider delayDuration={200}>
       <aside
         className={cn(
-          'fixed left-0 top-0 z-40 h-screen w-16 border-r border-border bg-card',
+          'fixed left-0 top-0 z-40 h-screen border-r border-border bg-card transition-[width]',
+          expanded ? 'w-56' : 'w-16',
           className
         )}
       >
         <div className="flex h-full flex-col">
-          <div className="flex h-16 items-center justify-center border-b border-border" />
+          <div className="flex h-16 items-center border-b border-border px-3">
+            {expanded ? (
+              <p className="truncate text-sm font-semibold text-foreground">Menu</p>
+            ) : null}
+          </div>
           <nav className="flex-1 space-y-1 overflow-y-auto px-2 py-4">
             {sidebarGroups.map((group, index) => (
               <div key={group.id} className="space-y-1">
-                {index > 0 ? (
+                {expanded ? (
+                  <p className="px-3 pt-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                    {group.label}
+                  </p>
+                ) : index > 0 ? (
                   <div
                     className="mx-1 my-2 border-t border-border"
                     role="separator"
@@ -74,11 +93,30 @@ export const Sidebar: React.FC<SidebarProps> = ({ className }) => {
                   />
                 ) : null}
                 {group.items.map((item) => (
-                  <NavIconLink key={item.href} item={item} pathname={pathname} />
+                  <NavLink key={item.href} item={item} pathname={pathname} expanded={expanded} />
                 ))}
               </div>
             ))}
           </nav>
+          <div className="border-t border-border p-2">
+            <Button
+              type="button"
+              variant="ghost"
+              size={expanded ? 'sm' : 'icon'}
+              className={expanded ? 'w-full justify-start' : 'w-full'}
+              onClick={onToggle}
+              aria-label={expanded ? 'Recolher menu' : 'Expandir menu'}
+            >
+              {expanded ? (
+                <>
+                  <ChevronsLeft className="mr-2 h-4 w-4" />
+                  Recolher
+                </>
+              ) : (
+                <ChevronsRight className="h-4 w-4" />
+              )}
+            </Button>
+          </div>
         </div>
       </aside>
     </TooltipProvider>
@@ -110,12 +148,7 @@ export const MobileSidebar: React.FC<MobileSidebarProps> = ({ isOpen, onClose })
         <div className="flex h-full flex-col">
           <div className="flex h-16 items-center justify-between border-b border-border px-6">
             <h2 className="text-lg font-semibold text-foreground">Menu</h2>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={onClose}
-              className="h-8 w-8"
-            >
+            <Button variant="ghost" size="icon" onClick={onClose} className="h-8 w-8">
               <X className="h-4 w-4" />
             </Button>
           </div>

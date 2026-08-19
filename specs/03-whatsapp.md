@@ -43,7 +43,7 @@ Mídia (imagem, áudio, vídeo, documento): o webhook baixa o arquivo (`POST /ch
 
 ## BFF QR / status (`/api/chat-whatsapp/*`)
 
-Usado pela página `/dashboard/whatsapp`. O shape JSON da tela permanece `{ qr, available, connected }` e `{ connected, qrAvailable, info }`.
+Usado pela página `/dashboard/whatsapp` (QR + status; mensagens ficam em Conversas). O shape JSON permanece `{ qr, available, connected }` e `{ connected, qrAvailable, info }`.
 
 | `WHATSAPP_PROVIDER` | Destino de `/qr` e `/status` |
 |---------------------|------------------------------|

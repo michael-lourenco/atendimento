@@ -38,7 +38,7 @@ Webhooks não autenticam operador do painel. Não logar tokens nem corpos comple
 | Método | Rota | Destino |
 |--------|------|---------|
 | GET | `/api/chat-whatsapp/qr` | Evolution se `WHATSAPP_PROVIDER=evolution`; senão `CHAT_WHATSAPP_API_URL` |
-| GET | `/api/chat-whatsapp/status` | idem |
+| GET | `/api/chat-whatsapp/status` | idem; se `connected` + `wid`, upsert no catálogo (`SyncLiveWhatsAppNumberUseCase`); falha no upsert não muda o JSON de status |
 | GET | `/api/chat-whatsapp/messages` | Evolution: histórico em `IMessageRepository`; senão AWS chat-whatsapp |
 | GET | `/api/chat-whatsapp/messages/[userId]` | por contato (mesmo critério) |
 

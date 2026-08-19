@@ -11,6 +11,7 @@ import { Badge } from '@/ui/components/badge';
 import { Plus, Users, MessageSquare } from 'lucide-react';
 import { DepartmentCatalogUseCase } from '@/core/usecases/DepartmentCatalogUseCase';
 import { Department } from '@/core/entities/Department';
+import { useConfirm } from '@/ui/components/confirm-dialog';
 
 export default function DepartmentsPage() {
   const [departments, setDepartments] = useState<Department[]>([]);
@@ -23,6 +24,7 @@ export default function DepartmentsPage() {
     color: '#3b82f6',
     isActive: true,
   });
+  const { confirm, dialog } = useConfirm();
 
   useEffect(() => {
     loadDepartments();
@@ -65,13 +67,14 @@ export default function DepartmentsPage() {
   };
 
   const handleDelete = async (id: string) => {
-    if (confirm('Tem certeza que deseja excluir este setor?')) {
-      try {
-        await new DepartmentCatalogUseCase().delete(id);
-        loadDepartments();
-      } catch (error) {
-        console.error('Erro ao excluir setor:', error);
-      }
+    if (!(await confirm('Excluir este setor?'))) {
+      return;
+    }
+    try {
+      await new DepartmentCatalogUseCase().delete(id);
+      loadDepartments();
+    } catch (error) {
+      console.error('Erro ao excluir setor:', error);
     }
   };
 
@@ -92,13 +95,9 @@ export default function DepartmentsPage() {
 
   return (
     <div>
+      {dialog}
       <div className="mb-6 flex justify-between items-center">
-        <div>
-          <h1 className="text-3xl font-bold text-foreground">Setores</h1>
-          <p className="text-muted-foreground mt-2">
-            Organize conversas por setores e departamentos
-          </p>
-        </div>
+        <p className="text-muted-foreground">Organize conversas por setores</p>
         <Button onClick={() => setShowForm(true)}>
           <Plus className="h-4 w-4 mr-2" />
           Novo Setor

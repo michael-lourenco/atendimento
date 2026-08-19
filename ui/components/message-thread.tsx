@@ -7,7 +7,7 @@ import { Agent } from '@/core/entities/Agent';
 import { Conversation } from '@/core/entities/Conversation';
 import { Department } from '@/core/entities/Department';
 import { User } from '@/core/entities/User';
-import { conversationDisplayName } from '@/core/entities/conversationInbox';
+import { conversationDisplayName, formatInboxTime } from '@/core/entities/conversationInbox';
 import { GetMessagesByContactUseCase } from '@/core/usecases/GetMessagesByContactUseCase';
 import { GetFlowSessionUseCase } from '@/core/usecases/GetFlowSessionUseCase';
 import { GetConversationByIdUseCase } from '@/core/usecases/GetConversationByIdUseCase';
@@ -19,6 +19,7 @@ import { ResumeContactFlowUseCase } from '@/core/usecases/ResumeContactFlowUseCa
 import { MessageMedia } from '@/ui/components/message-media';
 import { MessageComposer } from '@/ui/components/message-composer';
 import { ConversationActions } from '@/ui/components/conversation-actions';
+import { TeamNotes } from '@/ui/components/team-notes';
 import { Button } from '@/ui/components/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/ui/components/card';
 import { DASHBOARD_POLL_MS } from '@/ui/lib/dashboard-poll';
@@ -193,7 +194,7 @@ export function MessageThread({ contact, onBack, onConversationChanged }: Messag
                         content={message.content}
                       />
                       <p className="mt-1 text-[11px] opacity-70">
-                        {new Date(message.timestamp).toLocaleString('pt-BR')}
+                        {formatInboxTime(message.timestamp)}
                       </p>
                     </div>
                   </div>
@@ -203,6 +204,7 @@ export function MessageThread({ contact, onBack, onConversationChanged }: Messag
             </div>
           )}
         </div>
+        {conversation ? <TeamNotes conversationId={conversation.id} operator={operator} /> : null}
         <MessageComposer
           sending={sending}
           error={error}

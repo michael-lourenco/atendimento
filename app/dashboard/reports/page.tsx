@@ -50,8 +50,7 @@ export default function ReportsPage() {
   return (
     <div>
       <div className="mb-6">
-        <h1 className="text-3xl font-bold text-foreground">Relatórios</h1>
-        <p className="text-muted-foreground mt-2">Visualize relatórios e análises do sistema</p>
+        <p className="text-muted-foreground">Volume e análises a partir do histórico atual</p>
       </div>
 
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 mb-6">

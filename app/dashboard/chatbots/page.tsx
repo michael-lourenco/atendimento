@@ -11,6 +11,8 @@ import { Input } from '@/ui/components/input';
 import { Label } from '@/ui/components/label';
 import { Textarea } from '@/ui/components/textarea';
 import { Plus } from 'lucide-react';
+import Link from 'next/link';
+import { useConfirm } from '@/ui/components/confirm-dialog';
 
 const catalog = () => new ChatbotCatalogUseCase();
 
@@ -20,6 +22,7 @@ export default function ChatbotsPage() {
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState<Chatbot | null>(null);
   const [form, setForm] = useState({ name: '', description: '', isActive: true });
+  const { confirm, dialog } = useConfirm();
 
   const load = async () => {
     setLoading(true);
@@ -58,7 +61,7 @@ export default function ChatbotsPage() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm('Excluir este chatbot?')) return;
+    if (!(await confirm('Excluir este chatbot?'))) return;
     await catalog().delete(id);
     load();
   };
@@ -69,11 +72,14 @@ export default function ChatbotsPage() {
 
   return (
     <div>
-      <div className="mb-6 flex justify-between items-center">
-        <div>
-          <h1 className="text-3xl font-bold text-foreground">Chatbots</h1>
-          <p className="text-muted-foreground mt-2">Gerencie seus chatbots de atendimento</p>
-        </div>
+      {dialog}
+      <div className="mb-6 flex flex-wrap items-center justify-between gap-2">
+        <p className="text-muted-foreground">
+          O roteiro do atendimento é o fluxo.{' '}
+          <Link href="/dashboard/flows" className="underline">
+            Abrir Fluxos
+          </Link>
+        </p>
         <Button onClick={() => setShowForm(true)}>
           <Plus className="h-4 w-4 mr-2" />
           Novo Chatbot

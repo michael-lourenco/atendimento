@@ -14,6 +14,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Input } from '@/ui/components/input';
 import { Label } from '@/ui/components/label';
 import { Textarea } from '@/ui/components/textarea';
+import { useConfirm } from '@/ui/components/confirm-dialog';
 
 export default function FlowsPage() {
   const [flows, setFlows] = useState<Flow[]>([]);
@@ -28,6 +29,7 @@ export default function FlowsPage() {
     description: '',
     isActive: true,
   });
+  const { confirm, dialog } = useConfirm();
 
   useEffect(() => {
     loadFlows();
@@ -50,14 +52,15 @@ export default function FlowsPage() {
   };
 
   const handleDelete = async (id: string) => {
-    if (confirm('Tem certeza que deseja excluir este fluxo?')) {
-      try {
-        const deleteFlowUseCase = new DeleteFlowUseCase();
-        await deleteFlowUseCase.execute(id);
-        loadFlows();
-      } catch (error) {
-        console.error('Erro ao excluir fluxo:', error);
-      }
+    if (!(await confirm('Excluir este fluxo?'))) {
+      return;
+    }
+    try {
+      const deleteFlowUseCase = new DeleteFlowUseCase();
+      await deleteFlowUseCase.execute(id);
+      loadFlows();
+    } catch (error) {
+      console.error('Erro ao excluir fluxo:', error);
     }
   };
 
@@ -117,8 +120,9 @@ export default function FlowsPage() {
 
   return (
     <div>
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold text-foreground">Fluxos</h1>
+      {dialog}
+      <div className="mb-6 flex flex-wrap items-center justify-between gap-2">
+        <p className="text-muted-foreground">Roteiro do chatbot no WhatsApp</p>
         <Button onClick={openNew}>Novo Fluxo</Button>
       </div>
 

@@ -8,9 +8,10 @@ import { Label } from '@/ui/components/label';
 import { ChevronDown, ChevronUp } from 'lucide-react';
 import { STEP_TYPE_LABELS, stepDisplayName } from '@/ui/lib/flow-step-copy';
 import { addFlowStep, moveFlowStep, removeFlowStep, withStepType } from '@/ui/lib/flow-step-graph';
-import { createOptionPaths, hasCompleteOptionPaths } from '@/ui/lib/flow-option-paths';
 import { NextStepSelect, flowSelectClass } from '@/ui/components/flow-next-step-select';
 import { FlowConditionFields } from '@/ui/components/flow-condition-fields';
+import { FlowQuestionOptions } from '@/ui/components/flow-question-options';
+import { FlowPathMap } from '@/ui/components/flow-path-map';
 
 type FlowStepsEditorProps = {
   steps: FlowStep[];
@@ -39,7 +40,9 @@ export function FlowStepsEditor({ steps, departments, onChange }: FlowStepsEdito
         <p className="text-sm text-muted-foreground">
           Nenhum passo. Comece com uma mensagem de boas-vindas ou uma pergunta de triagem.
         </p>
-      ) : null}
+      ) : (
+        <FlowPathMap steps={steps} departments={activeDepartments} />
+      )}
       {steps.map((step, index) => (
         <div key={step.id} className="space-y-3 rounded-md border border-border p-3">
           <div className="flex items-start justify-between gap-2">
@@ -103,42 +106,13 @@ export function FlowStepsEditor({ steps, departments, onChange }: FlowStepsEdito
             </div>
           ) : null}
           {step.type === 'question' ? (
-            <div className="space-y-2">
-              <div className="space-y-1">
-                <Label className="text-xs text-muted-foreground">Opções (separadas por vírgula)</Label>
-                <Input
-                  value={(step.options ?? []).join(', ')}
-                  placeholder="Ex.: Vendas, Suporte, Financeiro"
-                  onChange={(event) =>
-                    patch(index, {
-                      ...step,
-                      options: event.target.value
-                        .split(',')
-                        .map((item) => item.trim())
-                        .filter(Boolean),
-                    })
-                  }
-                />
-              </div>
-              {(step.options ?? []).some((item) => item.trim()) ? (
-                <div className="space-y-1">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    disabled={hasCompleteOptionPaths(steps, index)}
-                    onClick={() => onChange(createOptionPaths(steps, index))}
-                  >
-                    {hasCompleteOptionPaths(steps, index)
-                      ? 'Caminhos das opções prontos'
-                      : 'Criar caminhos das opções'}
-                  </Button>
-                  <p className="text-xs text-muted-foreground">
-                    Cria uma condição para cada opção. Depois escolha o destino em cada uma.
-                  </p>
-                </div>
-              ) : null}
-            </div>
+            <FlowQuestionOptions
+              steps={steps}
+              index={index}
+              departments={activeDepartments}
+              onChangeSteps={onChange}
+              onPatch={(next) => patch(index, next)}
+            />
           ) : null}
           {step.type === 'action' ? (
             <div className="space-y-1">

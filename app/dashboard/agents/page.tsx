@@ -10,6 +10,7 @@ import { Input } from '@/ui/components/input';
 import { Label } from '@/ui/components/label';
 import { Badge } from '@/ui/components/badge';
 import { Plus, Search } from 'lucide-react';
+import { useConfirm } from '@/ui/components/confirm-dialog';
 
 const catalog = () => new AgentCatalogUseCase();
 
@@ -19,6 +20,7 @@ export default function AgentsPage() {
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState<Agent | null>(null);
   const [form, setForm] = useState({ name: '', email: '', status: 'online' as AgentStatus });
+  const { confirm, dialog } = useConfirm();
 
   const load = async () => setAgents(await catalog().list());
 
@@ -56,11 +58,9 @@ export default function AgentsPage() {
 
   return (
     <div>
+      {dialog}
       <div className="mb-6 flex justify-between items-center">
-        <div>
-          <h1 className="text-3xl font-bold text-foreground">Agentes</h1>
-          <p className="text-muted-foreground mt-2">Gerencie sua equipe de atendentes</p>
-        </div>
+        <p className="text-muted-foreground">Gerencie sua equipe de atendentes</p>
         <Button onClick={() => setShowForm(true)}>
           <Plus className="h-4 w-4 mr-2" />
           Novo Atendente
@@ -180,10 +180,9 @@ export default function AgentsPage() {
                           variant="destructive"
                           size="sm"
                           onClick={async () => {
-                            if (confirm('Excluir este atendente?')) {
-                              await catalog().delete(agent.id);
-                              load();
-                            }
+                            if (!(await confirm('Excluir este atendente?'))) return;
+                            await catalog().delete(agent.id);
+                            load();
                           }}
                         >
                           Excluir
