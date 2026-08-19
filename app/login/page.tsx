@@ -8,23 +8,27 @@ import { Input } from '@/ui/components/input';
 import { Label } from '@/ui/components/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/ui/components/card';
 import { ThemeToggle } from '@/ui/components/theme-toggle';
+import { createBrowserSupabase } from '@/infra/supabase/browserClient';
+import { isPublicSupabaseConfigured } from '@/infra/supabase/env';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [info, setInfo] = useState('');
   const [loading, setLoading] = useState(false);
   const router = useRouter();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+    setInfo('');
     setLoading(true);
 
     try {
       const loginUseCase = new LoginUseCase();
       const user = await loginUseCase.execute(email, password);
-      
+
       if (user) {
         router.push('/dashboard/conversations');
       } else {
@@ -34,6 +38,28 @@ export default function LoginPage() {
       setError('Erro ao fazer login. Tente novamente.');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleForgotPassword = async () => {
+    setError('');
+    setInfo('');
+    if (!email.trim()) {
+      setError('Informe o e-mail para redefinir a senha.');
+      return;
+    }
+    try {
+      const supabase = createBrowserSupabase();
+      const { error: resetError } = await supabase.auth.resetPasswordForEmail(email.trim(), {
+        redirectTo: `${window.location.origin}/login`,
+      });
+      if (resetError) {
+        setError('Não foi possível enviar o e-mail. Tente novamente.');
+        return;
+      }
+      setInfo('Se o e-mail existir, você receberá o link de redefinição.');
+    } catch {
+      setError('Não foi possível enviar o e-mail. Tente novamente.');
     }
   };
 
@@ -78,15 +104,29 @@ export default function LoginPage() {
                 {error}
               </div>
             )}
+            {info ? (
+              <div className="text-sm text-foreground bg-muted/50 p-3 rounded-md border border-border">
+                {info}
+              </div>
+            ) : null}
             <Button type="submit" className="w-full" disabled={loading}>
               {loading ? 'Entrando...' : 'Entrar'}
             </Button>
+            {isPublicSupabaseConfigured() ? (
+              <button
+                type="button"
+                className="w-full text-sm text-muted-foreground underline"
+                onClick={() => void handleForgotPassword()}
+              >
+                Esqueci a senha
+              </button>
+            ) : null}
           </form>
           {!process.env.NEXT_PUBLIC_SUPABASE_URL && (
             <p className="mt-4 text-sm text-muted-foreground bg-muted/50 p-4 rounded-md">
-              Configure <code>NEXT_PUBLIC_SUPABASE_URL</code>,{' '}
-              <code>NEXT_PUBLIC_SUPABASE_ANON_KEY</code> e <code>SUPABASE_SERVICE_ROLE_KEY</code> no
-              .env.local e rode a migration em <code>infra/supabase/migrations/001_init.sql</code>.
+              Configure <code>NEXT_PUBLIC_SUPABASE_URL</code> e{' '}
+              <code>NEXT_PUBLIC_SUPABASE_ANON_KEY</code> no .env.local e rode as migrations em{' '}
+              <code>infra/supabase/migrations/</code>.
             </p>
           )}
         </CardContent>
@@ -94,4 +134,3 @@ export default function LoginPage() {
     </div>
   );
 }
-

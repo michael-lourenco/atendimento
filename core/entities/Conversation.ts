@@ -9,6 +9,7 @@ export interface Conversation {
   departmentName?: string;
   assignedAgentId?: string;
   assignedAgentName?: string;
+  whatsappNumberId?: string;
   status: 'open' | 'closed' | 'waiting' | 'transferred';
   unreadCount: number;
   lastMessage?: Message;

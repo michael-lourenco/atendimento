@@ -129,6 +129,11 @@ describe('assignmentFromOperator', () => {
         },
       ]
     );
-    expect(assignment).toEqual({ agentId: '1', agentName: 'Ana Silva', departmentId: '1' });
+    expect(assignment).toEqual({
+      agentId: '1',
+      agentName: 'Ana Silva',
+      departmentId: '1',
+      linked: true,
+    });
   });
 });

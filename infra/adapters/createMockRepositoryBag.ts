@@ -10,6 +10,7 @@ import { IAgentRepository } from '../../core/repositories/IAgentRepository';
 import { IContactRepository } from '../../core/repositories/IContactRepository';
 import { IWhatsAppNumberRepository } from '../../core/repositories/IWhatsAppNumberRepository';
 import { ITagRepository } from '../../core/repositories/ITagRepository';
+import { IQuickReplyRepository } from '../../core/repositories/IQuickReplyRepository';
 import { IScheduledMessageRepository } from '../../core/repositories/IScheduledMessageRepository';
 import { IReportRepository } from '../../core/repositories/IReportRepository';
 import { mockFlowRepository } from '../mocks/MockFlowRepository';
@@ -24,6 +25,7 @@ import { mockAgentRepository } from '../mocks/MockAgentRepository';
 import { mockContactRepository } from '../mocks/MockContactRepository';
 import { mockWhatsAppNumberRepository } from '../mocks/MockWhatsAppNumberRepository';
 import { mockTagRepository } from '../mocks/MockTagRepository';
+import { mockQuickReplyRepository } from '../mocks/MockQuickReplyRepository';
 import { mockScheduledMessageRepository } from '../mocks/MockScheduledMessageRepository';
 import { mockReportRepository } from '../mocks/MockReportRepository';
 
@@ -40,6 +42,7 @@ export interface RepositoryBag {
   contact: IContactRepository;
   whatsAppNumber: IWhatsAppNumberRepository;
   tag: ITagRepository;
+  quickReply: IQuickReplyRepository;
   scheduledMessage: IScheduledMessageRepository;
   report: IReportRepository;
 }
@@ -58,6 +61,7 @@ export function createMockRepositoryBag(): RepositoryBag {
     contact: mockContactRepository,
     whatsAppNumber: mockWhatsAppNumberRepository,
     tag: mockTagRepository,
+    quickReply: mockQuickReplyRepository,
     scheduledMessage: mockScheduledMessageRepository,
     report: mockReportRepository,
   };

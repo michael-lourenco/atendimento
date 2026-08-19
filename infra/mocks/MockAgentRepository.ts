@@ -1,26 +1,30 @@
 import { Agent } from '../../core/entities/Agent';
 import { IAgentRepository } from '../../core/repositories/IAgentRepository';
+import {
+  INTAKE_DEPARTMENT_COMERCIAL,
+  INTAKE_DEPARTMENT_DEMO,
+} from '../../core/entities/atendimentoInicialFlow';
 import { createInMemoryCrud } from './inMemoryCrud';
 
 const seed: Agent[] = [
   {
     id: '1',
-    name: 'Ana Silva',
-    email: 'ana@example.com',
+    name: 'Administrador',
+    email: 'admin@example.com',
     status: 'online',
-    departmentId: '1',
-    conversationsCount: 12,
-    responseTime: '2 min',
+    departmentId: INTAKE_DEPARTMENT_COMERCIAL,
+    conversationsCount: 0,
+    responseTime: '—',
     createdAt: new Date('2024-01-01'),
   },
   {
     id: '2',
-    name: 'Carlos Santos',
-    email: 'carlos@example.com',
-    status: 'offline',
-    departmentId: '2',
-    conversationsCount: 8,
-    responseTime: '5 min',
+    name: 'Usuário',
+    email: 'user@example.com',
+    status: 'online',
+    departmentId: INTAKE_DEPARTMENT_DEMO,
+    conversationsCount: 0,
+    responseTime: '—',
     createdAt: new Date('2024-01-01'),
   },
 ];

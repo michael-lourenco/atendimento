@@ -1,21 +1,25 @@
-import { NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
+import { apiJson } from '@/infra/http/apiJson';
+import { logApiError } from '@/infra/http/apiLog';
+import { requestIdFrom } from '@/infra/http/requestId';
 import { getDashboardQrCode } from '@/infra/whatsapp/dashboardConnection';
 import { isEvolutionProvider } from '@/infra/whatsapp/isEvolutionProvider';
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
-    const qrData = await getDashboardQrCode();
-    return NextResponse.json(qrData, { status: 200 });
+    const instance = request.nextUrl.searchParams.get('instance');
+    const qrData = await getDashboardQrCode(instance);
+    return apiJson(request, qrData, { status: 200 });
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    logApiError(requestIdFrom(request), 'Erro ao obter QR Code', error);
     const hint = isEvolutionProvider()
-      ? 'Verifique EVOLUTION_API_URL, EVOLUTION_API_KEY e se o Docker da Evolution está no ar'
+      ? 'Verifique EVOLUTION_API_URL e se a instância da Evolution está no ar'
       : 'Verifique se CHAT_WHATSAPP_API_URL está configurado corretamente';
 
-    return NextResponse.json(
+    return apiJson(
+      request,
       {
         error: 'Erro ao obter QR Code',
-        message: errorMessage,
         details: { hint },
       },
       { status: 500 }

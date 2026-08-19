@@ -78,7 +78,7 @@ describe('planFlowTurn', () => {
     expect(plan.nextSession.currentStepId).toBeNull();
   });
 
-  it('ramo condition false', () => {
+  it('action setDepartment vira efeito e não envia WhatsApp', () => {
     const plan = planFlowTurn({
       flow,
       session: {
@@ -95,6 +95,27 @@ describe('planFlowTurn', () => {
 
     expect(plan.replies).toEqual([{ content: 'Outro ok', stepId: 'other' }]);
     expect(plan.nextSession.currentStepId).toBeNull();
+  });
+
+  it('sessão encerrada não reenvia a abertura, só a primeira question', () => {
+    const plan = planFlowTurn({
+      flow,
+      session: {
+        contactId: '5511999999999',
+        flowId: 'inicio',
+        currentStepId: null,
+        paused: false,
+        updatedAt: now,
+      },
+      contactId: '5511999999999',
+      incomingText: 'oi de novo',
+      now,
+    });
+
+    expect(plan.replies.map((reply) => reply.content)).toEqual([
+      'Qual área?\n- Suporte\n- Vendas',
+    ]);
+    expect(plan.nextSession.currentStepId).toBe('ask');
   });
 
   it('action setDepartment vira efeito e não envia WhatsApp', () => {

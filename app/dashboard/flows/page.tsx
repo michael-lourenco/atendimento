@@ -7,7 +7,9 @@ import { SaveFlowUseCase } from '@/core/usecases/SaveFlowUseCase';
 import { Flow, FlowStep } from '@/core/entities/Flow';
 import { Department } from '@/core/entities/Department';
 import { DepartmentCatalogUseCase } from '@/core/usecases/DepartmentCatalogUseCase';
+import { resolveActiveFlow } from '@/core/engine/resolveActiveFlow';
 import { FlowStepsEditor } from '@/ui/components/flow-steps-editor';
+import { EmptyState } from '@/ui/components/empty-state';
 import { Button } from '@/ui/components/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/ui/components/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/ui/components/table';
@@ -123,7 +125,10 @@ export default function FlowsPage() {
     <div>
       {dialog}
       <div className="mb-6 flex flex-wrap items-center justify-between gap-2">
-        <p className="text-muted-foreground">Roteiro do chatbot no WhatsApp</p>
+        <p className="text-muted-foreground">
+          Roteiro do chatbot no WhatsApp. Só um fluxo ativo entra no ar — de preferência o
+          Atendimento Inicial.
+        </p>
         <Button onClick={openNew}>Novo Fluxo</Button>
       </div>
 
@@ -187,9 +192,12 @@ export default function FlowsPage() {
         </CardHeader>
         <CardContent>
           {flows.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">
-              Nenhum fluxo cadastrado
-            </div>
+            <EmptyState
+              title="Nenhum fluxo cadastrado"
+              description="Crie o Atendimento Inicial: o cliente recebe as mensagens nesta ordem no WhatsApp."
+              actionLabel="Novo fluxo"
+              onAction={openNew}
+            />
           ) : (
             <Table>
               <TableHeader>
@@ -204,7 +212,12 @@ export default function FlowsPage() {
               <TableBody>
                 {flows.map((flow) => (
                   <TableRow key={flow.id}>
-                    <TableCell className="font-medium">{flow.name}</TableCell>
+                    <TableCell className="font-medium">
+                      <span className="mr-2">{flow.name}</span>
+                      {resolveActiveFlow(flows)?.id === flow.id ? (
+                        <Badge variant="success">WhatsApp</Badge>
+                      ) : null}
+                    </TableCell>
                     <TableCell>{flow.description || '-'}</TableCell>
                     <TableCell>
                       <Badge variant={flow.isActive ? 'success' : 'muted'}>

@@ -7,6 +7,11 @@ export function normalizeEvolutionEvent(event: unknown): string {
     .replace(/_/g, '.');
 }
 
+export function isEvolutionInboxEvent(event: unknown): boolean {
+  const name = normalizeEvolutionEvent(event);
+  return name === 'messages.upsert' || name === 'messages.update';
+}
+
 function asItems(data: unknown): Record<string, unknown>[] {
   if (Array.isArray(data)) {
     return data.filter((item) => item && typeof item === 'object') as Record<string, unknown>[];

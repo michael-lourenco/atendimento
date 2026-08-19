@@ -1,28 +1,61 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Agent, AgentStatus } from '@/core/entities/Agent';
+import { Agent } from '@/core/entities/Agent';
+import { Department } from '@/core/entities/Department';
+import { canChangeOperatorRole } from '@/core/entities/operatorRole';
+import { User } from '@/core/entities/User';
 import { AgentCatalogUseCase } from '@/core/usecases/AgentCatalogUseCase';
+import { CreateOperatorError, CreateOperatorUseCase } from '@/core/usecases/CreateOperatorUseCase';
+import { DepartmentCatalogUseCase } from '@/core/usecases/DepartmentCatalogUseCase';
+import { GetCurrentUserUseCase } from '@/core/usecases/GetCurrentUserUseCase';
+import { ListOperatorsUseCase } from '@/core/usecases/ListOperatorsUseCase';
+import { SetOperatorRoleUseCase } from '@/core/usecases/SetOperatorRoleUseCase';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/ui/components/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/ui/components/table';
 import { Button } from '@/ui/components/button';
 import { Input } from '@/ui/components/input';
-import { Label } from '@/ui/components/label';
 import { Badge } from '@/ui/components/badge';
+import { EmptyState } from '@/ui/components/empty-state';
 import { Plus, Search } from 'lucide-react';
 import { useConfirm } from '@/ui/components/confirm-dialog';
+import { emptyOperatorForm, OperatorForm, OperatorFormState } from './operator-form';
 
 const catalog = () => new AgentCatalogUseCase();
 
+function operatorForAgent(agent: Agent, operators: User[]): User | undefined {
+  const email = agent.email.trim().toLowerCase();
+  return (
+    operators.find((item) => item.id === agent.id) ??
+    operators.find((item) => item.email.trim().toLowerCase() === email)
+  );
+}
+
 export default function AgentsPage() {
   const [agents, setAgents] = useState<Agent[]>([]);
+  const [departments, setDepartments] = useState<Department[]>([]);
+  const [operators, setOperators] = useState<User[]>([]);
+  const [actor, setActor] = useState<User | null>(null);
   const [filter, setFilter] = useState('');
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState<Agent | null>(null);
-  const [form, setForm] = useState({ name: '', email: '', status: 'online' as AgentStatus });
+  const [form, setForm] = useState<OperatorFormState>(emptyOperatorForm);
+  const [formError, setFormError] = useState('');
   const { confirm, dialog } = useConfirm();
 
-  const load = async () => setAgents(await catalog().list());
+  const load = async () => {
+    const user = await new GetCurrentUserUseCase().execute();
+    const [agentList, departmentList] = await Promise.all([
+      catalog().list(),
+      new DepartmentCatalogUseCase().list(),
+    ]);
+    setAgents(agentList);
+    setDepartments(departmentList);
+    setActor(user);
+    if (user) {
+      setOperators(await new ListOperatorsUseCase().execute(user));
+    }
+  };
 
   useEffect(() => {
     load();
@@ -31,23 +64,40 @@ export default function AgentsPage() {
   const reset = () => {
     setShowForm(false);
     setEditing(null);
-    setForm({ name: '', email: '', status: 'online' });
+    setForm(emptyOperatorForm);
+    setFormError('');
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    await catalog().save({
-      id: editing?.id || `agent-${Date.now()}`,
-      name: form.name,
-      email: form.email,
-      status: form.status,
-      departmentId: editing?.departmentId,
-      conversationsCount: editing?.conversationsCount || 0,
-      responseTime: editing?.responseTime || '—',
-      createdAt: editing?.createdAt || new Date(),
-    });
-    reset();
-    load();
+    if (!actor) return;
+    setFormError('');
+    try {
+      if (editing) {
+        await catalog().save({
+          ...editing,
+          name: form.name,
+          status: form.status,
+          departmentId: form.departmentId || undefined,
+        });
+        const linked = operatorForAgent(editing, operators);
+        if (linked && linked.role !== form.role) {
+          await new SetOperatorRoleUseCase().execute(actor, linked.id, form.role);
+        }
+      } else {
+        await new CreateOperatorUseCase().execute(actor, {
+          email: form.email,
+          password: form.password,
+          name: form.name,
+          role: form.role,
+          departmentId: form.departmentId || undefined,
+        });
+      }
+      reset();
+      await load();
+    } catch (error) {
+      setFormError(error instanceof CreateOperatorError ? error.message : 'Não foi possível salvar');
+    }
   };
 
   const visible = agents.filter(
@@ -55,75 +105,46 @@ export default function AgentsPage() {
       agent.name.toLowerCase().includes(filter.toLowerCase()) ||
       agent.email.toLowerCase().includes(filter.toLowerCase())
   );
+  const departmentName = (id?: string) => departments.find((item) => item.id === id)?.name ?? '—';
+  const editingOperator = editing ? operatorForAgent(editing, operators) : undefined;
+  const lastAdmin = Boolean(
+    actor &&
+      editingOperator &&
+      !canChangeOperatorRole(actor, operators, editingOperator.id, 'user')
+  );
 
   return (
     <div>
       {dialog}
       <div className="mb-6 flex justify-between items-center">
-        <p className="text-muted-foreground">Gerencie sua equipe de atendentes</p>
+        <p className="text-muted-foreground">
+          Cada login já é um agente. O admin cadastra atendentes e define o papel.
+        </p>
         <Button onClick={() => setShowForm(true)}>
           <Plus className="h-4 w-4 mr-2" />
           Novo Atendente
         </Button>
       </div>
 
-      {showForm && (
-        <Card className="mb-6">
-          <CardHeader>
-            <CardTitle>{editing ? 'Editar Atendente' : 'Novo Atendente'}</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="name">Nome</Label>
-                <Input
-                  id="name"
-                  value={form.name}
-                  onChange={(e) => setForm({ ...form, name: e.target.value })}
-                  required
-                  className="bg-background"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  value={form.email}
-                  onChange={(e) => setForm({ ...form, email: e.target.value })}
-                  required
-                  className="bg-background"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="status">Status</Label>
-                <select
-                  id="status"
-                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
-                  value={form.status}
-                  onChange={(e) => setForm({ ...form, status: e.target.value as AgentStatus })}
-                >
-                  <option value="online">Online</option>
-                  <option value="offline">Offline</option>
-                </select>
-              </div>
-              <div className="flex gap-2">
-                <Button type="submit">Salvar</Button>
-                <Button type="button" variant="outline" onClick={reset}>
-                  Cancelar
-                </Button>
-              </div>
-            </form>
-          </CardContent>
-        </Card>
-      )}
+      {showForm ? (
+        <OperatorForm
+          editing={Boolean(editing)}
+          form={form}
+          error={formError}
+          departments={departments}
+          lastAdmin={lastAdmin}
+          onChange={setForm}
+          onSubmit={handleSubmit}
+          onCancel={reset}
+        />
+      ) : null}
 
       <Card>
         <CardHeader>
           <div className="flex justify-between items-center">
             <div>
               <CardTitle>Lista de Atendentes</CardTitle>
-              <CardDescription>Visualize e gerencie seus atendentes</CardDescription>
+              <CardDescription>Quem assume, transfere e acessa o painel</CardDescription>
             </div>
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -138,59 +159,100 @@ export default function AgentsPage() {
         </CardHeader>
         <CardContent>
           {visible.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">Nenhum atendente encontrado</div>
+            <EmptyState
+              title={agents.length === 0 ? 'Nenhum atendente' : 'Nenhum atendente encontrado'}
+              description={
+                agents.length === 0 ? 'Cadastre o time com e-mail, senha, papel e setor.' : undefined
+              }
+              actionLabel={agents.length === 0 ? 'Novo atendente' : undefined}
+              onAction={agents.length === 0 ? () => setShowForm(true) : undefined}
+            />
           ) : (
             <Table>
               <TableHeader>
                 <TableRow>
                   <TableHead>Nome</TableHead>
                   <TableHead>Email</TableHead>
+                  <TableHead>Papel</TableHead>
+                  <TableHead>Setor</TableHead>
                   <TableHead>Status</TableHead>
-                  <TableHead>Conversas</TableHead>
-                  <TableHead>Tempo de Resposta</TableHead>
                   <TableHead>Ações</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {visible.map((agent) => (
-                  <TableRow key={agent.id}>
-                    <TableCell className="font-medium">{agent.name}</TableCell>
-                    <TableCell>{agent.email}</TableCell>
-                    <TableCell>
-                      <Badge variant={agent.status === 'online' ? 'success' : 'muted'}>
-                        {agent.status === 'online' ? 'Online' : 'Offline'}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>{agent.conversationsCount}</TableCell>
-                    <TableCell>{agent.responseTime}</TableCell>
-                    <TableCell>
-                      <div className="flex gap-2">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => {
-                            setEditing(agent);
-                            setForm({ name: agent.name, email: agent.email, status: agent.status });
-                            setShowForm(true);
-                          }}
-                        >
-                          Editar
-                        </Button>
-                        <Button
-                          variant="destructive"
-                          size="sm"
-                          onClick={async () => {
-                            if (!(await confirm('Excluir este atendente?'))) return;
-                            await catalog().delete(agent.id);
-                            load();
-                          }}
-                        >
-                          Excluir
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
+                {visible.map((agent) => {
+                  const linked = operatorForAgent(agent, operators);
+                  return (
+                    <TableRow key={agent.id}>
+                      <TableCell className="font-medium">
+                        {agent.name}
+                        {actor && agent.id === actor.id ? (
+                          <Badge variant="info" className="ml-2">
+                            Você
+                          </Badge>
+                        ) : null}
+                      </TableCell>
+                      <TableCell>{agent.email}</TableCell>
+                      <TableCell>
+                        {linked ? (linked.role === 'admin' ? 'Admin' : 'Atendente') : '—'}
+                      </TableCell>
+                      <TableCell>{departmentName(agent.departmentId)}</TableCell>
+                      <TableCell>
+                        <Badge variant={agent.status === 'online' ? 'success' : 'muted'}>
+                          {agent.status === 'online' ? 'Online' : 'Offline'}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex gap-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              setEditing(agent);
+                              setFormError('');
+                              setForm({
+                                name: agent.name,
+                                email: agent.email,
+                                password: '',
+                                role: linked?.role ?? 'user',
+                                status: agent.status,
+                                departmentId: agent.departmentId ?? '',
+                              });
+                              setShowForm(true);
+                            }}
+                          >
+                            Editar
+                          </Button>
+                          {linked ? (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={async () => {
+                                if (!(await confirm('Desativar este atendente (offline)?'))) return;
+                                await catalog().save({ ...agent, status: 'offline' });
+                                load();
+                              }}
+                            >
+                              Desativar
+                            </Button>
+                          ) : (
+                            <Button
+                              variant="destructive"
+                              size="sm"
+                              onClick={async () => {
+                                if (!(await confirm('Excluir este atendente?'))) return;
+                                await catalog().delete(agent.id);
+                                load();
+                              }}
+                            >
+                              Excluir
+                            </Button>
+                          )}
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
               </TableBody>
             </Table>
           )}

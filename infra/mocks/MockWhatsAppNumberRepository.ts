@@ -9,6 +9,7 @@ const seed: WhatsAppNumber[] = [
     name: 'Número Principal',
     status: 'active',
     provider: 'WhatsApp Business API',
+    instanceName: 'principal',
     createdAt: new Date('2024-01-01'),
   },
   {
@@ -17,6 +18,7 @@ const seed: WhatsAppNumber[] = [
     name: 'Número Secundário',
     status: 'active',
     provider: 'WhatsApp Business API',
+    instanceName: 'secundario',
     createdAt: new Date('2024-01-05'),
   },
 ];

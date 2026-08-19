@@ -60,6 +60,9 @@ class ServiceLocator {
   getTagRepository() {
     return this.getRepos().tag;
   }
+  getQuickReplyRepository() {
+    return this.getRepos().quickReply;
+  }
   getScheduledMessageRepository() {
     return this.getRepos().scheduledMessage;
   }

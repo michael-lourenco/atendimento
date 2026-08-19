@@ -15,7 +15,6 @@ import { ConversationDepartmentControl } from '@/ui/components/conversation-depa
 import { Button } from '@/ui/components/button';
 
 type ConversationActionsProps = {
-  contact: string;
   conversation: Conversation | null;
   agents: Agent[];
   departments: Department[];
@@ -24,7 +23,6 @@ type ConversationActionsProps = {
 };
 
 export function ConversationActions({
-  contact,
   conversation,
   agents,
   departments,
@@ -36,24 +34,28 @@ export function ConversationActions({
   const assignment = operator ? assignmentFromOperator(operator, agents) : null;
   const assignedToMe = Boolean(assignment && conversation?.assignedAgentId === assignment.agentId);
   const transferAgents = agentsForDepartment(agents, conversation?.departmentId);
+  const threadId = conversation?.id;
 
   const assume = async () => {
-    if (!operator || !assignment) {
+    if (!operator || !assignment || !threadId) {
       return;
     }
     await new AssignConversationUseCase().execute({
-      conversationId: contact,
+      conversationId: threadId,
       agentId: assignment.agentId,
       agentName: assignment.agentName,
       departmentId: assignment.departmentId,
       departmentName: departmentNameOf(departments, assignment.departmentId) || undefined,
     });
-    await new PauseContactFlowUseCase().execute(contact);
+    await new PauseContactFlowUseCase().execute(threadId);
     onChanged();
   };
 
   const close = async () => {
-    await new CloseConversationUseCase().execute(contact);
+    if (!threadId) {
+      return;
+    }
+    await new CloseConversationUseCase().execute(threadId);
     setConfirmClose(false);
     onChanged();
   };
@@ -67,7 +69,7 @@ export function ConversationActions({
             : 'Sem atendente'}
         </span>
         <ConversationDepartmentControl
-          conversationId={contact}
+          conversationId={threadId ?? ''}
           departmentId={conversation?.departmentId}
           departmentName={conversation?.departmentName}
           departments={departments}
@@ -86,12 +88,13 @@ export function ConversationActions({
             size="sm"
             variant={assignedToMe ? 'outline' : 'default'}
             disabled={!operator || assignedToMe}
+            title={!operator ? 'Faça login para assumir' : undefined}
             onClick={() => void assume()}
           >
             {assignedToMe ? 'Com você' : 'Assumir'}
           </Button>
           <TransferAgentControl
-            conversationId={contact}
+            conversationId={threadId ?? ''}
             agents={transferAgents}
             currentAgentId={conversation?.assignedAgentId}
             departments={departments}

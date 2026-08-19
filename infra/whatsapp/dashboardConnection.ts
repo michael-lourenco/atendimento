@@ -3,18 +3,26 @@ import { getEvolutionQrCode, getEvolutionStatus } from './evolutionConnection';
 import { isEvolutionProvider } from './isEvolutionProvider';
 import { serverLocator } from '../adapters/serverLocator';
 
-export async function getDashboardQrCode(): Promise<QRCodeResponse> {
+const STATUS_CACHE_MS = 3000;
+let statusCache: { at: number; key: string; value: StatusResponse } | null = null;
+
+export async function getDashboardQrCode(instance?: string | null): Promise<QRCodeResponse> {
   if (isEvolutionProvider()) {
-    return getEvolutionQrCode();
+    return getEvolutionQrCode(instance);
   }
   return new ChatWhatsAppService().getQRCode();
 }
 
-export async function getDashboardWhatsAppStatus(): Promise<StatusResponse> {
-  if (isEvolutionProvider()) {
-    return getEvolutionStatus();
+export async function getDashboardWhatsAppStatus(instance?: string | null): Promise<StatusResponse> {
+  const key = instance?.trim() || '';
+  if (statusCache && statusCache.key === key && Date.now() - statusCache.at < STATUS_CACHE_MS) {
+    return statusCache.value;
   }
-  return new ChatWhatsAppService().getStatus();
+  const value = isEvolutionProvider()
+    ? await getEvolutionStatus(instance)
+    : await new ChatWhatsAppService().getStatus();
+  statusCache = { at: Date.now(), key, value };
+  return value;
 }
 
 export async function getDashboardWhatsAppMessages(

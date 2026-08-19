@@ -82,4 +82,154 @@ describe('UpsertConversationFromMessageUseCase', () => {
     });
     expect(conversation?.contactName).toBe('Ana Lima');
   });
+
+  it('grava a linha WhatsApp pelo instanceName', async () => {
+    const repo = new MemoryConversations();
+    const numbers = {
+      items: [
+        {
+          id: 'n-com',
+          name: 'Comercial',
+          number: '5511000000001',
+          status: 'active' as const,
+          provider: 'evolution',
+          instanceName: 'comercial',
+          createdAt: new Date('2026-08-19'),
+        },
+      ],
+      async getAll() {
+        return this.items;
+      },
+      async getById(id: string) {
+        return this.items.find((item) => item.id === id) ?? null;
+      },
+      async save() {},
+      async delete() {},
+    };
+    const contacts = {
+      async getAll() {
+        return [];
+      },
+      async getById() {
+        return null;
+      },
+      async save() {},
+      async delete() {},
+    };
+    const conversation = await new UpsertConversationFromMessageUseCase(
+      repo,
+      contacts,
+      numbers
+    ).execute({
+      ...incoming,
+      to: 'comercial',
+    });
+    expect(conversation?.whatsappNumberId).toBe('n-com');
+  });
+
+  it('mesma pessoa em outra linha vira outra conversa', async () => {
+    const repo = new MemoryConversations();
+    const numbers = {
+      items: [
+        {
+          id: 'n-com',
+          name: 'Comercial',
+          number: '5511000000001',
+          status: 'active' as const,
+          provider: 'evolution',
+          instanceName: 'comercial',
+          createdAt: new Date('2026-08-19'),
+        },
+        {
+          id: 'n-sup',
+          name: 'Suporte',
+          number: '5511000000002',
+          status: 'active' as const,
+          provider: 'evolution',
+          instanceName: 'suporte',
+          createdAt: new Date('2026-08-19'),
+        },
+      ],
+      async getAll() {
+        return this.items;
+      },
+      async getById(id: string) {
+        return this.items.find((item) => item.id === id) ?? null;
+      },
+      async save() {},
+      async delete() {},
+    };
+    const contacts = {
+      async getAll() {
+        return [];
+      },
+      async getById() {
+        return null;
+      },
+      async save() {},
+      async delete() {},
+    };
+    const useCase = new UpsertConversationFromMessageUseCase(repo, contacts, numbers);
+    const first = await useCase.execute({ ...incoming, to: 'comercial' });
+    const second = await useCase.execute({ ...incoming, id: 'm2', to: 'suporte' });
+    expect(first?.id).toBe('5511999999999:n-com');
+    expect(second?.id).toBe('5511999999999:n-sup');
+    expect(repo.items).toHaveLength(2);
+    await useCase.execute({ ...incoming, id: 'm3', to: 'comercial' });
+    expect(repo.items).toHaveLength(2);
+    expect(repo.items.find((item) => item.whatsappNumberId === 'n-com')?.unreadCount).toBe(2);
+  });
+
+  it('legado id=telefone da mesma linha não duplica', async () => {
+    const repo = new MemoryConversations();
+    const numbers = {
+      items: [
+        {
+          id: 'n-com',
+          name: 'Comercial',
+          number: '5511000000001',
+          status: 'active' as const,
+          provider: 'evolution',
+          instanceName: 'comercial',
+          createdAt: new Date('2026-08-19'),
+        },
+      ],
+      async getAll() {
+        return this.items;
+      },
+      async getById(id: string) {
+        return this.items.find((item) => item.id === id) ?? null;
+      },
+      async save() {},
+      async delete() {},
+    };
+    const contacts = {
+      async getAll() {
+        return [];
+      },
+      async getById() {
+        return null;
+      },
+      async save() {},
+      async delete() {},
+    };
+    await repo.save({
+      id: '5511999999999',
+      contactId: '5511999999999',
+      contactName: 'Ana',
+      contactPhone: '5511999999999',
+      whatsappNumberId: 'n-com',
+      status: 'open',
+      unreadCount: 0,
+      lastActivity: new Date('2026-08-18T18:00:00Z'),
+      createdAt: new Date('2026-08-18T18:00:00Z'),
+      tags: [],
+    });
+    const again = await new UpsertConversationFromMessageUseCase(repo, contacts, numbers).execute({
+      ...incoming,
+      to: 'comercial',
+    });
+    expect(again?.id).toBe('5511999999999');
+    expect(repo.items).toHaveLength(1);
+  });
 });

@@ -76,7 +76,7 @@ export class TwilioWhatsAppService implements IWhatsAppService {
         }],
       };
     } catch (error: any) {
-      console.error('Erro ao enviar mensagem via Twilio:', error);
+      console.error('Erro ao enviar mensagem via Twilio');
       throw new Error(`Erro ao enviar mensagem WhatsApp via Twilio: ${error.message}`);
     }
   }

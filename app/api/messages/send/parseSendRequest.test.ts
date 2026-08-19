@@ -14,6 +14,20 @@ describe('parseSendRequest', () => {
     expect(parsed.media).toBeUndefined();
   });
 
+  it('lê conversationId no JSON', async () => {
+    const request = new Request('http://localhost/api/messages/send', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        to: '5521982790723',
+        message: 'oi',
+        conversationId: '5521982790723:n1',
+      }),
+    });
+    const parsed = await parseSendRequest(request);
+    expect(parsed.conversationId).toBe('5521982790723:n1');
+  });
+
   it('rejeita JSON sem mensagem', async () => {
     const request = new Request('http://localhost/api/messages/send', {
       method: 'POST',
@@ -36,6 +50,18 @@ describe('parseSendRequest', () => {
     expect(parsed.media?.fileName).toBe('foto.jpg');
     expect(parsed.media?.mimeType).toBe('image/jpeg');
     expect(parsed.media?.bytes.length).toBe(2);
+  });
+
+  it('rejeita JSON inválido', async () => {
+    const request = new Request('http://localhost/api/messages/send', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: '{',
+    });
+    await expect(parseSendRequest(request)).rejects.toMatchObject({
+      message: 'JSON inválido',
+      status: 400,
+    });
   });
 
   it('rejeita arquivo maior que 16 MB', () => {

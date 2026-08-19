@@ -12,6 +12,7 @@ import { Plus, Users, MessageSquare } from 'lucide-react';
 import { DepartmentCatalogUseCase } from '@/core/usecases/DepartmentCatalogUseCase';
 import { Department } from '@/core/entities/Department';
 import { useConfirm } from '@/ui/components/confirm-dialog';
+import { EmptyState } from '@/ui/components/empty-state';
 
 export default function DepartmentsPage() {
   const [departments, setDepartments] = useState<Department[]>([]);
@@ -183,6 +184,18 @@ export default function DepartmentsPage() {
         </Card>
       )}
 
+      {departments.length === 0 && !showForm ? (
+        <Card>
+          <CardContent className="pt-6">
+            <EmptyState
+              title="Nenhum setor"
+              description="Crie Comercial, Demonstração ou o setor da sua equipe. O fluxo de triagem usa estes nomes."
+              actionLabel="Novo setor"
+              onAction={() => setShowForm(true)}
+            />
+          </CardContent>
+        </Card>
+      ) : (
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 mb-6">
         {departments.map((dept) => (
           <Card key={dept.id} className="relative">
@@ -232,6 +245,7 @@ export default function DepartmentsPage() {
           </Card>
         ))}
       </div>
+      )}
     </div>
   );
 }

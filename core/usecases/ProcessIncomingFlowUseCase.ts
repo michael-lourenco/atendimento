@@ -6,10 +6,16 @@ import { planFlowTurn } from '../engine/planFlowTurn';
 import { resolveActiveFlow } from '../engine/resolveActiveFlow';
 import { SendWhatsAppMessageUseCase } from './SendWhatsAppMessageUseCase';
 import { SetConversationDepartmentUseCase } from './SetConversationDepartmentUseCase';
+import { IWhatsAppNumberRepository } from '../repositories/IWhatsAppNumberRepository';
+import { contactPhoneFromMessage } from './UpsertConversationFromMessageUseCase';
+import { conversationThreadId } from '../entities/conversationThread';
+import { matchWhatsAppNumber } from '../entities/whatsappNumberLine';
 
 export interface ProcessIncomingFlowInput {
   contactId: string;
   text: string;
+  instanceName?: string;
+  sessionKey?: string;
 }
 
 export class ProcessIncomingFlowUseCase {
@@ -18,7 +24,8 @@ export class ProcessIncomingFlowUseCase {
     private sessionRepository: IFlowSessionRepository,
     private sendMessage: SendWhatsAppMessageUseCase,
     private setDepartment: SetConversationDepartmentUseCase | null = null,
-    private departments: IDepartmentRepository | null = null
+    private departments: IDepartmentRepository | null = null,
+    private numbers: IWhatsAppNumberRepository | null = null
   ) {}
 
   async executeForMessages(messages: Message[]): Promise<void> {
@@ -30,13 +37,22 @@ export class ProcessIncomingFlowUseCase {
       if (!text) {
         continue;
       }
-      await this.execute({ contactId: message.from, text });
+      const phone = contactPhoneFromMessage(message);
+      const catalog = this.numbers ? await this.numbers.getAll() : [];
+      const line = matchWhatsAppNumber(catalog, message.to);
+      await this.execute({
+        contactId: phone,
+        text,
+        instanceName: message.to,
+        sessionKey: conversationThreadId(phone, line?.id),
+      });
     }
   }
 
   async execute(input: ProcessIncomingFlowInput): Promise<void> {
+    const sessionKey = input.sessionKey ?? input.contactId;
     const flows = await this.flowRepository.getAll();
-    const session = await this.sessionRepository.getByContactId(input.contactId);
+    const session = await this.sessionRepository.getByContactId(sessionKey);
     if (session?.paused) {
       return;
     }
@@ -50,13 +66,13 @@ export class ProcessIncomingFlowUseCase {
     const plan = planFlowTurn({
       flow,
       session,
-      contactId: input.contactId,
+      contactId: sessionKey,
       incomingText: input.text,
       now: new Date(),
     });
 
     for (const effect of plan.effects) {
-      await this.applySetDepartment(input.contactId, effect.departmentId);
+      await this.applySetDepartment(sessionKey, effect.departmentId);
     }
 
     for (const reply of plan.replies) {
@@ -65,6 +81,8 @@ export class ProcessIncomingFlowUseCase {
         message: reply.content,
         flowId: flow.id,
         stepId: reply.stepId,
+        instanceName: input.instanceName,
+        conversationId: sessionKey,
       });
     }
 

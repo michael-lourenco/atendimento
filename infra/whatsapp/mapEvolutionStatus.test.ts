@@ -1,4 +1,4 @@
-import { mapEvolutionStatusUpdates } from './mapEvolutionStatus';
+import { isEvolutionInboxEvent, mapEvolutionStatusUpdates } from './mapEvolutionStatus';
 
 describe('mapEvolutionStatusUpdates', () => {
   it('lê messages.update com status em texto', () => {
@@ -26,5 +26,12 @@ describe('mapEvolutionStatusUpdates', () => {
         data: { key: { id: 'x' }, status: 'READ' },
       })
     ).toEqual([]);
+  });
+
+  it('só upsert e update entram no inbox do webhook', () => {
+    expect(isEvolutionInboxEvent('MESSAGES_UPSERT')).toBe(true);
+    expect(isEvolutionInboxEvent('messages.update')).toBe(true);
+    expect(isEvolutionInboxEvent('CONNECTION_UPDATE')).toBe(false);
+    expect(isEvolutionInboxEvent('presence.update')).toBe(false);
   });
 });

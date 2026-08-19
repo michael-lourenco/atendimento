@@ -4,6 +4,7 @@ import { Agent, AgentStatus } from '../../../core/entities/Agent';
 import { Contact } from '../../../core/entities/Contact';
 import { WhatsAppNumber, WhatsAppNumberStatus } from '../../../core/entities/WhatsAppNumber';
 import { Tag } from '../../../core/entities/Tag';
+import { QuickReply } from '../../../core/entities/QuickReply';
 import { ScheduledMessage, ScheduleStatus } from '../../../core/entities/ScheduledMessage';
 import { Report, ReportType } from '../../../core/entities/Report';
 import { asDate, asStringArray } from '../crud';
@@ -119,6 +120,7 @@ export function numberFromRow(row: Record<string, unknown>): WhatsAppNumber {
     number: String(row.number),
     status: row.status as WhatsAppNumberStatus,
     provider: String(row.provider),
+    instanceName: row.instance_name ? String(row.instance_name) : undefined,
     createdAt: asDate(row.created_at),
   };
 }
@@ -130,6 +132,7 @@ export function numberToRow(number: WhatsAppNumber) {
     number: number.number,
     status: number.status,
     provider: number.provider,
+    instance_name: number.instanceName ?? null,
     created_at: number.createdAt.toISOString(),
   };
 }
@@ -151,6 +154,24 @@ export function tagToRow(tag: Tag) {
     color: tag.color,
     contacts_count: tag.contactsCount,
     created_at: tag.createdAt.toISOString(),
+  };
+}
+
+export function quickReplyFromRow(row: Record<string, unknown>): QuickReply {
+  return {
+    id: String(row.id),
+    title: String(row.title),
+    body: String(row.body ?? ''),
+    createdAt: asDate(row.created_at),
+  };
+}
+
+export function quickReplyToRow(reply: QuickReply) {
+  return {
+    id: reply.id,
+    title: reply.title,
+    body: reply.body,
+    created_at: reply.createdAt.toISOString(),
   };
 }
 

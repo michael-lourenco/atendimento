@@ -1,5 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { serverLocator } from '@/infra/adapters/serverLocator';
+import { apiJson, applyRequestId } from '@/infra/http/apiJson';
+import { logApiError } from '@/infra/http/apiLog';
+import { HttpBodyError, parseJsonBody } from '@/infra/http/parseJson';
+import { requestIdFrom } from '@/infra/http/requestId';
+import { metaWebhookSchema } from '@/infra/http/schemas';
 import { WhatsAppWebhookEntry } from '@/core/services/IWhatsAppService';
 
 export async function GET(request: NextRequest) {
@@ -9,50 +14,34 @@ export async function GET(request: NextRequest) {
   const challenge = searchParams.get('hub.challenge');
 
   if (!mode || !token || !challenge) {
-    return NextResponse.json(
-      { error: 'Parâmetros de verificação inválidos' },
-      { status: 400 }
-    );
+    return apiJson(request, { error: 'Parâmetros de verificação inválidos' }, { status: 400 });
   }
 
   const whatsAppService = serverLocator.getWhatsAppService();
   const verifiedChallenge = whatsAppService.verifyWebhook(mode, token, challenge);
 
   if (verifiedChallenge) {
-    return new NextResponse(verifiedChallenge, { status: 200 });
+    return applyRequestId(request, new NextResponse(verifiedChallenge, { status: 200 }));
   }
 
-  return NextResponse.json(
-    { error: 'Token de verificação inválido' },
-    { status: 403 }
-  );
+  return apiJson(request, { error: 'Token de verificação inválido' }, { status: 403 });
 }
 
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json();
-
-    if (!body.object || body.object !== 'whatsapp_business_account') {
-      return NextResponse.json(
-        { error: 'Objeto inválido' },
-        { status: 400 }
-      );
-    }
-
+    const body = await parseJsonBody(request, metaWebhookSchema);
     if (body.entry && Array.isArray(body.entry)) {
       const useCase = serverLocator.createIncomingHandler();
       for (const entry of body.entry as WhatsAppWebhookEntry[]) {
         await useCase.execute(entry);
       }
     }
-
-    return NextResponse.json({ status: 'ok' }, { status: 200 });
+    return apiJson(request, { status: 'ok' }, { status: 200 });
   } catch (error) {
-    console.error('Erro ao processar webhook do WhatsApp:', error);
-
-    return NextResponse.json(
-      { error: 'Erro interno', message: error instanceof Error ? error.message : 'Unknown error' },
-      { status: 200 }
-    );
+    if (error instanceof HttpBodyError) {
+      return apiJson(request, { error: error.message }, { status: 400 });
+    }
+    logApiError(requestIdFrom(request), 'Erro ao processar webhook do WhatsApp', error);
+    return apiJson(request, { status: 'ok' }, { status: 200 });
   }
 }

@@ -24,6 +24,7 @@ export interface SendMessageParams {
   templateName?: string;
   templateParams?: string[];
   media?: OutgoingMedia;
+  instanceName?: string;
 }
 
 export function assertNoOutgoingMedia(params: SendMessageParams): void {

@@ -1,4 +1,4 @@
-import { IAuthRepository } from '../../core/repositories/IAuthRepository';
+import { CreateOperatorInput, IAuthRepository } from '../../core/repositories/IAuthRepository';
 import { AuthUser, User } from '../../core/entities/User';
 
 const STORAGE_KEY = 'mock_auth_user';
@@ -82,6 +82,39 @@ export class MockAuthRepository implements IAuthRepository {
   async isAuthenticated(): Promise<boolean> {
     const currentUser = this.getCurrentUserFromStorage();
     return Promise.resolve(currentUser !== null);
+  }
+
+  async listOperators(): Promise<User[]> {
+    return [...this.users];
+  }
+
+  async createOperator(input: CreateOperatorInput): Promise<User | null> {
+    const email = input.email.trim().toLowerCase();
+    if (this.users.some((item) => item.email.toLowerCase() === email)) {
+      return null;
+    }
+    const user: User = {
+      id: `user-${Date.now()}`,
+      email,
+      name: input.name.trim(),
+      role: input.role,
+      createdAt: new Date(),
+    };
+    this.users.push(user);
+    return user;
+  }
+
+  async setOperatorRole(id: string, role: 'admin' | 'user'): Promise<boolean> {
+    const user = this.users.find((item) => item.id === id);
+    if (!user) {
+      return false;
+    }
+    user.role = role;
+    const stored = this.getCurrentUserFromStorage();
+    if (stored?.id === id) {
+      this.setCurrentUserToStorage({ ...stored, role });
+    }
+    return true;
   }
 }
 

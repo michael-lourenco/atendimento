@@ -11,8 +11,8 @@ export function startScheduleDispatchCron(): void {
     return;
   }
   const tick = () => {
-    void runDispatchDueScheduledMessages().catch((error) => {
-      console.error('Cron de agendamentos falhou:', error);
+    void runDispatchDueScheduledMessages().catch(() => {
+      console.error('Cron de agendamentos falhou');
     });
   };
   setTimeout(tick, FIRST_TICK_MS);

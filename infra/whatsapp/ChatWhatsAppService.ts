@@ -20,6 +20,15 @@ export interface StatusResponse {
     pushname: string | null;
     platform: string | null;
   } | null;
+  instances?: Array<{
+    name: string;
+    connected: boolean;
+    info: {
+      wid: string | null;
+      pushname: string | null;
+      platform: string | null;
+    } | null;
+  }>;
 }
 
 export interface WhatsAppMessage {
@@ -65,13 +74,10 @@ export class ChatWhatsAppService {
     try {
       // Tenta primeiro o endpoint novo /api/qr
       try {
-        console.log(`[ChatWhatsAppService] Tentando obter QR Code de: ${this.baseUrl}/api/qr`);
         const response = await this.axiosClient.get<QRCodeResponse>('/api/qr');
         return response.data;
       } catch (newEndpointError: any) {
-        // Se falhar, tenta o endpoint antigo /qr-data
         if (newEndpointError.response?.status === 404 || newEndpointError.code === 'ECONNREFUSED') {
-          console.log(`[ChatWhatsAppService] Endpoint /api/qr não encontrado, tentando /qr-data`);
           const oldResponse = await this.axiosClient.get<{ qr: string | null; available: boolean }>('/qr-data');
           
           // Lógica baseada no chat-whatsapp (server.js linha 730-732):
@@ -92,10 +98,8 @@ export class ChatWhatsAppService {
         throw newEndpointError;
       }
     } catch (error: any) {
-      console.error('Erro ao obter QR Code:', error);
-      console.error(`URL base: ${this.baseUrl}`);
-      console.error(`Erro completo:`, error.response?.data || error.message);
-      throw new Error(`Erro ao obter QR Code do chat-whatsapp: ${error.message || 'Connection failed'}`);
+      console.error('Erro ao obter QR Code do chat-whatsapp');
+      throw new Error('Erro ao obter QR Code do chat-whatsapp');
     }
   }
 
@@ -118,9 +122,6 @@ export class ChatWhatsAppService {
       } catch (newEndpointError: any) {
         // Se falhar, usa os endpoints antigos /health e /qr-data
         if (newEndpointError.response?.status === 404) {
-          console.log(`[ChatWhatsAppService] Endpoint /api/status não encontrado, usando /health e /qr-data`);
-          
-          // Busca ambos os endpoints em paralelo
           const [healthResponse, qrDataResponse] = await Promise.all([
             this.axiosClient.get<{ status: string; qrAvailable: boolean; connected?: boolean }>('/health'),
             this.axiosClient.get<{ qr: string | null; available: boolean }>('/qr-data')
@@ -131,7 +132,6 @@ export class ChatWhatsAppService {
           // Estratégia 1: Se /health tem o campo connected, usa ele (versão nova)
           if (healthResponse.data.connected !== undefined) {
             isConnected = healthResponse.data.connected;
-            console.log(`[ChatWhatsAppService] Status do /health: connected=${isConnected}`);
           } else {
             // Estratégia 2: Usa a mesma lógica do chat-whatsapp
             // Quando conecta: currentQR = null E qrGenerated = false
@@ -142,9 +142,6 @@ export class ChatWhatsAppService {
             // Conectado quando: QR Code é null E não está disponível
             // (Isso é exatamente o que acontece no server.js linha 730-732 quando conecta)
             isConnected = qrIsNull && qrNotAvailable;
-            
-            console.log(`[ChatWhatsAppService] Status inferido do /qr-data: connected=${isConnected}`);
-            console.log(`[ChatWhatsAppService] Detalhes: qr=${qrIsNull ? 'null' : 'presente'}, available=${qrDataResponse.data.available}`);
           }
           
           // Converte formato antigo para novo formato
@@ -157,7 +154,7 @@ export class ChatWhatsAppService {
         throw newEndpointError;
       }
     } catch (error) {
-      console.error('Erro ao obter status:', error);
+      console.error('Erro ao obter status do chat-whatsapp');
       throw new Error('Erro ao obter status do chat-whatsapp');
     }
   }
@@ -175,7 +172,6 @@ export class ChatWhatsAppService {
     } catch (error: any) {
       // Se o endpoint não existir (404), retorna lista vazia
       if (error.response?.status === 404) {
-        console.warn('[ChatWhatsAppService] Endpoint /api/messages não encontrado. Servidor precisa ser atualizado.');
         return {
           messages: [],
           total: 0,
@@ -183,7 +179,7 @@ export class ChatWhatsAppService {
           offset
         };
       }
-      console.error('Erro ao obter mensagens:', error);
+      console.error('Erro ao obter mensagens do chat-whatsapp');
       throw new Error('Erro ao obter mensagens do chat-whatsapp');
     }
   }
@@ -198,7 +194,7 @@ export class ChatWhatsAppService {
       );
       return response.data;
     } catch (error) {
-      console.error('Erro ao obter mensagens do usuário:', error);
+      console.error('Erro ao obter mensagens do usuário no chat-whatsapp');
       throw new Error('Erro ao obter mensagens do usuário');
     }
   }
@@ -214,7 +210,7 @@ export class ChatWhatsAppService {
       );
       return response.data;
     } catch (error) {
-      console.error('Erro ao enviar mensagem:', error);
+      console.error('Erro ao enviar mensagem via chat-whatsapp');
       throw new Error('Erro ao enviar mensagem via chat-whatsapp');
     }
   }

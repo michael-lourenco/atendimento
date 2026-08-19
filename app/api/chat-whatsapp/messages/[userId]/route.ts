@@ -1,43 +1,29 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { ChatWhatsAppService } from '@/infra/whatsapp/ChatWhatsAppService';
 import { isEvolutionProvider } from '@/infra/whatsapp/isEvolutionProvider';
+import { apiJson } from '@/infra/http/apiJson';
+import { logApiError } from '@/infra/http/apiLog';
+import { requestIdFrom } from '@/infra/http/requestId';
 
-/**
- * API Route para obter mensagens de um usuário específico
- * GET /api/chat-whatsapp/messages/[userId]
- */
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ userId: string }> }
 ) {
   try {
     const { userId } = await params;
-    
     if (!userId) {
-      return NextResponse.json(
-        { error: 'userId é obrigatório' },
-        { status: 400 }
-      );
+      return apiJson(request, { error: 'userId é obrigatório' }, { status: 400 });
     }
-    
+
     if (isEvolutionProvider()) {
-      return NextResponse.json({ messages: [], total: 0 }, { status: 200 });
+      return apiJson(request, { messages: [], total: 0 }, { status: 200 });
     }
 
     const service = new ChatWhatsAppService();
     const messages = await service.getMessagesByUser(userId);
-    
-    return NextResponse.json(messages, { status: 200 });
+    return apiJson(request, messages, { status: 200 });
   } catch (error) {
-    console.error('Erro ao obter mensagens do usuário:', error);
-    
-    return NextResponse.json(
-      {
-        error: 'Erro ao obter mensagens do usuário',
-        message: error instanceof Error ? error.message : 'Unknown error',
-      },
-      { status: 500 }
-    );
+    logApiError(requestIdFrom(request), 'Erro ao obter mensagens do usuário', error);
+    return apiJson(request, { error: 'Erro ao obter mensagens do usuário' }, { status: 500 });
   }
 }
-

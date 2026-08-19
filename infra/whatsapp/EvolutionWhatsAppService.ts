@@ -50,19 +50,19 @@ export class EvolutionWhatsAppService implements IWhatsAppService {
   }
 
   async sendMessage(params: SendMessageParams): Promise<WhatsAppMessageResponse> {
-    if (!this.apiKey || !this.instanceName) {
+    const instanceName = params.instanceName?.trim() || this.instanceName;
+    if (!this.apiKey || !instanceName) {
       throw new Error('Credenciais Evolution API não configuradas. Verifique as variáveis de ambiente: EVOLUTION_API_KEY, EVOLUTION_INSTANCE_NAME');
     }
 
-    // Formatar número (remover caracteres não numéricos e garantir formato internacional)
     const toNumber = this.formatPhoneNumber(params.to);
 
     try {
       if (params.media) {
-        return await sendEvolutionMedia(this.axiosClient, this.instanceName, toNumber, params);
+        return await sendEvolutionMedia(this.axiosClient, instanceName, toNumber, params);
       }
 
-      const response = await this.axiosClient.post(`/message/sendText/${this.instanceName}`, {
+      const response = await this.axiosClient.post(`/message/sendText/${instanceName}`, {
         number: toNumber,
         text: params.message,
       });
@@ -161,10 +161,14 @@ export class EvolutionWhatsAppService implements IWhatsAppService {
    * Evolution envia webhooks em formato diferente, então precisamos adaptar
    */
   async processEvolutionWebhook(evolutionPayload: any): Promise<Message[]> {
-    const messages = mapEvolutionIncomingMessages(evolutionPayload, this.instanceName);
+    const instanceName =
+      typeof evolutionPayload?.instance === 'string' && evolutionPayload.instance.trim()
+        ? evolutionPayload.instance.trim()
+        : this.instanceName;
+    const messages = mapEvolutionIncomingMessages(evolutionPayload, instanceName);
     for (const message of messages) {
       if (!message.contactName) {
-        message.contactName = await this.lookupPushName(message.from);
+        message.contactName = await this.lookupPushName(message.from, instanceName);
       }
     }
     return messages;
@@ -176,13 +180,15 @@ export class EvolutionWhatsAppService implements IWhatsAppService {
     convertToMp4?: boolean;
     remoteJid?: string;
     fromMe?: boolean;
+    instanceName?: string;
   }): Promise<DownloadedMedia | null> {
-    if (!this.apiKey || !this.instanceName) {
+    const instanceName = input.instanceName?.trim() || this.instanceName;
+    if (!this.apiKey || !instanceName) {
       return null;
     }
     try {
       const response = await this.axiosClient.post(
-        `/chat/getBase64FromMediaMessage/${this.instanceName}`,
+        `/chat/getBase64FromMediaMessage/${instanceName}`,
         {
           message:
             input.webhookItem ?? {
@@ -202,12 +208,12 @@ export class EvolutionWhatsAppService implements IWhatsAppService {
     }
   }
 
-  private async lookupPushName(phone: string): Promise<string | undefined> {
+  private async lookupPushName(phone: string, instanceName = this.instanceName): Promise<string | undefined> {
     if (!this.apiKey || !phone) {
       return undefined;
     }
     try {
-      const response = await this.axiosClient.post(`/chat/fetchProfile/${this.instanceName}`, {
+      const response = await this.axiosClient.post(`/chat/fetchProfile/${instanceName}`, {
         number: phone,
       });
       const body = response.data ?? {};

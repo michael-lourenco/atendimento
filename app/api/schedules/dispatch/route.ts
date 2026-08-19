@@ -1,4 +1,6 @@
-import { NextResponse } from 'next/server';
+import { apiJson } from '@/infra/http/apiJson';
+import { logApiError } from '@/infra/http/apiLog';
+import { requestIdFrom } from '@/infra/http/requestId';
 import { getOperatorUser } from '@/infra/supabase/getOperatorUser';
 import { isPublicSupabaseConfigured } from '@/infra/supabase/env';
 import { hasCronBearer } from '@/infra/schedules/cronAuth';
@@ -20,18 +22,13 @@ async function isAllowed(request: Request): Promise<boolean> {
 async function handle(request: Request) {
   try {
     if (!(await isAllowed(request))) {
-      return NextResponse.json({ error: 'Não autenticado' }, { status: 401 });
+      return apiJson(request, { error: 'Não autenticado' }, { status: 401 });
     }
     const result = await runDispatchDueScheduledMessages();
-    return NextResponse.json(result, { status: 200 });
+    return apiJson(request, result, { status: 200 });
   } catch (error) {
-    return NextResponse.json(
-      {
-        error: 'Erro ao enviar agendamentos',
-        message: error instanceof Error ? error.message : 'Unknown error',
-      },
-      { status: 500 }
-    );
+    logApiError(requestIdFrom(request), 'Erro ao enviar agendamentos', error);
+    return apiJson(request, { error: 'Erro ao enviar agendamentos' }, { status: 500 });
   }
 }
 

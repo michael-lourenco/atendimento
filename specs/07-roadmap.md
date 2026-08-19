@@ -29,15 +29,25 @@ Spec: `08-supabase.md`.
 - `POST /api/messages/send` exige sessão quando o Supabase está configurado
 - Agendamentos: cron in-process (60s) em `next dev`/`next start`; na Vercel, `GET /api/schedules/dispatch` (`vercel.json` + `CRON_SECRET`)
 
-## Fase atual: 5
+## Fase atual: 5 (feita)
 
-## Fase 5 — Produção
+## Fase 5 — Produção (feita)
 
-- Validação Zod nas APIs
-- Sem logs de token / service role
-- Observabilidade mínima (request id, erros)
-- RLS por setor (opcional, se o produto exigir)
-- R2 só se o Storage do Supabase não bastar para mídia
+- Validação Zod nos POST/PATCH JSON de `app/api/**` (login, operators, send JSON, webhooks). `400 { error: string }`. GET sem Zod
+- Header `x-request-id` em todo `/api/**`
+- Logs sanitizados: `[requestId] mensagem: detalhe` sem secrets, JWT, Authorization, mídia/base64, payload completo de webhook, QR
+- Webhooks: ACK 200 sem `message` de stack
+- Dica de login na UI: só `NEXT_PUBLIC_SUPABASE_URL` + `NEXT_PUBLIC_SUPABASE_ANON_KEY` (nunca `SUPABASE_SERVICE_ROLE_KEY`)
+- Pasta `infra/http` (request id, log, schemas). Sem porta nova em `core`. Zod já no `package.json`
+
+### Fora da Fase 5
+
+- Multi-tenant / `company_id` / várias empresas no mesmo banco
+- RLS por setor / departamento
+- R2 / Cloudflare Storage
+- Troca de stack (Nest, Firebase, D1 como banco)
+
+Isolamento entre empresas = cópia da stack (`00-vision.md`, `08-supabase.md`).
 
 ## Não fazer
 

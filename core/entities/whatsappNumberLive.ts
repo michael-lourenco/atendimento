@@ -7,6 +7,7 @@ export type LiveWhatsAppInfo = {
   wid: string | null;
   pushname: string | null;
   platform?: string | null;
+  instanceName?: string | null;
 };
 
 export function digitsFromWhatsAppWid(wid: string | null | undefined): string {
@@ -32,7 +33,12 @@ export function liveWhatsAppNumberForCatalog(
   if (!live.connected) return null;
   const digits = digitsFromWhatsAppWid(live.wid);
   if (!digits) return null;
-  const match = catalog.find((row) => digitsFromWhatsAppWid(row.number) === digits);
+  const requested = live.instanceName?.trim();
+  const match =
+    (requested
+      ? catalog.find((row) => row.instanceName?.trim().toLowerCase() === requested.toLowerCase())
+      : undefined) ?? catalog.find((row) => digitsFromWhatsAppWid(row.number) === digits);
+  const instanceName = requested || match?.instanceName;
   return {
     id: match?.id ?? liveWhatsAppCatalogId(digits),
     name: live.pushname || match?.name || 'WhatsApp conectado',
@@ -40,6 +46,7 @@ export function liveWhatsAppNumberForCatalog(
     status: 'active',
     provider: live.platform || match?.provider || 'evolution',
     createdAt: match?.createdAt ?? now,
+    ...(instanceName ? { instanceName } : {}),
   };
 }
 
@@ -52,7 +59,8 @@ export function liveWhatsAppNumberNeedsSave(
     existing.name !== next.name ||
     existing.number !== next.number ||
     existing.status !== next.status ||
-    existing.provider !== next.provider
+    existing.provider !== next.provider ||
+    (existing.instanceName ?? '') !== (next.instanceName ?? '')
   );
 }
 

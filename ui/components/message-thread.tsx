@@ -7,6 +7,7 @@ import { Agent } from '@/core/entities/Agent';
 import { Conversation } from '@/core/entities/Conversation';
 import { Department } from '@/core/entities/Department';
 import { User } from '@/core/entities/User';
+import { WhatsAppNumber } from '@/core/entities/WhatsAppNumber';
 import { conversationDisplayName, formatInboxTime } from '@/core/entities/conversationInbox';
 import { GetMessagesByContactUseCase } from '@/core/usecases/GetMessagesByContactUseCase';
 import { GetFlowSessionUseCase } from '@/core/usecases/GetFlowSessionUseCase';
@@ -16,6 +17,7 @@ import { GetCurrentUserUseCase } from '@/core/usecases/GetCurrentUserUseCase';
 import { AgentCatalogUseCase } from '@/core/usecases/AgentCatalogUseCase';
 import { DepartmentCatalogUseCase } from '@/core/usecases/DepartmentCatalogUseCase';
 import { ResumeContactFlowUseCase } from '@/core/usecases/ResumeContactFlowUseCase';
+import { listWhatsAppNumbersCached } from '@/ui/lib/whatsapp-number-cache';
 import { MessageMedia } from '@/ui/components/message-media';
 import { MessageComposer } from '@/ui/components/message-composer';
 import { ConversationActions } from '@/ui/components/conversation-actions';
@@ -28,12 +30,12 @@ import { DASHBOARD_POLL_MS } from '@/ui/lib/dashboard-poll';
 import { queueToneOf } from '@/ui/lib/status-tone';
 
 type MessageThreadProps = {
-  contact: string;
+  conversationId: string;
   onBack?: () => void;
   onConversationChanged?: () => void;
 };
 
-export function MessageThread({ contact, onBack, onConversationChanged }: MessageThreadProps) {
+export function MessageThread({ conversationId, onBack, onConversationChanged }: MessageThreadProps) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [paused, setPaused] = useState(false);
   const [conversation, setConversation] = useState<Conversation | null>(null);
@@ -45,39 +47,54 @@ export function MessageThread({ contact, onBack, onConversationChanged }: Messag
   const [error, setError] = useState<string | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
 
-  const load = async () => {
-    await new MarkConversationReadUseCase().execute(contact);
-    const [list, session, conv, agentList, departmentList, user] = await Promise.all([
-      new GetMessagesByContactUseCase().execute(contact),
-      new GetFlowSessionUseCase().execute(contact),
-      new GetConversationByIdUseCase().execute(contact),
-      new AgentCatalogUseCase().list(),
-      new DepartmentCatalogUseCase().list(),
-      new GetCurrentUserUseCase().execute(),
+  const lineRef = useRef<WhatsAppNumber | null>(null);
+
+  const load = async (refreshCatalogs: boolean) => {
+    await new MarkConversationReadUseCase().execute(conversationId);
+    const conv = await new GetConversationByIdUseCase().execute(conversationId);
+    if (refreshCatalogs) {
+      const [agentList, departmentList, user, numberList] = await Promise.all([
+        new AgentCatalogUseCase().list(),
+        new DepartmentCatalogUseCase().list(),
+        new GetCurrentUserUseCase().execute(),
+        listWhatsAppNumbersCached(),
+      ]);
+      lineRef.current = numberList.find((item) => item.id === conv?.whatsappNumberId) ?? null;
+      setAgents(agentList);
+      setDepartments(departmentList);
+      setOperator(user);
+    } else if (conv?.whatsappNumberId && lineRef.current?.id !== conv.whatsappNumberId) {
+      const numberList = await listWhatsAppNumbersCached();
+      lineRef.current = numberList.find((item) => item.id === conv.whatsappNumberId) ?? null;
+    }
+    const phone = conv?.contactPhone ?? conversationId;
+    const [list, session] = await Promise.all([
+      new GetMessagesByContactUseCase().execute(phone, lineRef.current),
+      new GetFlowSessionUseCase().execute(conversationId),
     ]);
     setMessages(list);
     setPaused(Boolean(session?.paused));
     setConversation(conv);
-    setAgents(agentList);
-    setDepartments(departmentList);
-    setOperator(user);
   };
 
   const refresh = () => {
-    void load().then(() => onConversationChanged?.());
+    void load(false).then(() => onConversationChanged?.());
   };
 
   useEffect(() => {
-    load().catch((err) => console.error('Erro ao carregar conversa:', err));
+    lineRef.current = null;
+    load(true).catch((err) => console.error('Erro ao carregar conversa:', err));
     const timer = setInterval(() => {
-      load().catch((err) => console.error('Erro ao atualizar conversa:', err));
+      load(false).catch((err) => console.error('Erro ao atualizar conversa:', err));
     }, DASHBOARD_POLL_MS);
     return () => clearInterval(timer);
-  }, [contact]);
+  }, [conversationId]);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages.length, pendingSend]);
+
+  const phone = conversation?.contactPhone ?? conversationId;
 
   const send = async (input: { text: string; file: File | null }) => {
     setSending(true);
@@ -89,7 +106,8 @@ export function MessageThread({ contact, onBack, onConversationChanged }: Messag
             method: 'POST',
             body: (() => {
               const form = new FormData();
-              form.append('to', contact);
+              form.append('to', phone);
+              form.append('conversationId', conversationId);
               form.append('message', input.text);
               form.append('file', input.file);
               return form;
@@ -98,7 +116,7 @@ export function MessageThread({ contact, onBack, onConversationChanged }: Messag
         : await fetch('/api/messages/send', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ to: contact, message: input.text }),
+            body: JSON.stringify({ to: phone, message: input.text, conversationId }),
           });
       const body = await response.json().catch(() => ({}));
       if (!response.ok) {
@@ -118,7 +136,7 @@ export function MessageThread({ contact, onBack, onConversationChanged }: Messag
 
   const resume = async () => {
     try {
-      await new ResumeContactFlowUseCase().execute(contact);
+      await new ResumeContactFlowUseCase().execute(conversationId);
       setPaused(false);
     } catch (err) {
       console.error('Erro ao retomar chatbot:', err);
@@ -128,7 +146,7 @@ export function MessageThread({ contact, onBack, onConversationChanged }: Messag
 
   const title = conversation
     ? conversationDisplayName(conversation)
-    : contact;
+    : phone;
   const queueTone = conversation ? queueToneOf(conversation) : null;
 
   return (
@@ -150,7 +168,7 @@ export function MessageThread({ contact, onBack, onConversationChanged }: Messag
           <div className="min-w-0 flex-1">
             <CardTitle className="truncate">{title}</CardTitle>
             <CardDescription className="flex flex-wrap items-center gap-2">
-              <span>{contact}</span>
+              <span>{phone}</span>
               {queueTone ? (
                 <Badge
                   variant={
@@ -168,7 +186,6 @@ export function MessageThread({ contact, onBack, onConversationChanged }: Messag
           </div>
         </div>
         <ConversationActions
-          contact={contact}
           conversation={conversation}
           agents={agents}
           departments={departments}
@@ -217,6 +234,15 @@ export function MessageThread({ contact, onBack, onConversationChanged }: Messag
                         <span>{formatInboxTime(message.timestamp)}</span>
                         <MessageStatusTicks message={message} />
                       </p>
+                      {!incoming && message.status === 'failed' ? (
+                        <button
+                          type="button"
+                          className="mt-1 text-[11px] underline opacity-80"
+                          onClick={() => void send({ text: message.content, file: null })}
+                        >
+                          Reenviar
+                        </button>
+                      ) : null}
                     </div>
                   </div>
                 );

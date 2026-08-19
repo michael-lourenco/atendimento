@@ -74,7 +74,7 @@ export class WhatsAppService implements IWhatsAppService {
       const data: WhatsAppMessageResponse = await response.json();
       return data;
     } catch (error) {
-      console.error('Erro ao enviar mensagem WhatsApp:', error);
+      console.error('Erro ao enviar mensagem WhatsApp');
       throw error;
     }
   }

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { DashboardMetrics, Report } from '@/core/entities/Report';
+import { reportToCsv } from '@/core/entities/reportCsv';
 import { GetDashboardMetricsUseCase } from '@/core/usecases/GetDashboardMetricsUseCase';
 import { ReportCatalogUseCase } from '@/core/usecases/ReportCatalogUseCase';
 import { GenerateReportUseCase } from '@/core/usecases/GenerateReportUseCase';
@@ -32,11 +33,11 @@ export default function ReportsPage() {
   };
 
   const handleDownload = (report: Report) => {
-    const blob = new Blob([JSON.stringify(report, null, 2)], { type: 'application/json' });
+    const blob = new Blob([reportToCsv(report)], { type: 'text/csv;charset=utf-8' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.download = `${report.id}.json`;
+    link.download = `${report.id}.csv`;
     link.click();
     URL.revokeObjectURL(url);
   };

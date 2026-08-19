@@ -12,6 +12,7 @@ import { NextStepSelect, flowSelectClass } from '@/ui/components/flow-next-step-
 import { FlowConditionFields } from '@/ui/components/flow-condition-fields';
 import { FlowQuestionOptions } from '@/ui/components/flow-question-options';
 import { FlowPathMap } from '@/ui/components/flow-path-map';
+import { FlowWhatsAppPreview } from '@/ui/components/flow-whatsapp-preview';
 import { flowStepToneBar } from '@/ui/lib/status-tone';
 
 type FlowStepsEditorProps = {
@@ -42,7 +43,10 @@ export function FlowStepsEditor({ steps, departments, onChange }: FlowStepsEdito
           Nenhum passo. Comece com uma mensagem de boas-vindas ou uma pergunta de triagem.
         </p>
       ) : (
-        <FlowPathMap steps={steps} departments={activeDepartments} />
+        <>
+          <FlowPathMap steps={steps} departments={activeDepartments} />
+          <FlowWhatsAppPreview steps={steps} />
+        </>
       )}
       {steps.map((step, index) => (
         <div key={step.id} className={`space-y-3 rounded-md border border-border border-l-4 p-3 ${flowStepToneBar[step.type]}`}>

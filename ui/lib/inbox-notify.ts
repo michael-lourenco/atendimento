@@ -12,8 +12,19 @@ export function shouldPlayInboxSound(
   if (nextUnread > previousUnread) {
     return true;
   }
-  const known = new Set(previous.map((item) => item.contactPhone));
-  return next.some((item) => !known.has(item.contactPhone));
+  const known = new Set(previous.map((item) => item.id));
+  return next.some((item) => !known.has(item.id));
+}
+
+export function inboxUnreadTotal(conversations: Conversation[]): number {
+  return conversations.reduce((sum, item) => sum + item.unreadCount, 0);
+}
+
+export function inboxDocumentTitle(unread: number, base = 'Conversas'): string {
+  if (unread <= 0) {
+    return base;
+  }
+  return `(${unread}) ${base}`;
 }
 
 export function playInboxChime(): void {

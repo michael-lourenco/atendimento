@@ -1,9 +1,16 @@
 import { Message } from '../entities/Message';
 import { Conversation } from '../entities/Conversation';
+import { WhatsAppNumber } from '../entities/WhatsAppNumber';
 import { IConversationRepository } from '../repositories/IConversationRepository';
 import { IContactRepository } from '../repositories/IContactRepository';
+import { IWhatsAppNumberRepository } from '../repositories/IWhatsAppNumberRepository';
 import { serviceLocator } from '../../infra/adapters/ServiceLocator';
+import { lineHintFromMessage, matchWhatsAppNumber } from '../entities/whatsappNumberLine';
 import { pickWhatsAppDisplayName } from '../entities/pickWhatsAppDisplayName';
+import {
+  conversationThreadId,
+  findConversationThread,
+} from '../entities/conversationThread';
 
 export function contactPhoneFromMessage(message: Message): string {
   const phone = message.direction === 'incoming' ? message.from : message.to;
@@ -17,7 +24,8 @@ function asDate(value: Date): Date {
 export class UpsertConversationFromMessageUseCase {
   constructor(
     private conversations: IConversationRepository = serviceLocator.getConversationRepository(),
-    private contacts: IContactRepository = serviceLocator.getContactRepository()
+    private contacts: IContactRepository = serviceLocator.getContactRepository(),
+    private numbers: IWhatsAppNumberRepository | null = serviceLocator.getWhatsAppNumberRepository()
   ) {}
 
   private async resolveName(phone: string, messageName?: string): Promise<string> {
@@ -26,19 +34,33 @@ export class UpsertConversationFromMessageUseCase {
   }
 
   async execute(message: Message): Promise<Conversation | null> {
+    const catalog = this.numbers ? await this.numbers.getAll() : [];
+    return this.upsertOne(message, catalog);
+  }
+
+  private async upsertOne(
+    message: Message,
+    catalog: WhatsAppNumber[]
+  ): Promise<Conversation | null> {
     const contactPhone = contactPhoneFromMessage(message);
     if (!contactPhone) {
       return null;
     }
 
-    const existing = await this.conversations.getById(contactPhone);
+    const whatsappNumberId = matchWhatsAppNumber(catalog, lineHintFromMessage(message))?.id;
+    const existing = findConversationThread(
+      await this.conversations.getAll(),
+      contactPhone,
+      whatsappNumberId
+    );
     const now = asDate(message.timestamp);
     const incoming = message.direction === 'incoming';
     const contactName = await this.resolveName(contactPhone, message.contactName);
+    const id = existing?.id ?? conversationThreadId(contactPhone, whatsappNumberId);
 
     if (!existing) {
       const created: Conversation = {
-        id: contactPhone,
+        id,
         contactId: contactPhone,
         contactName,
         contactPhone,
@@ -48,6 +70,7 @@ export class UpsertConversationFromMessageUseCase {
         lastActivity: now,
         createdAt: now,
         tags: [],
+        whatsappNumberId,
       };
       await this.conversations.save(created);
       return created;
@@ -60,6 +83,7 @@ export class UpsertConversationFromMessageUseCase {
       lastActivity: now,
       unreadCount: incoming ? existing.unreadCount + 1 : existing.unreadCount,
       status: existing.status === 'closed' ? 'open' : existing.status,
+      whatsappNumberId: whatsappNumberId ?? existing.whatsappNumberId,
     };
     await this.conversations.save(updated);
     return updated;
@@ -67,6 +91,7 @@ export class UpsertConversationFromMessageUseCase {
 
   async ensureFromMessages(messages: Message[]): Promise<void> {
     const existing = await this.conversations.getAll();
+    const catalog = this.numbers ? await this.numbers.getAll() : [];
     const have = new Map(existing.map((item) => [item.id, item]));
     const grouped = new Map<string, Message[]>();
 
@@ -75,17 +100,23 @@ export class UpsertConversationFromMessageUseCase {
       if (!phone) {
         continue;
       }
-      const list = grouped.get(phone) ?? [];
+      const lineId = matchWhatsAppNumber(catalog, lineHintFromMessage(message))?.id;
+      const thread =
+        findConversationThread(existing, phone, lineId) ??
+        ({ id: conversationThreadId(phone, lineId) } as Conversation);
+      const list = grouped.get(thread.id) ?? [];
       list.push(message);
-      grouped.set(phone, list);
+      grouped.set(thread.id, list);
     }
 
-    for (const [phone, list] of grouped) {
-      const current = have.get(phone);
+    for (const [id, list] of grouped) {
+      const current = have.get(id);
       const last = [...list].sort(
         (a, b) => asDate(a.timestamp).getTime() - asDate(b.timestamp).getTime()
       )[list.length - 1];
+      const phone = contactPhoneFromMessage(last);
       const contactName = await this.resolveName(phone, last.contactName);
+      const lineId = matchWhatsAppNumber(catalog, lineHintFromMessage(last))?.id;
 
       if (!current) {
         const ordered = [...list].sort(
@@ -93,7 +124,7 @@ export class UpsertConversationFromMessageUseCase {
         );
         const unread = ordered.filter((item) => item.direction === 'incoming').length;
         await this.conversations.save({
-          id: phone,
+          id,
           contactId: phone,
           contactName,
           contactPhone: phone,
@@ -103,6 +134,7 @@ export class UpsertConversationFromMessageUseCase {
           lastActivity: asDate(ordered[ordered.length - 1].timestamp),
           createdAt: asDate(ordered[0].timestamp),
           tags: [],
+          whatsappNumberId: lineId,
         });
         continue;
       }

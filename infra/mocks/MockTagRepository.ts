@@ -4,25 +4,32 @@ import { createInMemoryCrud } from './inMemoryCrud';
 
 const seed: Tag[] = [
   {
-    id: '1',
-    name: 'Cliente',
-    color: '#3b82f6',
-    contactsCount: 45,
+    id: 'lead',
+    name: 'lead',
+    color: '#2563eb',
+    contactsCount: 0,
     createdAt: new Date('2024-01-01'),
   },
   {
-    id: '2',
-    name: 'VIP',
-    color: '#f59e0b',
-    contactsCount: 12,
-    createdAt: new Date('2024-01-02'),
+    id: 'demo',
+    name: 'demo',
+    color: '#7c3aed',
+    contactsCount: 0,
+    createdAt: new Date('2024-01-01'),
   },
   {
-    id: '3',
-    name: 'Prospecto',
-    color: '#10b981',
-    contactsCount: 23,
-    createdAt: new Date('2024-01-03'),
+    id: 'proposta',
+    name: 'proposta',
+    color: '#d97706',
+    contactsCount: 0,
+    createdAt: new Date('2024-01-01'),
+  },
+  {
+    id: 'cliente',
+    name: 'cliente',
+    color: '#16a34a',
+    contactsCount: 0,
+    createdAt: new Date('2024-01-01'),
   },
 ];
 

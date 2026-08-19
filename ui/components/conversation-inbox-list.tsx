@@ -2,6 +2,7 @@
 
 import { Conversation } from '@/core/entities/Conversation';
 import { Department } from '@/core/entities/Department';
+import { WhatsAppNumber } from '@/core/entities/WhatsAppNumber';
 import {
   conversationDisplayName,
   conversationPreview,
@@ -14,15 +15,17 @@ import { queueToneBar, queueToneOf } from '@/ui/lib/status-tone';
 type ConversationInboxListProps = {
   conversations: Conversation[];
   departments: Department[];
-  selectedPhone?: string;
+  numbers?: WhatsAppNumber[];
+  selectedId?: string;
   mounted: boolean;
-  onSelect: (phone: string) => void;
+  onSelect: (conversation: Conversation) => void;
 };
 
 export function ConversationInboxList({
   conversations,
   departments,
-  selectedPhone,
+  numbers = [],
+  selectedId,
   mounted,
   onSelect,
 }: ConversationInboxListProps) {
@@ -37,14 +40,15 @@ export function ConversationInboxList({
   return (
     <ul className="divide-y divide-border">
       {conversations.map((conversation) => {
-        const selected = selectedPhone === conversation.contactPhone;
+        const selected = selectedId === conversation.id;
         const color = departmentColorOf(departments, conversation.departmentId);
         const tone = queueToneOf(conversation);
+        const lineName = numbers.find((item) => item.id === conversation.whatsappNumberId)?.name;
         return (
           <li key={conversation.id}>
             <button
               type="button"
-              onClick={() => onSelect(conversation.contactPhone)}
+              onClick={() => onSelect(conversation)}
               className={cn(
                 'relative flex w-full flex-col gap-1 py-3 pl-4 pr-3 text-left transition-colors',
                 selected ? 'bg-accent/15' : 'hover:bg-muted/60'
@@ -70,9 +74,10 @@ export function ConversationInboxList({
                       style={{ backgroundColor: color || 'hsl(var(--accent))' }}
                     />
                     {conversation.departmentName}
+                    {lineName ? ` · ${lineName}` : ''}
                   </span>
                 ) : (
-                  <span className="text-xs text-muted-foreground">Sem setor</span>
+                  <span className="text-xs text-muted-foreground">{lineName || 'Sem setor'}</span>
                 )}
                 {conversation.unreadCount > 0 ? (
                   <span className="rounded-full bg-destructive px-1.5 py-0.5 text-[10px] font-semibold text-destructive-foreground">

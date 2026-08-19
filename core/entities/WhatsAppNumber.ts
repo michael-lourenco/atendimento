@@ -6,5 +6,6 @@ export interface WhatsAppNumber {
   number: string;
   status: WhatsAppNumberStatus;
   provider: string;
+  instanceName?: string;
   createdAt: Date;
 }

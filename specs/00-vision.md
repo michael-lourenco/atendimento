@@ -10,7 +10,17 @@ Plataforma de **atendimento via WhatsApp**: chatbot + central humana. O cliente 
 
 ## Público
 
-Operadores e administradores de times de atendimento (suporte, vendas, financeiro).
+Operadores e administradores de times de atendimento (suporte, vendas, financeiro) **de uma empresa**.
+
+## Implantação (não é multi-tenant)
+
+Cada empresa recebe um sistema **completo e isolado na infra dela**:
+
+- 1 app Next.js
+- 1 projeto Supabase (Postgres + Auth + Storage)
+- 1 provedor WhatsApp (Evolution / Meta / Twilio) com instância própria
+
+Empresa XYZ não vê dados nem config da HZJ. Isolamento = **cópia da stack**, não `company_id` no banco. Replicar para outra empresa = novo host + novo projeto Supabase + env + migrations (`08-supabase.md`).
 
 ## Problema
 
@@ -21,7 +31,7 @@ Atender muitos contatos no WhatsApp com triagem, automação e histórico, sem d
 - Receber e enviar mensagens (texto e mídia)
 - Triagem por **setores** e **atendentes**
 - **Chatbots** e **fluxos** (o roteiro no WhatsApp é o fluxo)
-- **Contatos**, **etiquetas**, **vários números**, **agendamentos**
+- **Contatos**, **etiquetas**, **respostas rápidas** (catálogo da empresa), **vários números**, **agendamentos**
 - **Notas da equipe** na conversa
 - **Relatórios** de volume e atendimento
 - Conexão WhatsApp via provedor configurável (`WHATSAPP_PROVIDER`)
@@ -31,11 +41,14 @@ Atender muitos contatos no WhatsApp com triagem, automação e histórico, sem d
 - App mobile nativo
 - Canais além de WhatsApp (Instagram, e-mail, etc.)
 - Billing / cobrança de créditos
-- Persistência: **Supabase** (Postgres + Auth + Storage) — ver `08-supabase.md`. Sem Firestore/D1.
+- **SaaS multi-tenant** (várias empresas no mesmo app/banco; RLS por `company_id`)
+- Persistência alternativa (Firestore, D1): o alvo é **Supabase** — `08-supabase.md`. Sem R2/Cloudflare Storage nesta fase.
 
 ## Estado atual
 
-Fases 1–4 feitas. Atendimento humano: inbox (lista + chat), pausa do bot, Assumir/Transferir/Finalizar, setor na conversa, triagem pelo fluxo, lidas ao abrir, filtro minhas conversas, envio de mídia.
+Fases 1–5 feitas. Atendimento humano: inbox (lista + chat), pausa do bot, Assumir/Transferir/Finalizar, setor na conversa, triagem pelo fluxo, lidas ao abrir, filtro minhas conversas, envio de mídia.
+
+**Fase 5 (produção):** validação Zod na borda HTTP, `x-request-id`, logs sanitizados, dica de login só com URL + anon. Uma empresa = uma stack (`08-supabase.md`).
 
 ## Fonte de verdade
 

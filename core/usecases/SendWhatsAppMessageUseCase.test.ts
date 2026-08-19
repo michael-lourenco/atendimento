@@ -63,6 +63,17 @@ describe('SendWhatsAppMessageUseCase', () => {
     expect(whatsApp.sent[0].media).toBeUndefined();
   });
 
+  it('envia pela instância informada', async () => {
+    const whatsApp = new FakeWhatsAppService();
+    const messages = new InMemoryMessageRepository();
+    await new SendWhatsAppMessageUseCase(whatsApp, messages).execute({
+      to: '5521982790723',
+      message: 'Olá',
+      instanceName: 'comercial',
+    });
+    expect(whatsApp.sent[0].instanceName).toBe('comercial');
+  });
+
   it('grava mídia no storage e usa a legenda', async () => {
     const whatsApp = new FakeWhatsAppService();
     const messages = new InMemoryMessageRepository();

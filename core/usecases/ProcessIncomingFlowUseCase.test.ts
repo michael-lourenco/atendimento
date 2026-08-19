@@ -243,4 +243,61 @@ describe('ProcessIncomingFlowUseCase', () => {
     expect(conversations[0].departmentName).toBe('Vendas');
     expect(whatsApp.sent.map((item) => item.message)).toEqual(['Vendas ok']);
   });
+
+  it('duas linhas geram duas sessões', async () => {
+    const whatsApp = new FakeWhatsAppService();
+    const sessions = new InMemorySessionRepository();
+    const send = new SendWhatsAppMessageUseCase(whatsApp, new InMemoryMessageRepository());
+    const numbers = {
+      async getAll() {
+        return [
+          {
+            id: 'n-com',
+            name: 'Comercial',
+            number: '5511000000001',
+            status: 'active' as const,
+            provider: 'evolution',
+            instanceName: 'comercial',
+            createdAt: now,
+          },
+          {
+            id: 'n-sup',
+            name: 'Suporte',
+            number: '5511000000002',
+            status: 'active' as const,
+            provider: 'evolution',
+            instanceName: 'suporte',
+            createdAt: now,
+          },
+        ];
+      },
+      async getById() {
+        return null;
+      },
+      async save() {},
+      async delete() {},
+    };
+    const useCase = new ProcessIncomingFlowUseCase(
+      new InMemoryFlowRepository([sampleFlow]),
+      sessions,
+      send,
+      null,
+      null,
+      numbers
+    );
+    const base = {
+      from: '5511999999999',
+      timestamp: now,
+      type: 'text' as const,
+      direction: 'incoming' as const,
+      status: 'sent' as const,
+      content: 'oi',
+    };
+    await useCase.executeForMessages([
+      { ...base, id: 'a', to: 'comercial' },
+      { ...base, id: 'b', to: 'suporte' },
+    ]);
+    expect(await sessions.getByContactId('5511999999999:n-com')).not.toBeNull();
+    expect(await sessions.getByContactId('5511999999999:n-sup')).not.toBeNull();
+  });
 });

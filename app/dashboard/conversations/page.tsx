@@ -3,7 +3,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Badge } from '@/ui/components/badge';
-import { Button } from '@/ui/components/button';
 import { Input } from '@/ui/components/input';
 import { Tabs, TabsList, TabsTrigger } from '@/ui/components/tabs';
 import { Search } from 'lucide-react';
@@ -15,68 +14,92 @@ import { Conversation } from '@/core/entities/Conversation';
 import { Agent } from '@/core/entities/Agent';
 import { Department } from '@/core/entities/Department';
 import { User } from '@/core/entities/User';
+import { WhatsAppNumber } from '@/core/entities/WhatsAppNumber';
 import { assignmentFromOperator } from '@/core/entities/assignmentFromOperator';
-import { isClosedTab, isIncomingTab, isWaitingTab, matchesMineFilter } from '@/core/entities/conversationTabs';
+import { DepartmentFilter, QueueTab } from '@/core/entities/conversationDepartment';
 import {
-  DepartmentFilter,
-  QueueTab,
-  matchesDepartmentFilter,
-} from '@/core/entities/conversationDepartment';
+  LineFilter,
+  QUEUE_TAB_LABEL,
+  conversationMatchesInboxFilters,
+  conversationOnQueueTab,
+  inboxHiddenCount,
+} from '@/core/entities/inboxFilterHint';
 import { ConversationInboxList } from '@/ui/components/conversation-inbox-list';
 import { MessageThread } from '@/ui/components/message-thread';
 import { WhatsAppDisconnectedBanner } from '@/ui/components/whatsapp-status';
+import { InboxFilterBanner, OperatorAgentBanner } from '@/ui/components/inbox-guidance';
+import { EmptyState } from '@/ui/components/empty-state';
+import { InboxSkeleton } from '@/ui/components/inbox-skeleton';
+import { InboxFilterBar } from '@/ui/components/inbox-filter-bar';
+import { conversationFromInboxQuery } from '@/core/entities/conversationThread';
 import { DASHBOARD_POLL_MS } from '@/ui/lib/dashboard-poll';
+import { listWhatsAppNumbersCached } from '@/ui/lib/whatsapp-number-cache';
 import { playInboxChime, shouldPlayInboxSound } from '@/ui/lib/inbox-notify';
+import { useInboxDocumentTitle, useInboxShortcuts } from '@/ui/lib/use-inbox-chrome';
 import { queueTabActiveClass } from '@/ui/lib/status-tone';
 
 export default function ConversationsPage() {
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [agents, setAgents] = useState<Agent[]>([]);
   const [departments, setDepartments] = useState<Department[]>([]);
+  const [numbers, setNumbers] = useState<WhatsAppNumber[]>([]);
   const [operator, setOperator] = useState<User | null>(null);
   const [mineOnly, setMineOnly] = useState(true);
   const [departmentFilter, setDepartmentFilter] = useState<DepartmentFilter>('all');
+  const [lineFilter, setLineFilter] = useState<LineFilter>('all');
   const departmentFilterReady = useRef(false);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('');
   const [mounted, setMounted] = useState(false);
   const [activeTab, setActiveTab] = useState('incoming');
+  const searchRef = useRef<HTMLInputElement>(null);
   const router = useRouter();
   const searchParams = useSearchParams();
+  const selectedConversationId = searchParams.get('conversation') ?? '';
   const selectedPhone = searchParams.get('contact') ?? '';
   const previousConversations = useRef<Conversation[] | null>(null);
 
   useEffect(() => {
     setMounted(true);
-    loadConversations(true);
-    const timer = setInterval(() => loadConversations(false), DASHBOARD_POLL_MS);
+    void loadConversations(true, true);
+    const timer = setInterval(() => void loadConversations(false, false), DASHBOARD_POLL_MS);
     return () => clearInterval(timer);
   }, []);
 
-  const loadConversations = async (showLoading = false) => {
+  useInboxDocumentTitle(conversations);
+  useInboxShortcuts({
+    searchRef,
+    selectedPhone: selectedConversationId || selectedPhone,
+    onBack: () => router.push('/dashboard/conversations'),
+  });
+
+  const loadConversations = async (showLoading = false, refreshCatalogs = false) => {
     if (showLoading) {
       setLoading(true);
     }
     try {
-      const [allConversations, agentList, departmentList, user] = await Promise.all([
-        new GetAllConversationsUseCase().execute(),
-        new AgentCatalogUseCase().list(),
-        new DepartmentCatalogUseCase().list(),
-        new GetCurrentUserUseCase().execute(),
-      ]);
+      const allConversations = await new GetAllConversationsUseCase().execute();
       setConversations(allConversations);
       if (shouldPlayInboxSound(previousConversations.current, allConversations)) {
         playInboxChime();
       }
       previousConversations.current = allConversations;
-      setAgents(agentList);
-      setDepartments(departmentList);
-      setOperator(user);
-      if (!departmentFilterReady.current) {
-        departmentFilterReady.current = true;
-        const assignment = user ? assignmentFromOperator(user, agentList) : null;
-        if (assignment?.departmentId) {
-          setDepartmentFilter(assignment.departmentId);
+
+      if (refreshCatalogs) {
+        const [agentList, departmentList, numberList, user] = await Promise.all([
+          new AgentCatalogUseCase().list(),
+          new DepartmentCatalogUseCase().list(),
+          listWhatsAppNumbersCached(),
+          new GetCurrentUserUseCase().execute(),
+        ]);
+        setAgents(agentList);
+        setDepartments(departmentList);
+        setNumbers(numberList);
+        setOperator(user);
+        if (!departmentFilterReady.current) {
+          departmentFilterReady.current = true;
+          const deptId = user ? assignmentFromOperator(user, agentList)?.departmentId : undefined;
+          if (deptId) setDepartmentFilter(deptId);
         }
       }
     } catch (error) {
@@ -88,101 +111,101 @@ export default function ConversationsPage() {
     }
   };
 
-  const openContact = (phone: string) => {
-    router.push(`/dashboard/conversations?contact=${encodeURIComponent(phone)}`);
+  const openConversation = (conversation: Conversation) => {
+    router.push(
+      `/dashboard/conversations?conversation=${encodeURIComponent(conversation.id)}`
+    );
   };
 
-  const operatorAgentId = operator
-    ? assignmentFromOperator(operator, agents).agentId
-    : undefined;
-  const tab = activeTab as QueueTab;
-
-  const filteredConversations = conversations.filter((conv) => {
-    if (tab === 'incoming' && !isIncomingTab(conv)) return false;
-    if (tab === 'waiting' && !isWaitingTab(conv)) return false;
-    if (tab === 'closed' && !isClosedTab(conv)) return false;
-    if (!matchesMineFilter(conv, tab, mineOnly, operatorAgentId)) return false;
-    if (!matchesDepartmentFilter(conv, tab, departmentFilter)) return false;
-    if (!filter) return true;
-    const searchTerm = filter.toLowerCase();
-    return (
-      conv.contactName.toLowerCase().includes(searchTerm) ||
-      conv.contactPhone.includes(searchTerm) ||
-      conv.departmentName?.toLowerCase().includes(searchTerm) ||
-      conv.assignedAgentName?.toLowerCase().includes(searchTerm)
-    );
+  const selectedConversation = conversationFromInboxQuery(conversations, {
+    conversationId: selectedConversationId,
+    contactPhone: selectedPhone,
   });
 
-  const incomingCount = conversations.filter(
-    (conv) => isIncomingTab(conv) && matchesDepartmentFilter(conv, 'incoming', departmentFilter)
-  ).length;
-  const waitingCount = conversations.filter(
-    (conv) =>
-      isWaitingTab(conv) &&
-      matchesMineFilter(conv, 'waiting', mineOnly, operatorAgentId) &&
-      matchesDepartmentFilter(conv, 'waiting', departmentFilter)
-  ).length;
-  const closedCount = conversations.filter(
-    (conv) =>
-      isClosedTab(conv) &&
-      matchesMineFilter(conv, 'closed', mineOnly, operatorAgentId) &&
-      matchesDepartmentFilter(conv, 'closed', departmentFilter)
-  ).length;
+  const threadOpen = Boolean(selectedConversation);
+
+  const operatorAssignment = operator ? assignmentFromOperator(operator, agents) : null;
+  const operatorAgentId = operatorAssignment?.agentId;
+  const tab = activeTab as QueueTab;
+
+  const filteredConversations = conversations.filter((conv) =>
+    conversationMatchesInboxFilters(
+      conv,
+      tab,
+      mineOnly,
+      operatorAgentId,
+      departmentFilter,
+      filter,
+      lineFilter
+    )
+  );
+  const hiddenCount = inboxHiddenCount(
+    conversations,
+    tab,
+    mineOnly,
+    operatorAgentId,
+    departmentFilter,
+    filter,
+    lineFilter
+  );
+  const onTabCount = conversations.filter((conv) => conversationOnQueueTab(conv, tab)).length;
+
+  const countTab = (queue: QueueTab) =>
+    conversations.filter((conv) =>
+      conversationMatchesInboxFilters(
+        conv,
+        queue,
+        mineOnly,
+        operatorAgentId,
+        departmentFilter,
+        '',
+        lineFilter
+      )
+    ).length;
+  const incomingCount = countTab('incoming');
+  const waitingCount = countTab('waiting');
+  const closedCount = countTab('closed');
+
+  const clearInboxFilters = () => {
+    setDepartmentFilter('all');
+    setLineFilter('all');
+    setMineOnly(false);
+    setFilter('');
+  };
 
   if (loading) {
-    return <div className="text-center py-8 text-foreground">Carregando...</div>;
+    return <InboxSkeleton />;
   }
 
   return (
     <div className="flex h-[calc(100dvh-8.5rem)] min-h-[520px] flex-col gap-3">
       <WhatsAppDisconnectedBanner />
-      <div className="flex flex-wrap items-center justify-end gap-2">
-        <select
-          className="h-9 rounded-md border border-input bg-background px-2 text-sm"
-          value={departmentFilter}
-          aria-label="Filtrar por setor"
-          onChange={(event) => setDepartmentFilter(event.target.value)}
-          style={
-            departmentFilter !== 'all' && departmentFilter !== 'none'
-              ? {
-                  borderLeftWidth: 6,
-                  borderLeftColor:
-                    departments.find((item) => item.id === departmentFilter)?.color || undefined,
-                }
-              : undefined
-          }
-        >
-          <option value="all">Todos os setores</option>
-          <option value="none">Sem setor</option>
-          {departments
-            .filter((item) => item.isActive)
-            .map((department) => (
-              <option key={department.id} value={department.id}>
-                {department.name}
-              </option>
-            ))}
-        </select>
-        <Button
-          type="button"
-          variant={mineOnly ? 'outline' : 'default'}
-          size="sm"
-          onClick={() => setMineOnly((value) => !value)}
-        >
-          {mineOnly ? 'Ver o time' : 'Só as minhas'}
-        </Button>
-      </div>
+      {operator && operatorAssignment && !operatorAssignment.linked ? (
+        <OperatorAgentBanner email={operator.email} />
+      ) : null}
+      <InboxFilterBar
+        numbers={numbers}
+        departments={departments}
+        lineFilter={lineFilter}
+        departmentFilter={departmentFilter}
+        mineOnly={mineOnly}
+        onLineFilter={setLineFilter}
+        onDepartmentFilter={setDepartmentFilter}
+        onMineOnly={() => setMineOnly((value) => !value)}
+      />
 
       <div className="grid min-h-0 flex-1 gap-3 lg:grid-cols-[minmax(260px,340px)_1fr]">
         <aside
           className={`flex min-h-0 flex-col rounded-lg border border-border bg-card ${
-            selectedPhone ? 'hidden lg:flex' : 'flex'
+            threadOpen ? 'hidden lg:flex' : 'flex'
           }`}
         >
           <div className="shrink-0 space-y-3 border-b border-border p-3">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <Input
-                placeholder="Buscar..."
+                ref={searchRef}
+                placeholder="Nome ou telefone"
                 className="bg-background pl-10"
                 value={filter}
                 onChange={(event) => setFilter(event.target.value)}
@@ -218,20 +241,49 @@ export default function ConversationsPage() {
             </Tabs>
           </div>
           <div className="min-h-0 flex-1 overflow-y-auto">
-            <ConversationInboxList
-              conversations={filteredConversations}
-              departments={departments}
-              selectedPhone={selectedPhone}
-              mounted={mounted}
-              onSelect={openContact}
-            />
+            {filteredConversations.length === 0 ? (
+              <EmptyState
+                title={
+                  conversations.length === 0
+                    ? 'Ainda não há conversas'
+                    : onTabCount === 0
+                      ? `Nenhuma conversa em ${QUEUE_TAB_LABEL[tab]}`
+                      : 'Nenhuma conversa neste filtro'
+                }
+                description={
+                  conversations.length === 0
+                    ? 'Conecte o WhatsApp e peça para alguém mandar um oi. O fluxo de triagem responde sozinho.'
+                    : onTabCount > 0
+                      ? 'Há conversas nesta aba fora do setor, da linha, de “minhas” ou da busca.'
+                      : 'Quando o bot ou um cliente falar, elas aparecem aqui.'
+                }
+                actionLabel={onTabCount > 0 ? 'Ver todas' : undefined}
+                onAction={onTabCount > 0 ? clearInboxFilters : undefined}
+              />
+            ) : (
+              <>
+                <InboxFilterBanner
+                  hiddenCount={hiddenCount}
+                  tab={tab}
+                  onClear={clearInboxFilters}
+                />
+                <ConversationInboxList
+                  conversations={filteredConversations}
+                  departments={departments}
+                  numbers={numbers}
+                  selectedId={selectedConversation?.id}
+                  mounted={mounted}
+                  onSelect={openConversation}
+                />
+              </>
+            )}
           </div>
         </aside>
 
-        <section className={selectedPhone ? 'min-h-0' : 'hidden min-h-0 lg:block'}>
-          {selectedPhone ? (
+        <section className={threadOpen ? 'min-h-0' : 'hidden min-h-0 lg:block'}>
+          {selectedConversation ? (
             <MessageThread
-              contact={selectedPhone}
+              conversationId={selectedConversation.id}
               onBack={() => router.push('/dashboard/conversations')}
               onConversationChanged={() => loadConversations()}
             />

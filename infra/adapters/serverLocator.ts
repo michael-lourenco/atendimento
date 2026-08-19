@@ -55,15 +55,28 @@ class ServerLocator {
     const repos = this.getRepos();
     const whatsApp = this.getWhatsAppService();
     const upsertContact = new UpsertContactFromIncomingUseCase(repos.contact);
-    const upsert = new UpsertConversationFromMessageUseCase(repos.conversation, repos.contact);
-    const send = new SendWhatsAppMessageUseCase(whatsApp, repos.message, upsert, upsertContact);
+    const upsert = new UpsertConversationFromMessageUseCase(
+      repos.conversation,
+      repos.contact,
+      repos.whatsAppNumber
+    );
+    const send = new SendWhatsAppMessageUseCase(
+      whatsApp,
+      repos.message,
+      upsert,
+      upsertContact,
+      this.getMediaStorage(),
+      repos.conversation,
+      repos.whatsAppNumber
+    );
     const setDepartment = new SetConversationDepartmentUseCase(repos.conversation);
     const flow = new ProcessIncomingFlowUseCase(
       repos.flow,
       repos.flowSession,
       send,
       setDepartment,
-      repos.department
+      repos.department,
+      repos.whatsAppNumber
     );
     return new HandleIncomingWhatsAppMessageUseCase(
       whatsApp,

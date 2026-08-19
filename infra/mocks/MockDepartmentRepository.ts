@@ -1,40 +1,45 @@
 import { Department } from '../../core/entities/Department';
 import { IDepartmentRepository } from '../../core/repositories/IDepartmentRepository';
+import {
+  INTAKE_DEPARTMENT_CLIENTE,
+  INTAKE_DEPARTMENT_COMERCIAL,
+  INTAKE_DEPARTMENT_DEMO,
+} from '../../core/entities/atendimentoInicialFlow';
 import { createInMemoryCrud } from './inMemoryCrud';
 
 const seed: Department[] = [
   {
-    id: '1',
-    name: 'Vendas',
-    description: 'Setor de vendas e prospecção',
-    color: '#3b82f6',
+    id: INTAKE_DEPARTMENT_COMERCIAL,
+    name: 'Comercial',
+    description: 'Leads prontos para conversa e fechamento',
+    color: '#16a34a',
     isActive: true,
-    agentsCount: 3,
-    conversationsCount: 15,
+    agentsCount: 1,
+    conversationsCount: 0,
     createdAt: new Date('2024-01-01'),
     updatedAt: new Date('2024-01-01'),
   },
   {
-    id: '2',
-    name: 'Suporte',
-    description: 'Atendimento técnico e suporte',
-    color: '#10b981',
+    id: INTAKE_DEPARTMENT_DEMO,
+    name: 'Demonstração',
+    description: 'Quem quer ver o painel no computador',
+    color: '#2563eb',
     isActive: true,
-    agentsCount: 5,
-    conversationsCount: 28,
+    agentsCount: 1,
+    conversationsCount: 0,
     createdAt: new Date('2024-01-01'),
     updatedAt: new Date('2024-01-01'),
   },
   {
-    id: '3',
-    name: 'Financeiro',
-    description: 'Cobrança e questões financeiras',
-    color: '#f59e0b',
+    id: INTAKE_DEPARTMENT_CLIENTE,
+    name: 'Cliente',
+    description: 'Quem já usa o sistema e precisa de suporte',
+    color: '#d97706',
     isActive: true,
-    agentsCount: 2,
-    conversationsCount: 8,
-    createdAt: new Date('2024-01-02'),
-    updatedAt: new Date('2024-01-02'),
+    agentsCount: 1,
+    conversationsCount: 0,
+    createdAt: new Date('2024-01-01'),
+    updatedAt: new Date('2024-01-01'),
   },
 ];
 

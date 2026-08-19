@@ -26,4 +26,6 @@ export {
   scheduleToRow,
   tagFromRow,
   tagToRow,
+  quickReplyFromRow,
+  quickReplyToRow,
 } from './mappers/catalog';

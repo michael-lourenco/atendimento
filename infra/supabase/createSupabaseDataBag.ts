@@ -32,6 +32,8 @@ import {
   sessionFromRow,
   tagFromRow,
   tagToRow,
+  quickReplyFromRow,
+  quickReplyToRow,
 } from './mappers';
 import { Flow } from '../../core/entities/Flow';
 import { Message } from '../../core/entities/Message';
@@ -204,6 +206,7 @@ export function createSupabaseDataBag(
     contact: createSupabaseCrud(client, 'contacts', contactFromRow, contactToRow),
     whatsAppNumber: createSupabaseCrud(client, 'whatsapp_numbers', numberFromRow, numberToRow),
     tag: createSupabaseCrud(client, 'tags', tagFromRow, tagToRow),
+    quickReply: createSupabaseCrud(client, 'quick_replies', quickReplyFromRow, quickReplyToRow),
     scheduledMessage: createSupabaseCrud(client, 'scheduled_messages', scheduleFromRow, scheduleToRow),
     report: createSupabaseCrud(client, 'reports', reportFromRow, reportToRow),
   };

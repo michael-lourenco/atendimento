@@ -8,9 +8,12 @@ import { Button } from '@/ui/components/button';
 import { ThemeToggle } from '@/ui/components/theme-toggle';
 import { Sidebar, MobileSidebar } from '@/ui/components/sidebar';
 import { WhatsAppStatusChip } from '@/ui/components/whatsapp-status';
+import { WhatsAppStatusProvider } from '@/ui/lib/use-whatsapp-status';
 import { Menu } from 'lucide-react';
 import { User } from '@/core/entities/User';
-import { pageTitleFromPath, SIDEBAR_EXPANDED_STORAGE_KEY } from '@/ui/lib/sidebar-nav';
+import { isAdmin } from '@/core/entities/operatorRole';
+import { Badge } from '@/ui/components/badge';
+import { isAdminPath, pageTitleFromPath, SIDEBAR_EXPANDED_STORAGE_KEY } from '@/ui/lib/sidebar-nav';
 import { cn } from '@/ui/lib/utils';
 
 export default function DashboardLayout({
@@ -46,6 +49,13 @@ export default function DashboardLayout({
     checkAuth();
   }, [router]);
 
+  useEffect(() => {
+    if (!user || isAdmin(user) || !isAdminPath(pathname)) {
+      return;
+    }
+    router.replace('/dashboard/conversations');
+  }, [user, pathname, router]);
+
   const toggleSidebar = () => {
     setSidebarExpanded((value) => {
       const next = !value;
@@ -74,10 +84,24 @@ export default function DashboardLayout({
     return null;
   }
 
+  if (!isAdmin(user) && isAdminPath(pathname)) {
+    return null;
+  }
+
   return (
-    <div className="min-h-screen bg-background">
-      <Sidebar className="hidden lg:block" expanded={sidebarExpanded} onToggle={toggleSidebar} />
-      <MobileSidebar isOpen={mobileMenuOpen} onClose={() => setMobileMenuOpen(false)} />
+    <WhatsAppStatusProvider>
+      <div className="min-h-screen bg-background">
+      <Sidebar
+        className="hidden lg:block"
+        expanded={sidebarExpanded}
+        onToggle={toggleSidebar}
+        role={user.role}
+      />
+      <MobileSidebar
+        isOpen={mobileMenuOpen}
+        onClose={() => setMobileMenuOpen(false)}
+        role={user.role}
+      />
 
       <div className={cn(sidebarExpanded ? 'lg:pl-56' : 'lg:pl-16')}>
         <nav className="sticky top-0 z-30 bg-card border-b border-border">
@@ -106,6 +130,7 @@ export default function DashboardLayout({
                 <span className="text-sm text-muted-foreground hidden md:inline">
                   {user.name} ({user.email})
                 </span>
+                {isAdmin(user) ? <Badge variant="info">Admin</Badge> : null}
                 <ThemeToggle />
                 <Button onClick={handleLogout} variant="outline" size="sm">
                   Sair
@@ -118,6 +143,7 @@ export default function DashboardLayout({
           {children}
         </main>
       </div>
-    </div>
+      </div>
+    </WhatsAppStatusProvider>
   );
 }

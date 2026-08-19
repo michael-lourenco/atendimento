@@ -9,7 +9,7 @@ import { Button } from './button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './tooltip';
 import {
   isSidebarItemActive,
-  sidebarGroups,
+  sidebarGroupsForRole,
   type SidebarItem,
 } from '../lib/sidebar-nav';
 
@@ -17,6 +17,7 @@ interface SidebarProps {
   className?: string;
   expanded: boolean;
   onToggle: () => void;
+  role: 'admin' | 'user';
 }
 
 function NavLink({
@@ -60,8 +61,9 @@ function NavLink({
   );
 }
 
-export const Sidebar: React.FC<SidebarProps> = ({ className, expanded, onToggle }) => {
+export const Sidebar: React.FC<SidebarProps> = ({ className, expanded, onToggle, role }) => {
   const pathname = usePathname();
+  const groups = sidebarGroupsForRole(role);
 
   return (
     <TooltipProvider delayDuration={200}>
@@ -79,7 +81,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ className, expanded, onToggle 
             ) : null}
           </div>
           <nav className="flex-1 space-y-1 overflow-y-auto px-2 py-4">
-            {sidebarGroups.map((group, index) => (
+            {groups.map((group, index) => (
               <div key={group.id} className="space-y-1">
                 {expanded ? (
                   <p className="flex items-center gap-2 px-3 pt-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
@@ -132,10 +134,12 @@ export const Sidebar: React.FC<SidebarProps> = ({ className, expanded, onToggle 
 interface MobileSidebarProps {
   isOpen: boolean;
   onClose: () => void;
+  role: 'admin' | 'user';
 }
 
-export const MobileSidebar: React.FC<MobileSidebarProps> = ({ isOpen, onClose }) => {
+export const MobileSidebar: React.FC<MobileSidebarProps> = ({ isOpen, onClose, role }) => {
   const pathname = usePathname();
+  const groups = sidebarGroupsForRole(role);
 
   return (
     <>
@@ -159,7 +163,7 @@ export const MobileSidebar: React.FC<MobileSidebarProps> = ({ isOpen, onClose })
             </Button>
           </div>
           <nav className="flex-1 overflow-y-auto px-3 py-4">
-            {sidebarGroups.map((group) => (
+            {groups.map((group) => (
               <div key={group.id} className="mb-4">
                 <p className="flex items-center gap-2 px-3 pb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                   <span

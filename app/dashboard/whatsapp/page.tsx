@@ -2,6 +2,10 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { WhatsAppNumber } from '@/core/entities/WhatsAppNumber';
+import { defaultEvolutionInstanceName } from '@/core/entities/whatsappNumberLine';
+import { WhatsAppNumberCatalogUseCase } from '@/core/usecases/WhatsAppNumberCatalogUseCase';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/ui/components/card';
 import { Button } from '@/ui/components/button';
 import { RefreshCw, CheckCircle2, XCircle, Loader2 } from 'lucide-react';
@@ -23,17 +27,42 @@ type StatusData = {
 };
 
 export default function WhatsAppPage() {
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const queryInstance = searchParams.get('instance') ?? '';
+  const [numbers, setNumbers] = useState<WhatsAppNumber[]>([]);
+  const [instance, setInstance] = useState(queryInstance || defaultEvolutionInstanceName());
   const [qrData, setQrData] = useState<QRCodeData | null>(null);
   const [status, setStatus] = useState<StatusData | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
-  const loadData = async () => {
+  useEffect(() => {
+    void new WhatsAppNumberCatalogUseCase().list().then((rows) => {
+      setNumbers(rows);
+      if (!queryInstance) {
+        const first = rows.find((item) => item.instanceName)?.instanceName;
+        setInstance(first || defaultEvolutionInstanceName());
+      }
+    });
+  }, [queryInstance]);
+
+  useEffect(() => {
+    if (queryInstance) {
+      setInstance(queryInstance);
+    }
+  }, [queryInstance]);
+
+  const loadData = async (name = instance) => {
     try {
       setRefreshing(true);
+      if (!name) {
+        return;
+      }
+      const query = `?instance=${encodeURIComponent(name)}`;
       const [qrResponse, statusResponse] = await Promise.all([
-        fetch('/api/chat-whatsapp/qr'),
-        fetch('/api/chat-whatsapp/status'),
+        fetch(`/api/chat-whatsapp/qr${query}`),
+        fetch(`/api/chat-whatsapp/status${query}`),
       ]);
       if (qrResponse.ok) {
         setQrData(await qrResponse.json());
@@ -50,17 +79,19 @@ export default function WhatsAppPage() {
   };
 
   useEffect(() => {
-    void loadData();
+    if (!instance) return;
+    void loadData(instance);
     const timer = setInterval(() => {
       if (!status?.connected) {
-        void loadData();
+        void loadData(instance);
       }
     }, 5000);
     return () => clearInterval(timer);
-  }, [status?.connected]);
+  }, [instance, status?.connected]);
 
   const isConnected = Boolean(status?.connected);
   const hasQR = Boolean(qrData?.available && qrData.qr);
+  const lines = numbers.filter((item) => item.instanceName);
 
   if (loading) {
     return (
@@ -72,18 +103,42 @@ export default function WhatsAppPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <p className="text-muted-foreground">Conecte o WhatsApp para atender em Conversas.</p>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <p className="text-muted-foreground">Conecte cada número da empresa com o QR do celular.</p>
         <Button onClick={() => void loadData()} disabled={refreshing} variant="outline">
           <RefreshCw className={`mr-2 h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
           Atualizar
         </Button>
       </div>
 
+      {lines.length > 0 ? (
+        <label className="block max-w-sm space-y-2 text-sm">
+          <span className="text-muted-foreground">Linha</span>
+          <select
+            className="flex h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
+            value={instance}
+            onChange={(event) => {
+              const next = event.target.value;
+              setInstance(next);
+              setStatus(null);
+              router.replace(`/dashboard/whatsapp?instance=${encodeURIComponent(next)}`);
+            }}
+          >
+            {lines.map((item) => (
+              <option key={item.id} value={item.instanceName}>
+                {item.name}
+              </option>
+            ))}
+          </select>
+        </label>
+      ) : null}
+
       <Card>
         <CardHeader>
           <CardTitle>Status</CardTitle>
-          <CardDescription>Estado da conexão com o WhatsApp</CardDescription>
+          <CardDescription>
+            {lines.find((item) => item.instanceName === instance)?.name || 'Linha do WhatsApp'}
+          </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex items-center gap-4">

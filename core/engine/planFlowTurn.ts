@@ -36,15 +36,22 @@ function findStep(flow: Flow, stepId?: string): FlowStep | null {
   return flow.steps.find((step) => step.id === stepId) ?? null;
 }
 
+function firstQuestionStep(flow: Flow): FlowStep | null {
+  return flow.steps.find((step) => step.type === 'question') ?? flow.steps[0] ?? null;
+}
+
 function initialCursor(flow: Flow, session: FlowSession | null): FlowStep | null {
   const firstStep = flow.steps[0] ?? null;
-  if (!session?.currentStepId) {
+  if (!session) {
     return firstStep;
+  }
+  if (!session.currentStepId) {
+    return firstQuestionStep(flow);
   }
 
   const waiting = findStep(flow, session.currentStepId);
   if (!waiting) {
-    return firstStep;
+    return firstQuestionStep(flow);
   }
 
   if (waiting.type === 'question') {

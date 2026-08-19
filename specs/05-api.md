@@ -2,17 +2,44 @@
 
 Route Handlers em `app/api/**/route.ts`. Sem inventar rotas que não estejam aqui; ao criar, atualizar esta spec no mesmo PR/tarefa.
 
+Helpers da borda em `infra/http` (`01-architecture.md`). Sem porta nova em `core`.
+
+## Observabilidade (Fase 5)
+
+Todo response de `/api/**` inclui o header `x-request-id`:
+
+- Se o cliente mandar `x-request-id` com comprimento `<= 128` chars, ecoar esse valor
+- Senão, gerar um UUID
+
+Erros de servidor logam `[requestId] mensagem: detalhe`. **Não** logar: token, apikey, `service_role`, JWT, `Authorization`, body de mídia/base64, `error.response.data` completo. Webhooks **não** logam payload completo nem QR. Não vazar stack no JSON de resposta.
+
+## Validação Zod (POST/PATCH com JSON)
+
+Bodies JSON das rotas abaixo passam por schema Zod na borda. Inválido → `400 { error: string }` (sem stack). GET sem body **não** precisa de Zod. Multipart de `POST /api/messages/send` continua no parser existente; o ramo JSON passa a usar Zod.
+
+| Rota | Schema (campos) |
+|------|-----------------|
+| `POST /api/auth/login` | `{ email, password }` |
+| `POST /api/operators` | `{ email, password, name, role?, departmentId? }` |
+| `PATCH /api/operators/{id}` | `{ role }` |
+| `POST /api/messages/send` (JSON) | `{ to, message, conversationId?, type?, templateName?, templateParams? }` (Zod no JSON; hoje `parseSendRequest`) |
+| `POST /api/webhook/evolution` | `{ event, data?, instance? }` — compat: se não houver `data` mas houver `key`, o **body inteiro** vale como `data` |
+| `POST /api/webhook/chat-whatsapp` | `{ event, data }` |
+| `POST /api/webhook/whatsapp` | body Meta com `object` + `entry` (schema frouxo / passthrough) |
+
 ## Mensagens
 
 `POST /api/messages/send`
 
-- JSON: `{ to: string, message: string, type?: "text"|"template", templateName?: string, templateParams?: string[] }`
-- Multipart: `to`, `message` (legenda, opcional se houver arquivo), `file`
+- JSON: `{ to: string, message: string, conversationId?: string, type?: "text"|"template", templateName?: string, templateParams?: string[] }`
+- Multipart: `to`, `message` (legenda, opcional se houver arquivo), `file`, `conversationId` (opcional)
+- `conversationId` escolhe a thread/linha; sem ele, resolve pela conversa do `to` (a mais recente se houver várias)
 - 400 se faltar `to`; 400 se não houver `message` nem arquivo; 400 se `type=template` sem `templateName`; 400 se arquivo > 16 MB
 - 200: entidade `Message` persistida (`type` image/audio/video/document quando houver arquivo)
-- Após envio bem-sucedido, pausa o fluxo daquele `to` (`PauseContactFlowUseCase`) e, se houver mídia, grava no Storage
+- Após envio bem-sucedido, pausa o fluxo **dessa thread** (`PauseContactFlowUseCase` com o id da conversa) e, se houver mídia, grava no Storage
 - 401: sem sessão de operador quando o Supabase está configurado
 - 500: falha no provedor
+- Emoji Unicode no `message`, **resposta rápida** (o `body` já está no compositor) e **Reenviar** de outgoing `failed` usam este mesmo POST (mesmo `to` + texto + `conversationId` da thread). Sem rota extra. Sem `/api/quick-replies`: o catálogo no painel usa `QuickReplyCatalogUseCase` no client
 
 `GET` / `POST /api/schedules/dispatch`
 
@@ -36,31 +63,43 @@ Route Handlers em `app/api/**/route.ts`. Sem inventar rotas que não estejam aqu
 
 `GET /api/webhook/whatsapp` — query `hub.mode`, `hub.verify_token`, `hub.challenge`. 200 texto do challenge ou 403.
 
-`POST /api/webhook/whatsapp` — body Meta (`object: whatsapp_business_account`, `entry[]`). Sempre 200 após tentativa de processamento.
+`POST /api/webhook/whatsapp` — body Meta (`object` + `entry[]`). Zod frouxo. Sempre 200 após tentativa de processamento (ACK). Sem `message` interno/stack no JSON.
 
-`POST /api/webhook/evolution` — `{ event, data, instance? }`. 400 se formato inválido.
+`POST /api/webhook/evolution` — `{ event, data?, instance? }` (compat `key` → body como `data`, ver tabela Zod). 400 se o schema falhar. Processamento: ACK **200** sem `message` de stack (hoje o handler pode devolver 200 com texto de erro — em produção o ACK permanece 200, sem vazar detalhe interno).
 
-`POST /api/webhook/chat-whatsapp` — payload do backend AWS. 200 ACK.
+`POST /api/webhook/chat-whatsapp` — `{ event, data }`. 400 se inválido. 200 ACK sem stack.
 
-Webhooks não autenticam operador do painel. Não logar tokens nem corpos completos com mídia em produção.
+Webhooks não autenticam operador do painel. Não logar tokens, payload completo, QR nem corpos com mídia.
 
 ## Proxy conexão WhatsApp (QR)
 
 | Método | Rota | Destino |
 |--------|------|---------|
-| GET | `/api/chat-whatsapp/qr` | Evolution se `WHATSAPP_PROVIDER=evolution`; senão `CHAT_WHATSAPP_API_URL` |
-| GET | `/api/chat-whatsapp/status` | idem; se `connected` + `wid`, upsert no catálogo (`SyncLiveWhatsAppNumberUseCase`); falha no upsert não muda o JSON de status |
+| GET | `/api/chat-whatsapp/qr` | `?instance=` opcional |
+| GET | `/api/chat-whatsapp/status` | `?instance=` opcional: **sem** query = agregado (`connected` se qualquer linha aberta + `instances[]`); **com** query = aquela linha (`connected`/`info` dela; `instances[]` pode vir no mesmo shape) |
+| POST | `/api/chat-whatsapp/instance` | `{ instanceName }` cria instância Evolution + webhook. Só admin |
 | GET | `/api/chat-whatsapp/messages` | Evolution: histórico em `IMessageRepository`; senão AWS chat-whatsapp |
 | GET | `/api/chat-whatsapp/messages/[userId]` | por contato (mesmo critério) |
 
-Erros de rede: 500 com `message` (sem vazar secrets). Com Evolution, hint aponta `EVOLUTION_API_URL` / instância.
+Erros de rede: 500 com `message` genérico (sem vazar secrets nem stack). Com Evolution, hint aponta `EVOLUTION_API_URL` / instância — **não** apikey.
+
+`GET /api/chat-whatsapp/status` (sem rota extra para o selo):
+
+- Sem `instance`: `{ connected, qrAvailable, info, instances? }` — `connected` se **qualquer** linha estiver aberta; `instances[]` = `{ name, connected, info }[]` (uma entrada por linha conhecida). O header do painel cruza isso com o catálogo de Números: M = linhas cadastradas, N = quantas estão `connected`.
+- Com `instance`: `connected` / `info` daquela linha. Sem inventar query nem endpoint novo; o cliente pode agregar catálogo + este GET.
 
 ## Auth
 
-`POST /api/auth/login` — `{ email, password }` → 200 usuário (sem token) + cookies; 401 inválido; 503 sem Supabase.
+`POST /api/auth/login` — `{ email, password }` (Zod) → 200 usuário (sem token) + cookies; 400 body inválido; 401 inválido; 503 sem Supabase. A dica de env na UI de login cita só `NEXT_PUBLIC_SUPABASE_URL` e `NEXT_PUBLIC_SUPABASE_ANON_KEY`. **Não** citar `SUPABASE_SERVICE_ROLE_KEY` (só servidor). **Não** há rota de “esqueci a senha”: o reset é o e-mail do Auth no cliente (anon) — `08-supabase.md`.
 
 `POST /api/auth/logout` — encerra sessão.
 
 `GET /api/auth/me` — 200 `User` ou 401.
 
-Sessão em cookie httpOnly. `POST /api/messages/send` → 401 sem sessão se o Supabase estiver configurado. `GET`/`POST /api/schedules/dispatch` aceita sessão **ou** Bearer `CRON_SECRET`. Webhooks **não** usam sessão de operador. `service_role` só no servidor (`serverLocator`).
+`GET /api/operators` — lista `User[]`. Só admin. 401/403.
+
+`POST /api/operators` — `{ email, password, name, role?: "admin"|"user", departmentId? }` (Zod). Cria login (Auth) + perfil + agente. Senha mín. 6. 201 `User`. 400 body inválido. 409 e-mail duplicado. Só admin.
+
+`PATCH /api/operators/{id}` — `{ role: "admin"|"user" }` (Zod). 400 se body inválido ou se for o último admin. Só admin.
+
+Sessão em cookie httpOnly. `POST /api/messages/send` → 401 sem sessão se o Supabase estiver configurado. `GET`/`POST /api/schedules/dispatch` aceita sessão **ou** Bearer `CRON_SECRET`. Webhooks **não** usam sessão de operador. `service_role` só no servidor (`serverLocator`). `POST /api/operators` usa `service_role` só para `auth.admin.createUser`.

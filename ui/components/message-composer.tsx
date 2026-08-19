@@ -4,6 +4,9 @@ import { ChangeEvent, FormEvent, KeyboardEvent, useRef, useState } from 'react';
 import { Paperclip } from 'lucide-react';
 import { Button } from '@/ui/components/button';
 import { Textarea } from '@/ui/components/textarea';
+import { EmojiPicker } from '@/ui/components/emoji-picker';
+import { QuickReplyPicker } from '@/ui/components/quick-reply-picker';
+import { insertEmojiAtCursor } from '@/ui/lib/emoji';
 import { MAX_OUTGOING_MEDIA_BYTES } from '@/core/services/IMediaStorage';
 
 type MessageComposerProps = {
@@ -18,6 +21,7 @@ export function MessageComposer({ disabled, sending, error, onSend }: MessageCom
   const [file, setFile] = useState<File | null>(null);
   const [sizeError, setSizeError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const textRef = useRef<HTMLTextAreaElement>(null);
 
   const clearFile = () => {
     setFile(null);
@@ -34,6 +38,18 @@ export function MessageComposer({ disabled, sending, error, onSend }: MessageCom
     }
     setSizeError(null);
     setFile(selected);
+  };
+
+  const insertText = (piece: string) => {
+    const area = textRef.current;
+    const start = area?.selectionStart ?? draft.length;
+    const end = area?.selectionEnd ?? draft.length;
+    const next = insertEmojiAtCursor(draft, piece, start, end);
+    setDraft(next.text);
+    requestAnimationFrame(() => {
+      area?.focus();
+      area?.setSelectionRange(next.cursor, next.cursor);
+    });
   };
 
   const submit = async () => {
@@ -66,6 +82,7 @@ export function MessageComposer({ disabled, sending, error, onSend }: MessageCom
   return (
     <form onSubmit={onSubmit} className="space-y-2">
       <Textarea
+        ref={textRef}
         value={draft}
         onChange={(event) => setDraft(event.target.value)}
         onKeyDown={onKeyDown}
@@ -86,7 +103,7 @@ export function MessageComposer({ disabled, sending, error, onSend }: MessageCom
         <p className="text-sm text-destructive">{sizeError || error}</p>
       ) : null}
       <div className="flex items-center justify-between gap-2">
-        <div>
+        <div className="flex items-center gap-2">
           <input
             ref={fileInputRef}
             type="file"
@@ -95,6 +112,8 @@ export function MessageComposer({ disabled, sending, error, onSend }: MessageCom
             onChange={onFileChange}
             disabled={sending || disabled}
           />
+          <EmojiPicker disabled={sending || disabled} onPick={insertText} />
+          <QuickReplyPicker disabled={sending || disabled} onPick={insertText} />
           <Button
             type="button"
             variant="outline"
