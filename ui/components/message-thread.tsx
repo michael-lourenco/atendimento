@@ -21,6 +21,7 @@ import { listWhatsAppNumbersCached } from '@/ui/lib/whatsapp-number-cache';
 import { MessageMedia } from '@/ui/components/message-media';
 import { MessageComposer } from '@/ui/components/message-composer';
 import { ConversationActions } from '@/ui/components/conversation-actions';
+import { ConversationSchedulePanel } from '@/ui/components/conversation-schedule-panel';
 import { TeamNotes } from '@/ui/components/team-notes';
 import { MessageStatusTicks } from '@/ui/components/message-status-ticks';
 import { Button } from '@/ui/components/button';
@@ -50,7 +51,11 @@ export function MessageThread({ conversationId, onBack, onConversationChanged }:
   const lineRef = useRef<WhatsAppNumber | null>(null);
 
   const load = async (refreshCatalogs: boolean) => {
-    await new MarkConversationReadUseCase().execute(conversationId);
+    try {
+      await new MarkConversationReadUseCase().execute(conversationId);
+    } catch {
+      // zerar não lidas não pode esconder o chat
+    }
     const conv = await new GetConversationByIdUseCase().execute(conversationId);
     if (refreshCatalogs) {
       const [agentList, departmentList, user, numberList] = await Promise.all([
@@ -192,6 +197,7 @@ export function MessageThread({ conversationId, onBack, onConversationChanged }:
           operator={operator}
           onChanged={refresh}
         />
+        {conversation ? <ConversationSchedulePanel conversation={conversation} /> : null}
         {paused ? (
           <div className="flex flex-wrap items-center gap-2">
             <span className="rounded border border-amber-500/30 bg-amber-500/15 px-2 py-1 text-xs text-amber-800 dark:text-amber-300">

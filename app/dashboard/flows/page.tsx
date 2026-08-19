@@ -10,6 +10,7 @@ import { DepartmentCatalogUseCase } from '@/core/usecases/DepartmentCatalogUseCa
 import { resolveActiveFlow } from '@/core/engine/resolveActiveFlow';
 import { FlowStepsEditor } from '@/ui/components/flow-steps-editor';
 import { EmptyState } from '@/ui/components/empty-state';
+import { CatalogListSkeleton } from '@/ui/components/catalog-list-skeleton';
 import { Button } from '@/ui/components/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/ui/components/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/ui/components/table';
@@ -18,6 +19,8 @@ import { Label } from '@/ui/components/label';
 import { Textarea } from '@/ui/components/textarea';
 import { Badge } from '@/ui/components/badge';
 import { useConfirm } from '@/ui/components/confirm-dialog';
+import { CatalogSavedNotice } from '@/ui/components/catalog-saved-notice';
+import { useCatalogSavedFlash } from '@/ui/lib/use-catalog-saved-flash';
 
 export default function FlowsPage() {
   const [flows, setFlows] = useState<Flow[]>([]);
@@ -33,13 +36,16 @@ export default function FlowsPage() {
     isActive: true,
   });
   const { confirm, dialog } = useConfirm();
+  const { show, markSaved } = useCatalogSavedFlash();
 
   useEffect(() => {
-    loadFlows();
+    void loadFlows(true);
   }, []);
 
-  const loadFlows = async () => {
-    setLoading(true);
+  const loadFlows = async (showLoading = false) => {
+    if (showLoading) {
+      setLoading(true);
+    }
     try {
       const [allFlows, departmentList] = await Promise.all([
         new GetAllFlowsUseCase().execute(),
@@ -97,6 +103,7 @@ export default function FlowsPage() {
       setEditingFlow(null);
       setSteps([]);
       setFormData({ id: '', name: '', description: '', isActive: true });
+      markSaved();
       loadFlows();
     } catch (error) {
       console.error('Erro ao salvar fluxo:', error);
@@ -118,12 +125,20 @@ export default function FlowsPage() {
   };
 
   if (loading) {
-    return <div className="text-center py-8 text-foreground">Carregando...</div>;
+    return (
+      <div>
+        <div className="mb-6">
+          <p className="text-muted-foreground">Roteiro do chatbot no WhatsApp.</p>
+        </div>
+        <CatalogListSkeleton />
+      </div>
+    );
   }
 
   return (
     <div>
       {dialog}
+      <CatalogSavedNotice show={show} />
       <div className="mb-6 flex flex-wrap items-center justify-between gap-2">
         <p className="text-muted-foreground">
           Roteiro do chatbot no WhatsApp. Só um fluxo ativo entra no ar — de preferência o

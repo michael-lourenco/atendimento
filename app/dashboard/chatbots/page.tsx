@@ -13,6 +13,9 @@ import { Textarea } from '@/ui/components/textarea';
 import { Plus } from 'lucide-react';
 import Link from 'next/link';
 import { useConfirm } from '@/ui/components/confirm-dialog';
+import { CatalogListSkeleton } from '@/ui/components/catalog-list-skeleton';
+import { CatalogSavedNotice } from '@/ui/components/catalog-saved-notice';
+import { useCatalogSavedFlash } from '@/ui/lib/use-catalog-saved-flash';
 
 const catalog = () => new ChatbotCatalogUseCase();
 
@@ -23,9 +26,12 @@ export default function ChatbotsPage() {
   const [editing, setEditing] = useState<Chatbot | null>(null);
   const [form, setForm] = useState({ name: '', description: '', isActive: true });
   const { confirm, dialog } = useConfirm();
+  const { show, markSaved } = useCatalogSavedFlash();
 
-  const load = async () => {
-    setLoading(true);
+  const load = async (showLoading = false) => {
+    if (showLoading) {
+      setLoading(true);
+    }
     try {
       setChatbots(await catalog().list());
     } finally {
@@ -34,7 +40,7 @@ export default function ChatbotsPage() {
   };
 
   useEffect(() => {
-    load();
+    void load(true);
   }, []);
 
   const reset = () => {
@@ -57,6 +63,7 @@ export default function ChatbotsPage() {
       updatedAt: now,
     });
     reset();
+    markSaved();
     load();
   };
 
@@ -67,12 +74,20 @@ export default function ChatbotsPage() {
   };
 
   if (loading) {
-    return <div className="text-center py-8 text-foreground">Carregando...</div>;
+    return (
+      <div>
+        <div className="mb-6">
+          <p className="text-muted-foreground">O roteiro do atendimento é o fluxo.</p>
+        </div>
+        <CatalogListSkeleton />
+      </div>
+    );
   }
 
   return (
     <div>
       {dialog}
+      <CatalogSavedNotice show={show} />
       <div className="mb-6 flex flex-wrap items-center justify-between gap-2">
         <p className="text-muted-foreground">
           O roteiro do atendimento é o fluxo.{' '}

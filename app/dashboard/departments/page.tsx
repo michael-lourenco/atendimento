@@ -13,6 +13,9 @@ import { DepartmentCatalogUseCase } from '@/core/usecases/DepartmentCatalogUseCa
 import { Department } from '@/core/entities/Department';
 import { useConfirm } from '@/ui/components/confirm-dialog';
 import { EmptyState } from '@/ui/components/empty-state';
+import { CatalogListSkeleton } from '@/ui/components/catalog-list-skeleton';
+import { CatalogSavedNotice } from '@/ui/components/catalog-saved-notice';
+import { useCatalogSavedFlash } from '@/ui/lib/use-catalog-saved-flash';
 
 export default function DepartmentsPage() {
   const [departments, setDepartments] = useState<Department[]>([]);
@@ -26,13 +29,12 @@ export default function DepartmentsPage() {
     isActive: true,
   });
   const { confirm, dialog } = useConfirm();
+  const { show, markSaved } = useCatalogSavedFlash();
 
-  useEffect(() => {
-    loadDepartments();
-  }, []);
-
-  const loadDepartments = async () => {
-    setLoading(true);
+  const loadDepartments = async (showLoading = false) => {
+    if (showLoading) {
+      setLoading(true);
+    }
     try {
       const allDepartments = await new DepartmentCatalogUseCase().list();
       setDepartments(allDepartments);
@@ -42,6 +44,10 @@ export default function DepartmentsPage() {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    void loadDepartments(true);
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -61,6 +67,7 @@ export default function DepartmentsPage() {
       setShowForm(false);
       setEditingDepartment(null);
       setFormData({ name: '', description: '', color: '#3b82f6', isActive: true });
+      markSaved();
       loadDepartments();
     } catch (error) {
       console.error('Erro ao salvar setor:', error);
@@ -91,12 +98,20 @@ export default function DepartmentsPage() {
   };
 
   if (loading) {
-    return <div className="text-center py-8 text-foreground">Carregando...</div>;
+    return (
+      <div>
+        <div className="mb-6 flex items-center justify-between">
+          <p className="text-muted-foreground">Organize conversas por setores</p>
+        </div>
+        <CatalogListSkeleton />
+      </div>
+    );
   }
 
   return (
     <div>
       {dialog}
+      <CatalogSavedNotice show={show} />
       <div className="mb-6 flex justify-between items-center">
         <p className="text-muted-foreground">Organize conversas por setores</p>
         <Button onClick={() => setShowForm(true)}>

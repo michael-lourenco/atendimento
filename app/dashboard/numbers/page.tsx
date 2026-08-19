@@ -21,6 +21,9 @@ import { useConfirm } from '@/ui/components/confirm-dialog';
 import { useWhatsAppStatus } from '@/ui/lib/use-whatsapp-status';
 import { invalidateWhatsAppNumberCache } from '@/ui/lib/whatsapp-number-cache';
 import { cn } from '@/ui/lib/utils';
+import { CatalogListSkeleton } from '@/ui/components/catalog-list-skeleton';
+import { CatalogSavedNotice } from '@/ui/components/catalog-saved-notice';
+import { useCatalogSavedFlash } from '@/ui/lib/use-catalog-saved-flash';
 
 const catalog = () => new WhatsAppNumberCatalogUseCase();
 
@@ -36,6 +39,8 @@ export default function NumbersPage() {
     instanceName: '',
   });
   const { confirm, dialog } = useConfirm();
+  const { show: showSaved, markSaved } = useCatalogSavedFlash();
+  const [loading, setLoading] = useState(true);
   const { connected, pushname, wid, platform } = useWhatsAppStatus();
   const numbers = mergeWhatsAppNumbersWithLive(saved, {
     connected: connected === true,
@@ -44,13 +49,20 @@ export default function NumbersPage() {
     platform,
   });
 
-  const load = async () => {
-    invalidateWhatsAppNumberCache();
-    setSaved(await catalog().list());
+  const load = async (showLoading = false) => {
+    if (showLoading) {
+      setLoading(true);
+    }
+    try {
+      invalidateWhatsAppNumberCache();
+      setSaved(await catalog().list());
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => {
-    load();
+    void load(true);
   }, []);
 
   useEffect(() => {
@@ -102,12 +114,14 @@ export default function NumbersPage() {
       body: JSON.stringify({ instanceName }),
     });
     reset();
+    markSaved();
     load();
   };
 
   return (
     <div>
       {dialog}
+      <CatalogSavedNotice show={showSaved} />
       <div className="mb-6 flex justify-between items-center">
         <p className="text-muted-foreground">Linhas do WhatsApp da empresa</p>
         <Button onClick={() => setShowForm(true)}>
@@ -176,8 +190,8 @@ export default function NumbersPage() {
           <CardDescription>Nome visível no atendimento; cada linha tem o próprio QR</CardDescription>
         </CardHeader>
         <CardContent>
-          {connected === null && saved.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">Carregando conexão...</div>
+          {loading ? (
+            <CatalogListSkeleton />
           ) : numbers.length === 0 ? (
             <div className="flex flex-col items-center gap-3 py-8 text-center text-muted-foreground">
               <p>Nenhuma linha cadastrada. Escaneie o QR do WhatsApp para aparecer aqui.</p>

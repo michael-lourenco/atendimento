@@ -44,7 +44,7 @@ Bodies JSON das rotas abaixo passam por schema Zod na borda. Inválido → `400 
 `GET` / `POST /api/schedules/dispatch`
 
 - Sem body
-- Envia os `ScheduledMessage` `pending` cuja `scheduledDate` já passou (`DispatchDueScheduledMessagesUseCase`)
+- Envia os `ScheduledMessage` `pending` cuja `scheduledDate` já passou (`DispatchDueScheduledMessagesUseCase`). Se o item tem `conversationId`, o send/pause usam essa thread; senão, o telefone (conversa mais recente)
 - 200: `{ sent: string[], failed: string[] }` (ids)
 - Auth: sessão de operador **ou** `Authorization: Bearer CRON_SECRET` (secret não vazio)
 - 401: Supabase configurado e nenhum dos dois

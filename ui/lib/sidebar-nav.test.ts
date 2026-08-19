@@ -1,12 +1,13 @@
 import { isAdminPath, sidebarGroupsForRole } from './sidebar-nav';
 
 describe('sidebarGroupsForRole', () => {
-  it('atendente vê Conversas, Contatos e Respostas rápidas', () => {
+  it('atendente vê Conversas, Contatos, Respostas rápidas e Agendamentos', () => {
     const hrefs = sidebarGroupsForRole('user').flatMap((group) => group.items.map((item) => item.href));
     expect(hrefs).toEqual([
       '/dashboard/conversations',
       '/dashboard/contacts',
       '/dashboard/quick-replies',
+      '/dashboard/schedules',
     ]);
   });
 
@@ -21,5 +22,6 @@ describe('sidebarGroupsForRole', () => {
     expect(isAdminPath('/dashboard/whatsapp')).toBe(true);
     expect(isAdminPath('/dashboard/conversations')).toBe(false);
     expect(isAdminPath('/dashboard/quick-replies')).toBe(false);
+    expect(isAdminPath('/dashboard/schedules')).toBe(false);
   });
 });

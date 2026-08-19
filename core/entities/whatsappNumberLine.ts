@@ -40,6 +40,17 @@ export function defaultEvolutionInstanceName(): string {
   return process.env.EVOLUTION_INSTANCE_NAME?.trim() || 'default';
 }
 
+export function lineNameOf(
+  numbers: WhatsAppNumber[],
+  conversation: { whatsappNumberId?: string } | null | undefined
+): string {
+  const lineId = conversation?.whatsappNumberId?.trim();
+  if (!lineId) {
+    return '';
+  }
+  return numbers.find((item) => item.id === lineId)?.name?.trim() ?? '';
+}
+
 export function outgoingWhatsAppLine(
   conversation: Conversation | null | undefined,
   numbers: WhatsAppNumber[],

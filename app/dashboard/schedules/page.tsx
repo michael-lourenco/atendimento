@@ -5,8 +5,12 @@ import { DASHBOARD_POLL_MS } from '@/ui/lib/dashboard-poll';
 import { dispatchDueSchedules } from '@/ui/lib/use-dispatch-due-schedules';
 import { ScheduledMessage } from '@/core/entities/ScheduledMessage';
 import { Contact } from '@/core/entities/Contact';
+import { Conversation } from '@/core/entities/Conversation';
+import { WhatsAppNumber } from '@/core/entities/WhatsAppNumber';
+import { scheduleOutgoingLineName } from '@/core/entities/scheduleOutgoingLine';
 import { ScheduledMessageCatalogUseCase } from '@/core/usecases/ScheduledMessageCatalogUseCase';
 import { ContactCatalogUseCase } from '@/core/usecases/ContactCatalogUseCase';
+import { GetAllConversationsUseCase } from '@/core/usecases/GetAllConversationsUseCase';
 import { UpsertContactFromIncomingUseCase } from '@/core/usecases/UpsertContactFromIncomingUseCase';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/ui/components/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/ui/components/table';
@@ -18,19 +22,19 @@ import { Badge } from '@/ui/components/badge';
 import { ContactPicker } from '@/ui/components/contact-picker';
 import { Plus } from 'lucide-react';
 import { useConfirm } from '@/ui/components/confirm-dialog';
+import { CatalogListSkeleton } from '@/ui/components/catalog-list-skeleton';
+import { CatalogSavedNotice } from '@/ui/components/catalog-saved-notice';
 import {
   contactPickerLabel,
   findContactByPhone,
   normalizeSchedulePhone,
 } from '@/ui/lib/contact-picker';
+import { toLocalDatetimeValue } from '@/ui/lib/datetime-local';
+import { useCatalogSavedFlash } from '@/ui/lib/use-catalog-saved-flash';
+import { listWhatsAppNumbersCached } from '@/ui/lib/whatsapp-number-cache';
 
 const catalog = () => new ScheduledMessageCatalogUseCase();
 const contactsCatalog = () => new ContactCatalogUseCase();
-
-function toLocalInput(date: Date) {
-  const pad = (value: number) => String(value).padStart(2, '0');
-  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
-}
 
 function scheduleContactLabel(schedule: ScheduledMessage, contacts: Contact[]): string {
   const found = findContactByPhone(contacts, schedule.contact);
@@ -40,23 +44,38 @@ function scheduleContactLabel(schedule: ScheduledMessage, contacts: Contact[]): 
 export default function SchedulesPage() {
   const [schedules, setSchedules] = useState<ScheduledMessage[]>([]);
   const [contacts, setContacts] = useState<Contact[]>([]);
+  const [conversations, setConversations] = useState<Conversation[]>([]);
+  const [numbers, setNumbers] = useState<WhatsAppNumber[]>([]);
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState<ScheduledMessage | null>(null);
   const [form, setForm] = useState({ contact: '', newName: '', message: '', scheduledDate: '' });
+  const [loading, setLoading] = useState(true);
   const { confirm, dialog } = useConfirm();
+  const { show, markSaved } = useCatalogSavedFlash();
 
-  const load = async () => {
-    const [scheduleList, contactList] = await Promise.all([
-      catalog().list(),
-      contactsCatalog().list(),
-    ]);
-    setSchedules(scheduleList);
-    setContacts(contactList);
+  const load = async (showLoading = false) => {
+    if (showLoading) {
+      setLoading(true);
+    }
+    try {
+      const [scheduleList, contactList, conversationList, numberList] = await Promise.all([
+        catalog().list(),
+        contactsCatalog().list(),
+        new GetAllConversationsUseCase().execute(),
+        listWhatsAppNumbersCached(),
+      ]);
+      setSchedules(scheduleList);
+      setContacts(contactList);
+      setConversations(conversationList);
+      setNumbers(numberList);
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => {
-    load();
-    const timer = setInterval(() => load(), DASHBOARD_POLL_MS);
+    void load(true);
+    const timer = setInterval(() => void load(false), DASHBOARD_POLL_MS);
     return () => clearInterval(timer);
   }, []);
 
@@ -80,6 +99,7 @@ export default function SchedulesPage() {
       scheduledDate: new Date(form.scheduledDate),
       status: editing?.status || 'pending',
       createdAt: editing?.createdAt || new Date(),
+      conversationId: editing?.conversationId,
     });
     try {
       await dispatchDueSchedules();
@@ -87,12 +107,14 @@ export default function SchedulesPage() {
       // o cron tenta de novo se esta chamada falhar
     }
     reset();
+    markSaved();
     load();
   };
 
   return (
     <div>
       {dialog}
+      <CatalogSavedNotice show={show} />
       <div className="mb-6 flex justify-between items-center">
         <p className="text-muted-foreground">Envio na hora marcada, mesmo com o painel fechado</p>
         <Button onClick={() => setShowForm(true)}>
@@ -164,13 +186,16 @@ export default function SchedulesPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          {schedules.length === 0 ? (
+          {loading ? (
+            <CatalogListSkeleton />
+          ) : schedules.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">Nenhuma mensagem agendada</div>
           ) : (
             <Table>
               <TableHeader>
                 <TableRow>
                   <TableHead>Contato</TableHead>
+                  <TableHead>Linha</TableHead>
                   <TableHead>Mensagem</TableHead>
                   <TableHead>Data/Hora</TableHead>
                   <TableHead>Status</TableHead>
@@ -183,6 +208,9 @@ export default function SchedulesPage() {
                   <TableRow key={schedule.id}>
                     <TableCell className="font-medium">
                       {scheduleContactLabel(schedule, contacts)}
+                    </TableCell>
+                    <TableCell>
+                      {scheduleOutgoingLineName(schedule, conversations, numbers)}
                     </TableCell>
                     <TableCell className="max-w-md truncate">{schedule.message}</TableCell>
                     <TableCell>{new Date(schedule.scheduledDate).toLocaleString('pt-BR')}</TableCell>
@@ -216,7 +244,7 @@ export default function SchedulesPage() {
                                 contact: schedule.contact,
                                 newName: '',
                                 message: schedule.message,
-                                scheduledDate: toLocalInput(new Date(schedule.scheduledDate)),
+                                scheduledDate: toLocalDatetimeValue(new Date(schedule.scheduledDate)),
                               });
                               setShowForm(true);
                             }}

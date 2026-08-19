@@ -2,7 +2,10 @@
 
 import { useEffect, useState } from 'react';
 import { Contact } from '@/core/entities/Contact';
+import { Conversation } from '@/core/entities/Conversation';
+import { WhatsAppNumber } from '@/core/entities/WhatsAppNumber';
 import { ContactCatalogUseCase } from '@/core/usecases/ContactCatalogUseCase';
+import { GetAllConversationsUseCase } from '@/core/usecases/GetAllConversationsUseCase';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/ui/components/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/ui/components/table';
 import { Button } from '@/ui/components/button';
@@ -11,21 +14,47 @@ import { Label } from '@/ui/components/label';
 import { Badge } from '@/ui/components/badge';
 import { Search, Plus } from 'lucide-react';
 import { useConfirm } from '@/ui/components/confirm-dialog';
+import { EmptyState } from '@/ui/components/empty-state';
+import { CatalogListSkeleton } from '@/ui/components/catalog-list-skeleton';
+import { CatalogSavedNotice } from '@/ui/components/catalog-saved-notice';
+import { ContactTalkLink } from '@/ui/components/contact-talk-link';
+import { useCatalogSavedFlash } from '@/ui/lib/use-catalog-saved-flash';
+import { listWhatsAppNumbersCached } from '@/ui/lib/whatsapp-number-cache';
 
 const catalog = () => new ContactCatalogUseCase();
 
 export default function ContactsPage() {
   const [contacts, setContacts] = useState<Contact[]>([]);
+  const [conversations, setConversations] = useState<Conversation[]>([]);
+  const [numbers, setNumbers] = useState<WhatsAppNumber[]>([]);
+  const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('');
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState<Contact | null>(null);
   const [form, setForm] = useState({ name: '', phone: '', email: '', tags: '' });
   const { confirm, dialog } = useConfirm();
+  const { show, markSaved } = useCatalogSavedFlash();
 
-  const load = async () => setContacts(await catalog().list());
+  const load = async (showLoading = false) => {
+    if (showLoading) {
+      setLoading(true);
+    }
+    try {
+      const [contactList, conversationList, numberList] = await Promise.all([
+        catalog().list(),
+        new GetAllConversationsUseCase().execute(),
+        listWhatsAppNumbersCached(),
+      ]);
+      setContacts(contactList);
+      setConversations(conversationList);
+      setNumbers(numberList);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    load();
+    void load(true);
   }, []);
 
   const reset = () => {
@@ -51,6 +80,7 @@ export default function ContactsPage() {
       updatedAt: now,
     });
     reset();
+    markSaved();
     load();
   };
 
@@ -66,6 +96,7 @@ export default function ContactsPage() {
   return (
     <div>
       {dialog}
+      <CatalogSavedNotice show={show} />
       <div className="mb-6 flex justify-between items-center">
         <p className="text-muted-foreground">Contatos do WhatsApp</p>
         <Button onClick={() => setShowForm(true)}>
@@ -150,8 +181,17 @@ export default function ContactsPage() {
           </div>
         </CardHeader>
         <CardContent>
-          {visible.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">Nenhum contato encontrado</div>
+          {loading ? (
+            <CatalogListSkeleton />
+          ) : contacts.length === 0 ? (
+            <EmptyState
+              title="Nenhum contato"
+              description="Os contatos aparecem quando alguém fala no WhatsApp, ou cadastre um agora."
+              actionLabel="Novo Contato"
+              onAction={() => setShowForm(true)}
+            />
+          ) : visible.length === 0 ? (
+            <div className="py-8 text-center text-muted-foreground">Nenhum contato encontrado</div>
           ) : (
             <Table>
               <TableHeader>
@@ -182,6 +222,11 @@ export default function ContactsPage() {
                     <TableCell>{new Date(contact.createdAt).toLocaleDateString('pt-BR')}</TableCell>
                     <TableCell>
                       <div className="flex gap-2">
+                        <ContactTalkLink
+                          phone={contact.phone}
+                          conversations={conversations}
+                          numbers={numbers}
+                        />
                         <Button
                           variant="outline"
                           size="sm"

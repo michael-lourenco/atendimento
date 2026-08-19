@@ -1,4 +1,17 @@
-import { conversationDisplayName, conversationPreview, formatInboxTime } from './conversationInbox';
+import { conversationDisplayName, conversationPreview, conversationPreviewIsOutgoing, formatInboxTime } from './conversationInbox';
+import { Message } from './Message';
+
+const text = (overrides: Partial<Message> = {}): Message => ({
+  id: '1',
+  from: 'a',
+  to: 'b',
+  content: 'oi',
+  type: 'text',
+  timestamp: new Date(),
+  direction: 'incoming',
+  status: 'delivered',
+  ...overrides,
+});
 
 describe('conversationInbox', () => {
   it('usa o nome quando não é o próprio telefone', () => {
@@ -10,22 +23,22 @@ describe('conversationInbox', () => {
     ).toBe('5521999');
   });
 
-  it('prévia cai em Sem mensagens', () => {
+  it('prévia no estilo WhatsApp', () => {
     expect(conversationPreview({})).toBe('Sem mensagens');
+    expect(conversationPreview({ lastMessage: text({ content: '  oi  ' }) })).toBe('oi');
+    expect(conversationPreview({ lastMessage: text({ content: 'tá', direction: 'outgoing' }) })).toBe(
+      'Você: tá'
+    );
+    expect(conversationPreview({ lastMessage: text({ type: 'image', content: '' }) })).toBe('Foto');
+    expect(conversationPreview({ lastMessage: text({ type: 'audio', content: 'Áudio enviado' }) })).toBe(
+      'Áudio'
+    );
     expect(
-      conversationPreview({
-        lastMessage: {
-          id: '1',
-          from: 'a',
-          to: 'b',
-          content: '  oi  ',
-          type: 'text',
-          timestamp: new Date(),
-          direction: 'incoming',
-          status: 'delivered',
-        },
-      })
-    ).toBe('oi');
+      conversationPreview({ lastMessage: text({ type: 'image', content: 'olha isso', direction: 'outgoing' }) })
+    ).toBe('Você: olha isso');
+    expect(conversationPreviewIsOutgoing({ lastMessage: text({ direction: 'outgoing' }) })).toBe(true);
+    expect(conversationPreviewIsOutgoing({ lastMessage: text({ direction: 'incoming' }) })).toBe(false);
+    expect(conversationPreviewIsOutgoing({})).toBe(false);
   });
 
   it('hoje mostra hora, outro dia mostra data', () => {

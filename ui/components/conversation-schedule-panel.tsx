@@ -1,0 +1,162 @@
+'use client';
+
+import { FormEvent, useEffect, useState } from 'react';
+import { CalendarClock } from 'lucide-react';
+import { Conversation } from '@/core/entities/Conversation';
+import { ScheduledMessage } from '@/core/entities/ScheduledMessage';
+import { schedulesForConversation } from '@/core/entities/schedulesForConversation';
+import { ScheduledMessageCatalogUseCase } from '@/core/usecases/ScheduledMessageCatalogUseCase';
+import { Badge } from '@/ui/components/badge';
+import { Button } from '@/ui/components/button';
+import { Input } from '@/ui/components/input';
+import { Label } from '@/ui/components/label';
+import { Textarea } from '@/ui/components/textarea';
+import { CatalogSavedNotice } from '@/ui/components/catalog-saved-notice';
+import { useConfirm } from '@/ui/components/confirm-dialog';
+import { DASHBOARD_POLL_MS } from '@/ui/lib/dashboard-poll';
+import { defaultScheduleDatetimeValue } from '@/ui/lib/datetime-local';
+import { dispatchDueSchedules } from '@/ui/lib/use-dispatch-due-schedules';
+import { useCatalogSavedFlash } from '@/ui/lib/use-catalog-saved-flash';
+
+const catalog = () => new ScheduledMessageCatalogUseCase();
+
+type ConversationSchedulePanelProps = {
+  conversation: Conversation;
+};
+
+export function ConversationSchedulePanel({ conversation }: ConversationSchedulePanelProps) {
+  const [open, setOpen] = useState(false);
+  const [items, setItems] = useState<ScheduledMessage[]>([]);
+  const [message, setMessage] = useState('');
+  const [scheduledDate, setScheduledDate] = useState(() => defaultScheduleDatetimeValue());
+  const { show, markSaved } = useCatalogSavedFlash();
+  const { confirm, dialog } = useConfirm();
+
+  const load = async () => {
+    const list = await catalog().list();
+    setItems(schedulesForConversation(list, conversation));
+  };
+
+  useEffect(() => {
+    void load();
+    const timer = setInterval(() => void load(), DASHBOARD_POLL_MS);
+    return () => clearInterval(timer);
+  }, [conversation.id, conversation.contactPhone]);
+
+  const save = async (event: FormEvent) => {
+    event.preventDefault();
+    const text = message.trim();
+    if (!text || !scheduledDate) {
+      return;
+    }
+    await catalog().save({
+      id: `schedule-${Date.now()}`,
+      contact: conversation.contactPhone,
+      message: text,
+      scheduledDate: new Date(scheduledDate),
+      status: 'pending',
+      createdAt: new Date(),
+      conversationId: conversation.id,
+    });
+    try {
+      await dispatchDueSchedules();
+    } catch {
+      // o cron tenta de novo se esta chamada falhar
+    }
+    setMessage('');
+    setScheduledDate(defaultScheduleDatetimeValue());
+    markSaved();
+    await load();
+  };
+
+  const cancel = async (id: string) => {
+    if (!(await confirm('Cancelar este agendamento?'))) {
+      return;
+    }
+    await catalog().delete(id);
+    await load();
+  };
+
+  return (
+    <div className="space-y-2">
+      {dialog}
+      <Button type="button" size="sm" variant="outline" onClick={() => setOpen((current) => !current)}>
+        <CalendarClock className="mr-2 h-4 w-4" />
+        Agendar
+      </Button>
+      {open ? (
+        <div className="space-y-3 rounded-md border border-border p-3">
+          <CatalogSavedNotice show={show} />
+          <form onSubmit={(event) => void save(event)} className="space-y-3">
+            <div className="space-y-1">
+              <Label htmlFor="thread-schedule-when">Data/hora</Label>
+              <Input
+                id="thread-schedule-when"
+                type="datetime-local"
+                value={scheduledDate}
+                onChange={(event) => setScheduledDate(event.target.value)}
+                required
+                className="bg-background"
+              />
+            </div>
+            <div className="space-y-1">
+              <Label htmlFor="thread-schedule-message">Mensagem</Label>
+              <Textarea
+                id="thread-schedule-message"
+                value={message}
+                onChange={(event) => setMessage(event.target.value)}
+                required
+                rows={3}
+                className="bg-background"
+              />
+            </div>
+            <Button type="submit" size="sm">
+              Agendar envio
+            </Button>
+          </form>
+          {items.length === 0 ? (
+            <p className="text-xs text-muted-foreground">Nenhum agendamento nesta conversa</p>
+          ) : (
+            <ul className="space-y-2">
+              {items.map((item) => (
+                <li
+                  key={item.id}
+                  className="flex items-start justify-between gap-2 rounded-md border border-border px-2 py-1.5"
+                >
+                  <div className="min-w-0">
+                    <p className="truncate text-sm">{item.message}</p>
+                    <p className="text-[11px] text-muted-foreground">
+                      {new Date(item.scheduledDate).toLocaleString('pt-BR')}
+                    </p>
+                  </div>
+                  <div className="flex shrink-0 items-center gap-1">
+                    <Badge
+                      variant={
+                        item.status === 'sent'
+                          ? 'success'
+                          : item.status === 'pending'
+                            ? 'warning'
+                            : 'destructive'
+                      }
+                    >
+                      {item.status === 'sent'
+                        ? 'Enviada'
+                        : item.status === 'pending'
+                          ? 'Pendente'
+                          : 'Falhou'}
+                    </Badge>
+                    {item.status === 'pending' ? (
+                      <Button type="button" variant="ghost" size="sm" onClick={() => void cancel(item.id)}>
+                        Cancelar
+                      </Button>
+                    ) : null}
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      ) : null}
+    </div>
+  );
+}

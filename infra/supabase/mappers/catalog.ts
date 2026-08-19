@@ -176,6 +176,7 @@ export function quickReplyToRow(reply: QuickReply) {
 }
 
 export function scheduleFromRow(row: Record<string, unknown>): ScheduledMessage {
+  const conversationId = row.conversation_id ? String(row.conversation_id) : '';
   return {
     id: String(row.id),
     contact: String(row.contact),
@@ -183,6 +184,7 @@ export function scheduleFromRow(row: Record<string, unknown>): ScheduledMessage 
     scheduledDate: asDate(row.scheduled_date),
     status: row.status as ScheduleStatus,
     createdAt: asDate(row.created_at),
+    conversationId: conversationId || undefined,
   };
 }
 
@@ -194,6 +196,7 @@ export function scheduleToRow(schedule: ScheduledMessage) {
     scheduled_date: schedule.scheduledDate.toISOString(),
     status: schedule.status,
     created_at: schedule.createdAt.toISOString(),
+    conversation_id: schedule.conversationId || null,
   };
 }
 

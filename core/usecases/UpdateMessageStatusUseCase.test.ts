@@ -51,4 +51,43 @@ describe('UpdateMessageStatusUseCase', () => {
     const repo = new MemoryMessages();
     expect(await new UpdateMessageStatusUseCase(repo).execute('x', 'read')).toBeNull();
   });
+
+  it('atualiza o lastMessage da conversa quando o id bate', async () => {
+    const repo = new MemoryMessages();
+    repo.items.push(outgoing());
+    const conversations = {
+      items: [
+        {
+          id: 'c1',
+          contactId: '5511999',
+          contactName: 'Ana',
+          contactPhone: '5511999',
+          status: 'open' as const,
+          unreadCount: 0,
+          lastActivity: new Date(),
+          createdAt: new Date(),
+          tags: [] as string[],
+          lastMessage: outgoing(),
+        },
+      ],
+      async getAll() {
+        return this.items;
+      },
+      async getById() {
+        return this.items[0];
+      },
+      async getByDepartment() {
+        return [];
+      },
+      async getByAgent() {
+        return [];
+      },
+      async save(conversation: (typeof this.items)[0]) {
+        this.items = [conversation];
+      },
+      async delete() {},
+    };
+    await new UpdateMessageStatusUseCase(repo, conversations).execute('wamid-1', 'read');
+    expect(conversations.items[0].lastMessage?.status).toBe('read');
+  });
 });

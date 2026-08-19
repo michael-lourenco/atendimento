@@ -7,6 +7,7 @@ import { IFlowSessionRepository } from '../../core/repositories/IFlowSessionRepo
 import { IConversationRepository } from '../../core/repositories/IConversationRepository';
 import { IInternalMessageRepository } from '../../core/repositories/IInternalMessageRepository';
 import { createSupabaseCrud } from './crud';
+import { isMissingColumnError } from './missingColumn';
 import {
   agentFromRow,
   agentToRow,
@@ -150,8 +151,20 @@ function createConversationRepository(client: SupabaseClient): IConversationRepo
       return map(data as Record<string, unknown>[]);
     },
     async save(conversation: Conversation) {
-      const { error } = await client.from('conversations').upsert(conversationToRow(conversation));
-      if (error) throw error;
+      const row = conversationToRow(conversation);
+      const first = await client.from('conversations').upsert(row);
+      if (!first.error) {
+        return;
+      }
+      if (isMissingColumnError(first.error, 'last_message') && 'last_message' in row) {
+        const { last_message: _ignored, ...withoutPreview } = row;
+        const retry = await client.from('conversations').upsert(withoutPreview);
+        if (retry.error) {
+          throw retry.error;
+        }
+        return;
+      }
+      throw first.error;
     },
     async delete(id: string) {
       const { error } = await client.from('conversations').delete().eq('id', id);

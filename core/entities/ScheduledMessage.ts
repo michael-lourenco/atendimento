@@ -7,4 +7,5 @@ export interface ScheduledMessage {
   scheduledDate: Date;
   status: ScheduleStatus;
   createdAt: Date;
+  conversationId?: string;
 }

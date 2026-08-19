@@ -17,9 +17,12 @@ import { Button } from '@/ui/components/button';
 import { Input } from '@/ui/components/input';
 import { Badge } from '@/ui/components/badge';
 import { EmptyState } from '@/ui/components/empty-state';
+import { CatalogListSkeleton } from '@/ui/components/catalog-list-skeleton';
 import { Plus, Search } from 'lucide-react';
 import { useConfirm } from '@/ui/components/confirm-dialog';
+import { CatalogSavedNotice } from '@/ui/components/catalog-saved-notice';
 import { emptyOperatorForm, OperatorForm, OperatorFormState } from './operator-form';
+import { useCatalogSavedFlash } from '@/ui/lib/use-catalog-saved-flash';
 
 const catalog = () => new AgentCatalogUseCase();
 
@@ -41,24 +44,33 @@ export default function AgentsPage() {
   const [editing, setEditing] = useState<Agent | null>(null);
   const [form, setForm] = useState<OperatorFormState>(emptyOperatorForm);
   const [formError, setFormError] = useState('');
+  const [loading, setLoading] = useState(true);
   const { confirm, dialog } = useConfirm();
+  const { show, markSaved } = useCatalogSavedFlash();
 
-  const load = async () => {
-    const user = await new GetCurrentUserUseCase().execute();
-    const [agentList, departmentList] = await Promise.all([
-      catalog().list(),
-      new DepartmentCatalogUseCase().list(),
-    ]);
-    setAgents(agentList);
-    setDepartments(departmentList);
-    setActor(user);
-    if (user) {
-      setOperators(await new ListOperatorsUseCase().execute(user));
+  const load = async (showLoading = false) => {
+    if (showLoading) {
+      setLoading(true);
+    }
+    try {
+      const user = await new GetCurrentUserUseCase().execute();
+      const [agentList, departmentList] = await Promise.all([
+        catalog().list(),
+        new DepartmentCatalogUseCase().list(),
+      ]);
+      setAgents(agentList);
+      setDepartments(departmentList);
+      setActor(user);
+      if (user) {
+        setOperators(await new ListOperatorsUseCase().execute(user));
+      }
+    } finally {
+      setLoading(false);
     }
   };
 
   useEffect(() => {
-    load();
+    void load(true);
   }, []);
 
   const reset = () => {
@@ -94,6 +106,7 @@ export default function AgentsPage() {
         });
       }
       reset();
+      markSaved();
       await load();
     } catch (error) {
       setFormError(error instanceof CreateOperatorError ? error.message : 'Não foi possível salvar');
@@ -116,6 +129,7 @@ export default function AgentsPage() {
   return (
     <div>
       {dialog}
+      <CatalogSavedNotice show={show} />
       <div className="mb-6 flex justify-between items-center">
         <p className="text-muted-foreground">
           Cada login já é um agente. O admin cadastra atendentes e define o papel.
@@ -158,7 +172,9 @@ export default function AgentsPage() {
           </div>
         </CardHeader>
         <CardContent>
-          {visible.length === 0 ? (
+          {loading ? (
+            <CatalogListSkeleton />
+          ) : visible.length === 0 ? (
             <EmptyState
               title={agents.length === 0 ? 'Nenhum atendente' : 'Nenhum atendente encontrado'}
               description={

@@ -9,6 +9,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { MessageMedia } from '@/ui/components/message-media';
 import { Badge } from '@/ui/components/badge';
 import { DASHBOARD_POLL_MS } from '@/ui/lib/dashboard-poll';
+import { CatalogListSkeleton } from '@/ui/components/catalog-list-skeleton';
 
 export default function MessagesPage() {
   const [messages, setMessages] = useState<Message[]>([]);
@@ -62,7 +63,14 @@ export default function MessagesPage() {
   }
 
   if (loading) {
-    return <div className="text-center py-8 text-foreground">Carregando...</div>;
+    return (
+      <div>
+        <div className="mb-6">
+          <p className="text-muted-foreground">Histórico geral. O atendimento fica em Conversas.</p>
+        </div>
+        <CatalogListSkeleton />
+      </div>
+    );
   }
 
   return (

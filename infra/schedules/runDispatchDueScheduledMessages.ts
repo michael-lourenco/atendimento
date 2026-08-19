@@ -20,7 +20,9 @@ export function runDispatchDueScheduledMessages() {
     repos.message,
     upsert,
     upsertContact,
-    locator.getMediaStorage()
+    locator.getMediaStorage(),
+    repos.conversation,
+    repos.whatsAppNumber
   );
   const pause = new PauseContactFlowUseCase(repos.flowSession, repos.flow);
   inFlight = new DispatchDueScheduledMessagesUseCase(repos.scheduledMessage, send, pause)

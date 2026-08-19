@@ -9,22 +9,31 @@ import { GenerateReportUseCase } from '@/core/usecases/GenerateReportUseCase';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/ui/components/card';
 import { Button } from '@/ui/components/button';
 import { Download, Calendar } from 'lucide-react';
+import { CatalogListSkeleton } from '@/ui/components/catalog-list-skeleton';
 
 export default function ReportsPage() {
   const [metrics, setMetrics] = useState<DashboardMetrics | null>(null);
   const [reports, setReports] = useState<Report[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const load = async () => {
-    const [nextMetrics, nextReports] = await Promise.all([
-      new GetDashboardMetricsUseCase().execute(),
-      new ReportCatalogUseCase().list(),
-    ]);
-    setMetrics(nextMetrics);
-    setReports(nextReports);
+  const load = async (showLoading = false) => {
+    if (showLoading) {
+      setLoading(true);
+    }
+    try {
+      const [nextMetrics, nextReports] = await Promise.all([
+        new GetDashboardMetricsUseCase().execute(),
+        new ReportCatalogUseCase().list(),
+      ]);
+      setMetrics(nextMetrics);
+      setReports(nextReports);
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => {
-    load();
+    void load(true);
   }, []);
 
   const handleGenerate = async () => {
@@ -102,8 +111,10 @@ export default function ReportsPage() {
           </div>
         </CardHeader>
         <CardContent>
-          {reports.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">Nenhum relatório encontrado</div>
+          {loading ? (
+            <CatalogListSkeleton rows={3} />
+          ) : reports.length === 0 ? (
+            <div className="py-8 text-center text-muted-foreground">Nenhum relatório encontrado</div>
           ) : (
             <div className="space-y-4">
               {reports.map((report) => (

@@ -36,6 +36,7 @@ export const sidebarGroups: SidebarGroup[] = [
       { title: 'WhatsApp', href: '/dashboard/whatsapp', icon: Smartphone, adminOnly: true },
       { title: 'Contatos', href: '/dashboard/contacts', icon: Users },
       { title: 'Respostas rápidas', href: '/dashboard/quick-replies', icon: Reply },
+      { title: 'Agendamentos', href: '/dashboard/schedules', icon: Calendar },
       { title: 'Relatórios', href: '/dashboard/reports', icon: BarChart3, adminOnly: true },
     ],
   },
@@ -49,7 +50,6 @@ export const sidebarGroups: SidebarGroup[] = [
       { title: 'Setores', href: '/dashboard/departments', icon: Building2 },
       { title: 'Números', href: '/dashboard/numbers', icon: Phone },
       { title: 'Etiquetas', href: '/dashboard/tags', icon: Tag },
-      { title: 'Agendamentos', href: '/dashboard/schedules', icon: Calendar },
     ],
   },
 ];

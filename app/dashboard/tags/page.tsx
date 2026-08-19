@@ -11,20 +11,34 @@ import { Label } from '@/ui/components/label';
 import { Badge } from '@/ui/components/badge';
 import { Plus } from 'lucide-react';
 import { useConfirm } from '@/ui/components/confirm-dialog';
+import { CatalogListSkeleton } from '@/ui/components/catalog-list-skeleton';
+import { CatalogSavedNotice } from '@/ui/components/catalog-saved-notice';
+import { useCatalogSavedFlash } from '@/ui/lib/use-catalog-saved-flash';
 
 const catalog = () => new TagCatalogUseCase();
 
 export default function TagsPage() {
   const [tags, setTags] = useState<Tag[]>([]);
+  const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState<Tag | null>(null);
   const [form, setForm] = useState({ name: '', color: '#3b82f6' });
   const { confirm, dialog } = useConfirm();
+  const { show, markSaved } = useCatalogSavedFlash();
 
-  const load = async () => setTags(await catalog().list());
+  const load = async (showLoading = false) => {
+    if (showLoading) {
+      setLoading(true);
+    }
+    try {
+      setTags(await catalog().list());
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    load();
+    void load(true);
   }, []);
 
   const reset = () => {
@@ -43,12 +57,14 @@ export default function TagsPage() {
       createdAt: editing?.createdAt || new Date(),
     });
     reset();
+    markSaved();
     load();
   };
 
   return (
     <div>
       {dialog}
+      <CatalogSavedNotice show={show} />
       <div className="mb-6 flex justify-between items-center">
         <p className="text-muted-foreground">Organize contatos com etiquetas</p>
         <Button onClick={() => setShowForm(true)}>
@@ -108,8 +124,10 @@ export default function TagsPage() {
           <CardDescription>Visualize e gerencie suas etiquetas</CardDescription>
         </CardHeader>
         <CardContent>
-          {tags.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">Nenhuma etiqueta encontrada</div>
+          {loading ? (
+            <CatalogListSkeleton />
+          ) : tags.length === 0 ? (
+            <div className="py-8 text-center text-muted-foreground">Nenhuma etiqueta encontrada</div>
           ) : (
             <Table>
               <TableHeader>

@@ -27,7 +27,8 @@ export async function POST(request: NextRequest) {
     if (whatsAppService instanceof EvolutionWhatsAppService) {
       const updates = mapEvolutionStatusUpdates({ event, data });
       if (updates.length > 0) {
-        const updateStatus = new UpdateMessageStatusUseCase(serverLocator.getRepos().message);
+        const repos = serverLocator.getRepos();
+        const updateStatus = new UpdateMessageStatusUseCase(repos.message, repos.conversation);
         for (const update of updates) {
           await updateStatus.execute(update.id, update.status);
         }

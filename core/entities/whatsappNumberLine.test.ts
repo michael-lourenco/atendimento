@@ -1,4 +1,5 @@
 import {
+  lineNameOf,
   matchWhatsAppNumber,
   outgoingWhatsAppLine,
   slugWhatsAppInstanceName,
@@ -50,5 +51,6 @@ describe('whatsappNumberLine', () => {
       tags: [],
     };
     expect(outgoingWhatsAppLine(conversation, [comercial, suporte]).instanceName).toBe('suporte');
+    expect(lineNameOf([comercial, suporte], conversation)).toBe('Suporte');
   });
 });

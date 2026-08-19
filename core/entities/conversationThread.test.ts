@@ -6,6 +6,7 @@ import {
   conversationThreadId,
   findConversationThread,
   messageMatchesWhatsAppLine,
+  threadsForContactPhone,
 } from './conversationThread';
 
 const comercial: WhatsAppNumber = {
@@ -85,6 +86,20 @@ describe('conversationFromInboxQuery', () => {
       row({ id: 'b', lastActivity: new Date('2026-08-20') }),
     ];
     expect(conversationFromInboxQuery(list, { contactPhone: '5511999' })?.id).toBe('b');
+  });
+});
+
+describe('threadsForContactPhone', () => {
+  it('lista as threads do telefone da mais recente para a mais antiga', () => {
+    const list = [
+      row({ id: '5511999:n1', whatsappNumberId: 'n1', lastActivity: new Date('2026-08-18') }),
+      row({ id: '5511888:n1', contactPhone: '5511888', lastActivity: new Date('2026-08-21') }),
+      row({ id: '5511999:n2', whatsappNumberId: 'n2', lastActivity: new Date('2026-08-20') }),
+    ];
+    expect(threadsForContactPhone(list, '55 11 999').map((item) => item.id)).toEqual([
+      '5511999:n2',
+      '5511999:n1',
+    ]);
   });
 });
 

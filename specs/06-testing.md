@@ -25,13 +25,15 @@ Runner: Jest + `ts-jest` (`npm test`). Testing Library só quando houver teste d
 - `core/usecases/AssignConversationUseCase.test.ts` — assumir (waiting) e finalizar (closed)
 - `core/usecases/MarkConversationReadUseCase.test.ts` — zera unreadCount
 - `core/usecases/LoginUseCase.test.ts` — porta de auth (senha obrigatória)
-- `core/usecases/GetAllConversationsUseCase.test.ts` — lista o catálogo; não relê mensagens
+- `core/usecases/GetAllConversationsUseCase.test.ts` — lista o catálogo; com snapshot não relê mensagens; sem snapshot preenche a prévia e grava; se gravar falhar ainda devolve a prévia
 - `core/usecases/UpsertConversationFromMessageUseCase.test.ts` — cria conversa; ensure não infla não lidas; **duas linhas = duas conversas** (mesmo telefone, ids `{digitos}:{lineA}` e `{digitos}:{lineB}`, mesmo `contactPhone`); **legado não duplica** (`id` = telefone já com `whatsappNumberId` daquela linha permanece; só cria `phone:lineId` se o telefone já tem thread em **outra** linha)
 - `core/usecases/UpsertContactFromIncomingUseCase.test.ts` — nome do WhatsApp no catálogo de contatos
 - `core/entities/conversationTabs.test.ts` — transferida em Esperando; filtro minhas
-- `core/entities/conversationInbox.test.ts` — nome de exibição e prévia da última mensagem; duas threads do mesmo número aparecem separadas (seleção pelo `id`, cada uma com o nome da linha)
-- `core/entities/conversationThread.test.ts` — `conversationThreadId`; legado vs outra linha; `?contact=` abre a mais recente; mensagens filtradas por linha
-- `core/entities/whatsappNumberLine.test.ts` — liga instância/dígitos ao cadastro; linha de envio da conversa
+- `core/entities/conversationInbox.test.ts` — nome de exibição; prévia texto / Você: / Foto / Áudio; Sem mensagens só sem lastMessage; outgoing da lista tem tiques à esquerda
+- `core/usecases/UpdateMessageStatusUseCase.test.ts` — avança sent→delivered; se o id é o lastMessage da conversa, atualiza o snapshot
+- `core/entities/lastMessageForConversation.test.ts` — última mensagem da thread (telefone + linha); ack atualiza o snapshot da prévia
+- `core/entities/conversationThread.test.ts` — `conversationThreadId`; legado vs outra linha; `?contact=` abre a mais recente; `threadsForContactPhone` ordena pela atividade; mensagens filtradas por linha
+- `core/entities/whatsappNumberLine.test.ts` — liga instância/dígitos ao cadastro; linha de envio da conversa; `lineNameOf` usa o `name` do catálogo
 - `core/entities/conversationDepartment.test.ts` — filtro de setor; agentes do mesmo setor
 - `core/usecases/SetConversationDepartmentUseCase.test.ts` — grava e remove setor na conversa da thread (`id`); não grava numa conversa “só telefone” se já existir thread composta
 - `infra/whatsapp/mapEvolutionIncoming.test.ts` — pushName; MESSAGES_UPSERT; ignora grupo/fromMe; tipo imagem
@@ -50,10 +52,12 @@ Runner: Jest + `ts-jest` (`npm test`). Testing Library só quando houver teste d
 - `ui/lib/status-tone.test.ts` — fila entrada/esperando/finalizado; ligado/desligado
 - `ui/lib/contact-picker.test.ts` — busca nome/telefone; número novo; prefixo 55
 - `core/entities/messageStatus.test.ts` — ack Evolution → tiques; não rebaixa lida
-- `core/usecases/UpdateMessageStatusUseCase.test.ts` — avança sent→delivered
+- `core/usecases/UpdateMessageStatusUseCase.test.ts` — avança sent→delivered; lastMessage da conversa acompanha o ack
 - `infra/whatsapp/mapEvolutionStatus.test.ts` — MESSAGES_UPDATE
 - `core/entities/dueScheduledMessages.test.ts` — só pending com hora já passada
-- `core/usecases/DispatchDueScheduledMessagesUseCase.test.ts` — vencido envia; futuro não; vazio/provedor → failed
+- `core/usecases/DispatchDueScheduledMessagesUseCase.test.ts` — vencido envia; futuro não; vazio/provedor → failed; com `conversationId` o send/pause usam a thread
+- `core/entities/schedulesForConversation.test.ts` — lista da thread: `conversationId` bate; sem id, mesmo telefone
+- `core/entities/scheduleOutgoingLine.test.ts` — coluna Linha: `conversationId` fixa a thread; sem id, a mais recente do telefone
 - `core/entities/atendimentoInicialFlow.test.ts` — menu; contratar → Comercial; demo e cliente; opção inválida → miss + menu sem Olá
 - `core/entities/inboxFilterHint.test.ts` — quantas a aba tem vs o filtro
 - `core/engine/previewFlowOpening.test.ts` — primeiro “oi” vira bolhas da prévia
@@ -65,10 +69,14 @@ Runner: Jest + `ts-jest` (`npm test`). Testing Library só quando houver teste d
 - `ui/lib/emoji.test.ts` — insere emoji na posição do cursor e substitui a seleção; o mesmo helper insere `body` de resposta rápida (texto Unicode, inclusive com emoji)
 - `core/entities/QuickReply.test.ts` — lista ordenada pelo título
 - `ui/lib/catalog-persist-error.test.ts` — PGRST205 vira aviso de migration
-- `ui/lib/sidebar-nav.test.ts` — atendente vê Conversas, Contatos **e** `/dashboard/quick-replies`; `isAdminPath('/dashboard/quick-replies')` é false; admin vê Configuração. Sem Testing Library obrigatório para esta feature
+- `ui/lib/catalog-load-phase.test.ts` — enquanto carrega não é empty state
+- `ui/lib/sidebar-nav.test.ts` — atendente vê Conversas, Contatos, `/dashboard/quick-replies` **e** `/dashboard/schedules`; `isAdminPath` dessas duas é false; admin vê Configuração. Sem Testing Library obrigatório para esta feature
+- `ui/lib/inbox-href.test.ts` — Contatos: uma thread → `?conversation=`; nenhuma → `?contact=`; várias → `?contact=` (o menu escolhe o id)
+- `ui/lib/catalog-saved.test.ts` — aviso Salvo some depois do TTL
 - `infra/schedules/cronAuth.test.ts` — Bearer `CRON_SECRET`
 - `infra/schedules/shouldStartInProcessScheduleCron.test.ts` — não sobe em test / build / Vercel
-- `infra/http/requestId.test.ts` — ecoa `x-request-id` incoming se `<= 128` chars; senão gera UUID
+- `infra/supabase/missingColumn.test.ts` — PGRST204 de `last_message` é coluna ausente
+- `infra/supabase/mappers/messaging.test.ts` — `conversationToRow` só manda `last_message` se houver snapshot
 - `infra/http/apiLog.test.ts` — formato `[requestId] mensagem: detalhe`; não inclui token, apikey, service_role, JWT, Authorization, base64, nem `error.response.data` completo
 - `infra/http/schemas.test.ts` — login; operators POST/PATCH; Evolution `data` ou `key`; chat-whatsapp `{ event, data }`; Meta `object` + `entry`
 - `app/api/messages/send/parseSendRequest.test.ts` — JSON (Zod) e multipart; máx. 16 MB; JSON inválido → 400; `conversationId` opcional (JSON e multipart)

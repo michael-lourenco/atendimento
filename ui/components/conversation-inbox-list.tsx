@@ -6,11 +6,13 @@ import { WhatsAppNumber } from '@/core/entities/WhatsAppNumber';
 import {
   conversationDisplayName,
   conversationPreview,
+  conversationPreviewIsOutgoing,
   departmentColorOf,
   formatInboxTime,
 } from '@/core/entities/conversationInbox';
 import { cn } from '@/ui/lib/utils';
 import { queueToneBar, queueToneOf } from '@/ui/lib/status-tone';
+import { MessageStatusTicks } from '@/ui/components/message-status-ticks';
 
 type ConversationInboxListProps = {
   conversations: Conversation[];
@@ -63,8 +65,11 @@ export function ConversationInboxList({
                   {mounted ? formatInboxTime(conversation.lastActivity) : ''}
                 </span>
               </div>
-              <p className="truncate text-sm text-muted-foreground">
-                {conversationPreview(conversation)}
+              <p className="flex min-w-0 items-center gap-1 text-sm text-muted-foreground">
+                {conversationPreviewIsOutgoing(conversation) && conversation.lastMessage ? (
+                  <MessageStatusTicks message={conversation.lastMessage} />
+                ) : null}
+                <span className="truncate">{conversationPreview(conversation)}</span>
               </p>
               <div className="flex items-center justify-between gap-2">
                 {conversation.departmentName ? (

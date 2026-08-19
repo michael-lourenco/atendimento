@@ -40,6 +40,22 @@ export function findConversationThread(
   return samePhone.find((item) => item.id === digits) ?? samePhone[0];
 }
 
+export function threadsForContactPhone(
+  conversations: Conversation[],
+  phone: string
+): Conversation[] {
+  const digits = digitsPhone(phone);
+  if (!digits) {
+    return [];
+  }
+  return [...conversations]
+    .filter((item) => digitsPhone(item.contactPhone) === digits)
+    .sort(
+      (a, b) =>
+        new Date(b.lastActivity).getTime() - new Date(a.lastActivity).getTime()
+    );
+}
+
 export function conversationFromInboxQuery(
   conversations: Conversation[],
   query: { conversationId?: string | null; contactPhone?: string | null }
@@ -52,13 +68,7 @@ export function conversationFromInboxQuery(
   if (!phone) {
     return undefined;
   }
-  const digits = digitsPhone(phone);
-  return [...conversations]
-    .filter((item) => digitsPhone(item.contactPhone) === digits)
-    .sort(
-      (a, b) =>
-        new Date(b.lastActivity).getTime() - new Date(a.lastActivity).getTime()
-    )[0];
+  return threadsForContactPhone(conversations, phone)[0];
 }
 
 export function messageMatchesWhatsAppLine(

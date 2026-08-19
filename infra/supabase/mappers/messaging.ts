@@ -69,6 +69,24 @@ export function sessionFromRow(row: Record<string, unknown>): FlowSession {
   };
 }
 
+function lastMessageFromRow(value: unknown): Conversation['lastMessage'] {
+  if (!value || typeof value !== 'object') {
+    return undefined;
+  }
+  const row = value as Record<string, unknown>;
+  if (row.from_address != null || row.to_address != null) {
+    return messageFromRow(row);
+  }
+  if (row.from != null || row.to != null) {
+    return messageFromRow({
+      ...row,
+      from_address: row.from,
+      to_address: row.to,
+    });
+  }
+  return undefined;
+}
+
 export function conversationFromRow(row: Record<string, unknown>): Conversation {
   return {
     id: String(row.id),
@@ -82,6 +100,7 @@ export function conversationFromRow(row: Record<string, unknown>): Conversation 
     whatsappNumberId: row.whatsapp_number_id ? String(row.whatsapp_number_id) : undefined,
     status: row.status as Conversation['status'],
     unreadCount: Number(row.unread_count ?? 0),
+    lastMessage: lastMessageFromRow(row.last_message),
     lastActivity: asDate(row.last_activity),
     createdAt: asDate(row.created_at),
     tags: asStringArray(row.tags),
@@ -89,7 +108,7 @@ export function conversationFromRow(row: Record<string, unknown>): Conversation 
 }
 
 export function conversationToRow(conversation: Conversation) {
-  return {
+  const row: Record<string, unknown> = {
     id: conversation.id,
     contact_id: conversation.contactId,
     contact_name: conversation.contactName,
@@ -105,6 +124,10 @@ export function conversationToRow(conversation: Conversation) {
     created_at: conversation.createdAt.toISOString(),
     tags: conversation.tags,
   };
+  if (conversation.lastMessage) {
+    row.last_message = messageToRow(conversation.lastMessage);
+  }
+  return row;
 }
 
 export function internalFromRow(row: Record<string, unknown>): InternalMessage {

@@ -30,9 +30,13 @@ export class DispatchDueScheduledMessagesUseCase {
         continue;
       }
       try {
-        await this.send.execute({ to: item.contact, message: item.message });
+        await this.send.execute({
+          to: item.contact,
+          message: item.message,
+          conversationId: item.conversationId,
+        });
         try {
-          await this.pause.execute(item.contact);
+          await this.pause.execute(item.conversationId || item.contact);
         } catch {
           // o WhatsApp já saiu
         }

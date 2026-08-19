@@ -91,6 +91,29 @@ describe('DispatchDueScheduledMessagesUseCase', () => {
     expect(repo.items[0].status).toBe('failed');
   });
 
+  it('envia e pausa pela thread quando há conversationId', async () => {
+    const repo = new MemorySchedules([row({ conversationId: '5511999887766:n1' })]);
+    const sent: { to: string; conversationId?: string }[] = [];
+    const paused: string[] = [];
+    await new DispatchDueScheduledMessagesUseCase(
+      repo,
+      {
+        execute: async (input) => {
+          sent.push({ to: input.to, conversationId: input.conversationId });
+        },
+      },
+      {
+        execute: async (contactId) => {
+          paused.push(contactId);
+        },
+      }
+    ).execute(now);
+
+    expect(sent).toEqual([{ to: '5511999887766', conversationId: '5511999887766:n1' }]);
+    expect(paused).toEqual(['5511999887766:n1']);
+    expect(repo.items[0].status).toBe('sent');
+  });
+
   it('marca failed se o provedor recusar', async () => {
     const repo = new MemorySchedules([row()]);
     await new DispatchDueScheduledMessagesUseCase(

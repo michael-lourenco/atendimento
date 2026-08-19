@@ -13,6 +13,9 @@ import { EmptyState } from '@/ui/components/empty-state';
 import { useConfirm } from '@/ui/components/confirm-dialog';
 import { Plus } from 'lucide-react';
 import { catalogPersistErrorMessage } from '@/ui/lib/catalog-persist-error';
+import { CatalogListSkeleton } from '@/ui/components/catalog-list-skeleton';
+import { CatalogSavedNotice } from '@/ui/components/catalog-saved-notice';
+import { useCatalogSavedFlash } from '@/ui/lib/use-catalog-saved-flash';
 
 const catalog = () => new QuickReplyCatalogUseCase();
 
@@ -22,19 +25,26 @@ export default function QuickRepliesPage() {
   const [editing, setEditing] = useState<QuickReply | null>(null);
   const [form, setForm] = useState({ title: '', body: '' });
   const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
   const { confirm, dialog } = useConfirm();
+  const { show, markSaved } = useCatalogSavedFlash();
 
-  const load = async () => {
+  const load = async (showLoading = false) => {
+    if (showLoading) {
+      setLoading(true);
+    }
     try {
       setReplies(sortQuickReplies(await catalog().list()));
       setError(null);
     } catch (cause) {
       setError(catalogPersistErrorMessage(cause, 'quick_replies'));
+    } finally {
+      setLoading(false);
     }
   };
 
   useEffect(() => {
-    void load();
+    void load(true);
   }, []);
 
   const reset = () => {
@@ -54,6 +64,7 @@ export default function QuickRepliesPage() {
       });
       setError(null);
       reset();
+      markSaved();
       await load();
     } catch (cause) {
       setError(catalogPersistErrorMessage(cause, 'quick_replies'));
@@ -63,6 +74,7 @@ export default function QuickRepliesPage() {
   return (
     <div>
       {dialog}
+      <CatalogSavedNotice show={show} />
       {error ? (
         <p className="mb-4 rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive">
           {error}
@@ -122,7 +134,9 @@ export default function QuickRepliesPage() {
           <CardDescription>Clique no compositor da conversa para inserir o texto</CardDescription>
         </CardHeader>
         <CardContent>
-          {replies.length === 0 ? (
+          {loading ? (
+            <CatalogListSkeleton />
+          ) : replies.length === 0 ? (
             <EmptyState
               title="Nenhuma resposta ainda"
               description="Cadastre uma frase pronta para usar no atendimento."
