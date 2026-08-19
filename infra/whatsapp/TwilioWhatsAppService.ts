@@ -147,6 +147,10 @@ export class TwilioWhatsAppService implements IWhatsAppService {
     return messages;
   }
 
+  async fetchProfilePicture(_phone: string, _instanceName?: string) {
+    return null;
+  }
+
   /**
    * Formata número de telefone para formato E.164 (ex: +5511999999999)
    */

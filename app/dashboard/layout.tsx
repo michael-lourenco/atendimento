@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { GetCurrentUserUseCase } from '@/core/usecases/GetCurrentUserUseCase';
 import { LogoutUseCase } from '@/core/usecases/LogoutUseCase';
+import { LoginDeniedError, loginDeniedHref } from '@/core/entities/loginDenied';
 import { Button } from '@/ui/components/button';
 import { ThemeToggle } from '@/ui/components/theme-toggle';
 import { Sidebar, MobileSidebar } from '@/ui/components/sidebar';
@@ -14,6 +15,7 @@ import { User } from '@/core/entities/User';
 import { isAdmin } from '@/core/entities/operatorRole';
 import { Badge } from '@/ui/components/badge';
 import { isAdminPath, pageTitleFromPath, SIDEBAR_EXPANDED_STORAGE_KEY } from '@/ui/lib/sidebar-nav';
+import { DASHBOARD_POLL_MS } from '@/ui/lib/dashboard-poll';
 import { cn } from '@/ui/lib/utils';
 
 export default function DashboardLayout({
@@ -36,17 +38,27 @@ export default function DashboardLayout({
   }, []);
 
   useEffect(() => {
-    const checkAuth = async () => {
-      const getCurrentUserUseCase = new GetCurrentUserUseCase();
-      const currentUser = await getCurrentUserUseCase.execute();
-      if (!currentUser) {
-        router.push('/login');
-      } else {
-        setUser(currentUser);
+    const checkAuth = async (first: boolean) => {
+      try {
+        const currentUser = await new GetCurrentUserUseCase().execute();
+        if (!currentUser) {
+          setUser(null);
+          router.push('/login');
+        } else {
+          setUser(currentUser);
+        }
+      } catch (error) {
+        setUser(null);
+        router.push(error instanceof LoginDeniedError ? loginDeniedHref() : '/login');
+      } finally {
+        if (first) {
+          setLoading(false);
+        }
       }
-      setLoading(false);
     };
-    checkAuth();
+    void checkAuth(true);
+    const timer = setInterval(() => void checkAuth(false), DASHBOARD_POLL_MS);
+    return () => clearInterval(timer);
   }, [router]);
 
   useEffect(() => {

@@ -1,7 +1,11 @@
 import { FlowStep } from '@/core/entities/Flow';
 
-export function addFlowStep(steps: FlowStep[], id = `step-${Date.now()}`): FlowStep[] {
-  const created: FlowStep = { id, type: 'message', content: '' };
+export function addFlowStep(
+  steps: FlowStep[],
+  id = `step-${Date.now()}`,
+  type: FlowStep['type'] = 'message'
+): FlowStep[] {
+  const created = withStepType({ id, type: 'message', content: '' }, type);
   if (steps.length === 0) {
     return [created];
   }
@@ -53,7 +57,12 @@ export function withStepType(step: FlowStep, type: FlowStep['type']): FlowStep {
       type,
       condition: undefined,
       options: undefined,
-      action: { type: 'setDepartment', departmentId: step.action?.departmentId ?? '' },
+      action: step.action?.type === 'goToFlow'
+        ? step.action
+        : {
+            type: 'setDepartment',
+            departmentId: step.action?.type === 'setDepartment' ? step.action.departmentId : '',
+          },
     };
   }
   if (type === 'condition') {

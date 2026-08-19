@@ -59,6 +59,15 @@ Bodies JSON das rotas abaixo passam por schema Zod na borda. Inválido → `400 
 - 404: mensagem inexistente, tipo texto, ou mídia indisponível na Evolution/Storage
 - 200: bytes + `Content-Type`; cache no bucket `media` (`messages/{id}`) na primeira leitura
 
+`GET /api/contacts/{id}/avatar`
+
+- Stream da foto de perfil (bucket `media` em `contacts/{id}`)
+- 401: sem sessão de operador quando o Supabase está configurado
+- 404: sem arquivo (contato sem foto ou download da Evolution ainda não ocorreu)
+- 200: bytes + `Content-Type`; `Cache-Control: private, max-age=3600`
+
+`POST /api/contacts/avatars/sync` — sem body. Recalcula fotos em falta (copia `Contact.avatarUrl` para a thread; senão baixa na Evolution, lote). 401 sem sessão se o Supabase estiver configurado. 200 `{ attempted, filled }`. Sem Zod (sem JSON).
+
 ## Webhooks
 
 `GET /api/webhook/whatsapp` — query `hub.mode`, `hub.verify_token`, `hub.challenge`. 200 texto do challenge ou 403.

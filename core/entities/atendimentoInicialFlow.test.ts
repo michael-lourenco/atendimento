@@ -72,6 +72,16 @@ describe('atendimentoInicialFlow', () => {
     ]);
   });
 
+  it('número da opção no menu segue o mesmo ramo que o texto', () => {
+    expect(turn('1', 'menu').nextSession.currentStepId).toBe('ask_size');
+    expect(turn('2', 'menu').effects).toEqual([
+      { type: 'setDepartment', departmentId: INTAKE_DEPARTMENT_DEMO },
+    ]);
+    const size = turn('3', 'ask_size');
+    expect(size.replies.some((reply) => reply.content.includes('Cabe no seu caso'))).toBe(true);
+    expect(size.nextSession.currentStepId).toBe('ask_next');
+  });
+
   it('opção inválida no menu envia miss e o menu, sem Olá', () => {
     const plan = turn('asdfgh', 'menu');
     expect(plan.replies.map((reply) => reply.stepId)).toEqual(['miss', 'menu']);

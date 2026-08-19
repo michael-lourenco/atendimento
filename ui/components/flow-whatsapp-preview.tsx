@@ -1,12 +1,13 @@
-import { FlowStep } from '@/core/entities/Flow';
+import { Flow, FlowStep } from '@/core/entities/Flow';
 import { previewFlowOpening } from '@/core/engine/previewFlowOpening';
 
 type FlowWhatsAppPreviewProps = {
   steps: FlowStep[];
+  flows?: Flow[];
 };
 
-export function FlowWhatsAppPreview({ steps }: FlowWhatsAppPreviewProps) {
-  const replies = previewFlowOpening(steps);
+export function FlowWhatsAppPreview({ steps, flows = [] }: FlowWhatsAppPreviewProps) {
+  const replies = previewFlowOpening(steps, new Date(0), flows);
   return (
     <div className="space-y-2 rounded-md border border-border bg-chat p-3">
       <p className="text-xs font-medium text-muted-foreground">Como o cliente vê (primeiro oi)</p>

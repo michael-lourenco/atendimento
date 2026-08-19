@@ -65,6 +65,7 @@ export class ProcessIncomingFlowUseCase {
 
     const plan = planFlowTurn({
       flow,
+      flows,
       session,
       contactId: sessionKey,
       incomingText: input.text,
@@ -79,7 +80,7 @@ export class ProcessIncomingFlowUseCase {
       await this.sendMessage.execute({
         to: input.contactId,
         message: reply.content,
-        flowId: flow.id,
+        flowId: reply.flowId,
         stepId: reply.stepId,
         instanceName: input.instanceName,
         conversationId: sessionKey,

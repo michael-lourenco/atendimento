@@ -142,6 +142,10 @@ export class WhatsAppService implements IWhatsAppService {
 
     return messages;
   }
+
+  async fetchProfilePicture(_phone: string, _instanceName?: string) {
+    return null;
+  }
 }
 
 

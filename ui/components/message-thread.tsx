@@ -7,7 +7,7 @@ import { Conversation } from '@/core/entities/Conversation';
 import { Department } from '@/core/entities/Department';
 import { User } from '@/core/entities/User';
 import { WhatsAppNumber } from '@/core/entities/WhatsAppNumber';
-import { conversationDisplayName, formatInboxTime } from '@/core/entities/conversationInbox';
+import { conversationDisplayName, conversationPhotoUrl, formatInboxTime } from '@/core/entities/conversationInbox';
 import { GetMessagesByContactUseCase } from '@/core/usecases/GetMessagesByContactUseCase';
 import { GetFlowSessionUseCase } from '@/core/usecases/GetFlowSessionUseCase';
 import { GetConversationByIdUseCase } from '@/core/usecases/GetConversationByIdUseCase';
@@ -164,6 +164,7 @@ export function MessageThread({ conversationId, onBack, onConversationChanged }:
         title={title}
         phone={phone}
         lineName={lineName || undefined}
+        photoUrl={conversation ? conversationPhotoUrl(conversation) : undefined}
         queueTone={queueTone}
         onBack={onBack}
       >

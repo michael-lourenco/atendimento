@@ -28,9 +28,15 @@ export class UpsertConversationFromMessageUseCase {
     private numbers: IWhatsAppNumberRepository | null = serviceLocator.getWhatsAppNumberRepository()
   ) {}
 
-  private async resolveName(phone: string, messageName?: string): Promise<string> {
+  private async contactSnapshot(
+    phone: string,
+    messageName?: string
+  ): Promise<{ contactName: string; contactAvatarUrl?: string }> {
     const contact = await this.contacts.getById(phone);
-    return pickWhatsAppDisplayName(phone, messageName, contact?.name);
+    return {
+      contactName: pickWhatsAppDisplayName(phone, messageName, contact?.name),
+      contactAvatarUrl: contact?.avatarUrl,
+    };
   }
 
   async execute(message: Message): Promise<Conversation | null> {
@@ -55,7 +61,8 @@ export class UpsertConversationFromMessageUseCase {
     );
     const now = asDate(message.timestamp);
     const incoming = message.direction === 'incoming';
-    const contactName = await this.resolveName(contactPhone, message.contactName);
+    const snapshot = await this.contactSnapshot(contactPhone, message.contactName);
+    const contactName = snapshot.contactName;
     const id = existing?.id ?? conversationThreadId(contactPhone, whatsappNumberId);
 
     if (!existing) {
@@ -71,6 +78,7 @@ export class UpsertConversationFromMessageUseCase {
         createdAt: now,
         tags: [],
         whatsappNumberId,
+        contactAvatarUrl: snapshot.contactAvatarUrl,
       };
       await this.conversations.save(created);
       return created;
@@ -84,6 +92,7 @@ export class UpsertConversationFromMessageUseCase {
       unreadCount: incoming ? existing.unreadCount + 1 : existing.unreadCount,
       status: existing.status === 'closed' ? 'open' : existing.status,
       whatsappNumberId: whatsappNumberId ?? existing.whatsappNumberId,
+      contactAvatarUrl: snapshot.contactAvatarUrl ?? existing.contactAvatarUrl,
     };
     await this.conversations.save(updated);
     return updated;
@@ -115,7 +124,8 @@ export class UpsertConversationFromMessageUseCase {
         (a, b) => asDate(a.timestamp).getTime() - asDate(b.timestamp).getTime()
       )[list.length - 1];
       const phone = contactPhoneFromMessage(last);
-      const contactName = await this.resolveName(phone, last.contactName);
+      const snapshot = await this.contactSnapshot(phone, last.contactName);
+      const contactName = snapshot.contactName;
       const lineId = matchWhatsAppNumber(catalog, lineHintFromMessage(last))?.id;
 
       if (!current) {
@@ -135,12 +145,17 @@ export class UpsertConversationFromMessageUseCase {
           createdAt: asDate(ordered[0].timestamp),
           tags: [],
           whatsappNumberId: lineId,
+          contactAvatarUrl: snapshot.contactAvatarUrl,
         });
         continue;
       }
 
-      if (current.contactName !== contactName) {
-        await this.conversations.save({ ...current, contactName });
+      if (current.contactName !== contactName || current.contactAvatarUrl !== snapshot.contactAvatarUrl) {
+        await this.conversations.save({
+          ...current,
+          contactName,
+          contactAvatarUrl: snapshot.contactAvatarUrl ?? current.contactAvatarUrl,
+        });
       }
     }
   }

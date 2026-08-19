@@ -1,8 +1,9 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { LoginDeniedError, LoginUseCase } from '@/core/usecases/LoginUseCase';
+import { LOGIN_DENIED_OFFLINE, LOGIN_DENIED_QUERY, LoginDeniedError } from '@/core/entities/loginDenied';
+import { LoginUseCase } from '@/core/usecases/LoginUseCase';
 import { Button } from '@/ui/components/button';
 import { Input } from '@/ui/components/input';
 import { Label } from '@/ui/components/label';
@@ -18,6 +19,13 @@ export default function LoginPage() {
   const [info, setInfo] = useState('');
   const [loading, setLoading] = useState(false);
   const router = useRouter();
+
+  useEffect(() => {
+    const denied = new URLSearchParams(window.location.search).get(LOGIN_DENIED_QUERY);
+    if (denied === LOGIN_DENIED_OFFLINE) {
+      setError('Este atendente está desativado');
+    }
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

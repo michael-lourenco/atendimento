@@ -1,4 +1,4 @@
-import { conversationAvatarLetter, conversationDisplayName, conversationPreview, conversationPreviewIsOutgoing, formatInboxTime } from './conversationInbox';
+import { conversationAvatarLetter, conversationDisplayName, conversationPhotoUrl, conversationPreview, conversationPreviewIsOutgoing, formatInboxTime } from './conversationInbox';
 import { Message } from './Message';
 
 const text = (overrides: Partial<Message> = {}): Message => ({
@@ -27,6 +27,14 @@ describe('conversationInbox', () => {
     expect(conversationAvatarLetter('Maria')).toBe('M');
     expect(conversationAvatarLetter('  ana')).toBe('A');
     expect(conversationAvatarLetter('')).toBe('?');
+  });
+
+  it('href da foto', () => {
+    expect(conversationPhotoUrl({})).toBeUndefined();
+    expect(conversationPhotoUrl({ contactAvatarUrl: '  ' })).toBeUndefined();
+    expect(conversationPhotoUrl({ contactAvatarUrl: '/api/contacts/5511/avatar' })).toBe(
+      '/api/contacts/5511/avatar'
+    );
   });
 
   it('prévia no estilo WhatsApp', () => {

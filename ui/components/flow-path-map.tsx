@@ -7,13 +7,14 @@ import { flowPathLabelClass } from '@/ui/lib/status-tone';
 type FlowPathMapProps = {
   steps: FlowStep[];
   departments: { id: string; name: string }[];
+  flows?: { id: string; name: string }[];
 };
 
-export function FlowPathMap({ steps, departments }: FlowPathMapProps) {
+export function FlowPathMap({ steps, departments, flows = [] }: FlowPathMapProps) {
   if (steps.length === 0) {
     return null;
   }
-  const links = flowPathLinks(steps, departments);
+  const links = flowPathLinks(steps, departments, flows);
 
   return (
     <div className="space-y-2 rounded-md border border-border p-3">

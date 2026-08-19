@@ -15,6 +15,8 @@ import { UpsertConversationFromMessageUseCase } from '../../core/usecases/Upsert
 import { UpsertContactFromIncomingUseCase } from '../../core/usecases/UpsertContactFromIncomingUseCase';
 import { IWhatsAppService } from '../../core/services/IWhatsAppService';
 import { IMediaStorage } from '../../core/services/IMediaStorage';
+import { SyncContactAvatarUseCase } from '../../core/usecases/SyncContactAvatarUseCase';
+import { SyncMissingContactAvatarsUseCase } from '../../core/usecases/SyncMissingContactAvatarsUseCase';
 import { SetConversationDepartmentUseCase } from '../../core/usecases/SetConversationDepartmentUseCase';
 
 class ServerLocator {
@@ -70,6 +72,12 @@ class ServerLocator {
       repos.whatsAppNumber
     );
     const setDepartment = new SetConversationDepartmentUseCase(repos.conversation);
+    const syncAvatar = new SyncContactAvatarUseCase(
+      repos.contact,
+      repos.conversation,
+      this.getMediaStorage(),
+      whatsApp
+    );
     const flow = new ProcessIncomingFlowUseCase(
       repos.flow,
       repos.flowSession,
@@ -83,7 +91,25 @@ class ServerLocator {
       repos.message,
       flow,
       upsert,
-      upsertContact
+      upsertContact,
+      syncAvatar,
+      repos.whatsAppNumber
+    );
+  }
+
+  createMissingAvatarSync(): SyncMissingContactAvatarsUseCase {
+    const repos = this.getRepos();
+    return new SyncMissingContactAvatarsUseCase(
+      repos.conversation,
+      repos.contact,
+      repos.whatsAppNumber,
+      new SyncContactAvatarUseCase(
+        repos.contact,
+        repos.conversation,
+        this.getMediaStorage(),
+        this.getWhatsAppService()
+      ),
+      new UpsertContactFromIncomingUseCase(repos.contact)
     );
   }
 }

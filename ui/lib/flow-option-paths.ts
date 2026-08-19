@@ -2,9 +2,10 @@ import { FlowStep } from '@/core/entities/Flow';
 import { listQuestionOptions } from './flow-step-graph';
 
 export type OptionPathDestination = {
-  type: 'end' | 'department' | 'message';
+  type: 'end' | 'department' | 'message' | 'flow';
   departmentId?: string;
   message?: string;
+  flowId?: string;
 };
 
 function conditionCoversOption(option: string, value: string): boolean {
@@ -54,6 +55,28 @@ function walkFalseConditionChain(
   return { conditions, fallbackId };
 }
 
+export function conditionsOwnedByQuestion(steps: FlowStep[], question: FlowStep): FlowStep[] {
+  if (question.type !== 'question') {
+    return [];
+  }
+  const { conditions } = walkFalseConditionChain(steps, question.nextStepId);
+  if (!question.nextStepId || conditions[0]?.id !== question.nextStepId) {
+    return [];
+  }
+  return conditions;
+}
+
+export function trueStepIdForOption(
+  steps: FlowStep[],
+  question: FlowStep,
+  option: string
+): string {
+  const match = conditionsOwnedByQuestion(steps, question).find((step) =>
+    conditionCoversOption(option, step.condition?.value ?? '')
+  );
+  return match?.condition?.trueStepId ?? '';
+}
+
 function makeCondition(id: string, option: string): FlowStep {
   return {
     id,
@@ -78,10 +101,25 @@ function makeDestination(id: string, dest: OptionPathDestination): FlowStep | nu
       action: { type: 'setDepartment', departmentId: dest.departmentId },
     };
   }
+  if (dest.type === 'flow' && dest.flowId) {
+    return {
+      id,
+      type: 'action',
+      content: '',
+      action: { type: 'goToFlow', flowId: dest.flowId },
+    };
+  }
   if (dest.type === 'message' && dest.message?.trim()) {
     return { id, type: 'message', content: dest.message.trim() };
   }
   return null;
+}
+
+export function destinationsSyncKey(
+  options: string[],
+  departments: { id: string; name: string }[]
+): string {
+  return `${options.join('\n')}::${departments.map((item) => `${item.id}:${item.name}`).join('|')}`;
 }
 
 export function defaultOptionDestinations(

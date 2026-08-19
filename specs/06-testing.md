@@ -17,7 +17,8 @@ Runner: Jest + `ts-jest` (`npm test`). Testing Library só quando houver teste d
 
 ## Cobertura atual
 
-- `core/engine/planFlowTurn.test.ts` — primeira sessão, `nextStepId`, `condition` true/false, `setDepartment`; sessão encerrada não reenvia a abertura
+- `core/engine/planFlowTurn.test.ts` — primeira sessão, `nextStepId`, `condition` true/false (texto ou **número** da opção), `setDepartment`, `goToFlow`; sessão encerrada não reenvia a abertura
+- `core/engine/resolveQuestionChoice.test.ts` — `1` / `1.` viram a primeira opção; texto livre permanece
 - `core/usecases/ProcessIncomingFlowUseCase.test.ts` — envio via fake + persistência de sessão; pausado não responde; action grava setor da thread; duas linhas = duas sessões
 - `core/usecases/PauseContactFlowUseCase.test.ts` — pausa e retoma sessão da thread (`contactId` = `Conversation.id`)
 - `core/usecases/CatalogUseCase.test.ts` — list/save/delete (cobre o CRUD de `QuickReplyCatalogUseCase`; teste específico só se houver arquivo próprio — não é obrigatório)
@@ -25,11 +26,15 @@ Runner: Jest + `ts-jest` (`npm test`). Testing Library só quando houver teste d
 - `core/usecases/AssignConversationUseCase.test.ts` — assumir (waiting) e finalizar (closed)
 - `core/usecases/MarkConversationReadUseCase.test.ts` — zera unreadCount
 - `core/usecases/LoginUseCase.test.ts` — porta de auth (senha obrigatória); agente `offline` recusa
+- `core/usecases/GetCurrentUserUseCase.test.ts` — agente `offline` faz logout
 - `core/usecases/GetAllConversationsUseCase.test.ts` — lista o catálogo; com snapshot não relê mensagens; sem snapshot preenche a prévia e grava; se gravar falhar ainda devolve a prévia
 - `core/usecases/UpsertConversationFromMessageUseCase.test.ts` — cria conversa; ensure não infla não lidas; **duas linhas = duas conversas** (mesmo telefone, ids `{digitos}:{lineA}` e `{digitos}:{lineB}`, mesmo `contactPhone`); **legado não duplica** (`id` = telefone já com `whatsappNumberId` daquela linha permanece; só cria `phone:lineId` se o telefone já tem thread em **outra** linha)
 - `core/usecases/UpsertContactFromIncomingUseCase.test.ts` — nome do WhatsApp no catálogo de contatos
+- `core/usecases/SyncContactAvatarUseCase.test.ts` — grava foto no storage; não refaz se já houver `avatarUrl`; falha do provedor não quebra
+- `core/entities/contactAvatarBackfill.test.ts` — threads sem foto; um alvo por telefone; lote
+- `core/usecases/SyncMissingContactAvatarsUseCase.test.ts` — copia href já existente; busca só quem ainda não tem; respeita o lote
 - `core/entities/conversationTabs.test.ts` — transferida em Esperando; filtro minhas
-- `core/entities/conversationInbox.test.ts` — nome de exibição; inicial do avatar; prévia texto / Você: / Foto / Áudio; Sem mensagens só sem lastMessage; outgoing da lista tem tiques à esquerda
+- `core/entities/conversationInbox.test.ts` — nome de exibição; inicial do avatar; href da foto; prévia texto / Você: / Foto / Áudio; Sem mensagens só sem lastMessage; outgoing da lista tem tiques à esquerda
 - `core/usecases/UpdateMessageStatusUseCase.test.ts` — avança sent→delivered; se o id é o lastMessage da conversa, atualiza o snapshot
 - `core/entities/lastMessageForConversation.test.ts` — última mensagem da thread (telefone + linha); ack atualiza o snapshot da prévia
 - `core/entities/conversationThread.test.ts` — `conversationThreadId`; legado vs outra linha; `?contact=` abre a mais recente; `threadsForContactPhone` ordena pela atividade; mensagens filtradas por linha
@@ -43,8 +48,9 @@ Runner: Jest + `ts-jest` (`npm test`). Testing Library só quando houver teste d
 - `infra/whatsapp/evolutionSendMedia.test.ts` — sendMedia vs sendWhatsAppAudio
 - `app/api/messages/send/parseSendRequest.test.ts` — JSON e multipart; máx. 16 MB; `conversationId` opcional
 - `ui/lib/flow-step-graph.test.ts` — ligar próximo passo ao adicionar; limpar refs ao remover; opções da pergunta na condição
-- `ui/lib/flow-option-paths.test.ts` — cadeia de condições; destinos setor/mensagem
-- `ui/lib/flow-step-copy.test.ts` — rótulo do passo sem expor id
+- `ui/lib/flow-option-paths.test.ts` — cadeia de condições; destinos setor/mensagem/fluxo; chave estável das opções
+- `ui/lib/flow-step-outline.test.ts` — condições da pergunta não são blocos soltos; destino da opção em texto
+- `ui/lib/flow-step-copy.test.ts` — rótulo do passo sem expor id; resumo com o bloco recolhido
 - `ui/lib/inbox-notify.test.ts` — som só após a primeira carga, se não lidas sobem
 - `ui/lib/flow-path-map.test.ts` — ligações Depois / Se sim / Se não
 - `core/entities/whatsappNumberLive.test.ts` — lista de Números inclui a sessão ao vivo (wid)
@@ -58,9 +64,9 @@ Runner: Jest + `ts-jest` (`npm test`). Testing Library só quando houver teste d
 - `core/usecases/DispatchDueScheduledMessagesUseCase.test.ts` — vencido envia; futuro não; vazio/provedor → failed; com `conversationId` o send/pause usam a thread
 - `core/entities/schedulesForConversation.test.ts` — lista da thread: `conversationId` bate; sem id, mesmo telefone
 - `core/entities/scheduleOutgoingLine.test.ts` — coluna Linha: `conversationId` fixa a thread; sem id, a mais recente do telefone
-- `core/entities/atendimentoInicialFlow.test.ts` — menu; contratar → Comercial; demo e cliente; opção inválida → miss + menu sem Olá
+- `core/entities/atendimentoInicialFlow.test.ts` — menu; contratar → Comercial; demo e cliente; opção inválida → miss + menu sem Olá; **número** da opção no menu
 - `core/entities/inboxFilterHint.test.ts` — quantas a aba tem vs o filtro
-- `core/engine/previewFlowOpening.test.ts` — primeiro “oi” vira bolhas da prévia
+- `core/engine/previewFlowOpening.test.ts` — primeiro “oi” vira bolhas da prévia (opções numeradas); salto `goToFlow`
 - `core/entities/assignmentFromOperator.test.ts` — e-mail liga agente; senão linked false
 - `core/entities/operatorRole.test.ts` — admin; último admin não rebaixa nem exclui
 - `core/entities/uniqueAgentEmail.test.ts` — e-mail de agente único (trim + lower); ignora o próprio id

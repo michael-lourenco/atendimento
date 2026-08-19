@@ -96,13 +96,14 @@ export function contactFromRow(row: Record<string, unknown>): Contact {
     phone: String(row.phone),
     email: row.email ? String(row.email) : undefined,
     tags: asStringArray(row.tags),
+    avatarUrl: row.avatar_url ? String(row.avatar_url) : undefined,
     createdAt: asDate(row.created_at),
     updatedAt: asDate(row.updated_at),
   };
 }
 
 export function contactToRow(contact: Contact) {
-  return {
+  const row: Record<string, unknown> = {
     id: contact.id,
     name: contact.name,
     phone: contact.phone,
@@ -111,6 +112,10 @@ export function contactToRow(contact: Contact) {
     created_at: contact.createdAt.toISOString(),
     updated_at: contact.updatedAt.toISOString(),
   };
+  if (contact.avatarUrl) {
+    row.avatar_url = contact.avatarUrl;
+  }
+  return row;
 }
 
 export function numberFromRow(row: Record<string, unknown>): WhatsAppNumber {

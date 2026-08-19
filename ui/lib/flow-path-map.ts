@@ -11,7 +11,8 @@ export type FlowPathLink = {
 function labelOf(
   steps: FlowStep[],
   id: string,
-  departments: { id: string; name: string }[]
+  departments: { id: string; name: string }[],
+  flows: { id: string; name: string }[] = []
 ): string {
   if (!id) {
     return END_STEP_LABEL;
@@ -20,28 +21,40 @@ function labelOf(
   if (index < 0) {
     return END_STEP_LABEL;
   }
-  return stepDisplayName(steps[index], index, departments);
+  return stepDisplayName(steps[index], index, departments, flows);
 }
 
 export function flowPathLinks(
   steps: FlowStep[],
-  departments: { id: string; name: string }[] = []
+  departments: { id: string; name: string }[] = [],
+  flows: { id: string; name: string }[] = []
 ): FlowPathLink[] {
   const links: FlowPathLink[] = [];
   steps.forEach((step, index) => {
-    const fromLabel = stepDisplayName(step, index, departments);
+    const fromLabel = stepDisplayName(step, index, departments, flows);
     if (step.type === 'condition' && step.condition) {
       links.push({
         fromId: step.id,
         fromLabel,
         label: 'Se sim',
-        toLabel: labelOf(steps, step.condition.trueStepId, departments),
+        toLabel: labelOf(steps, step.condition.trueStepId, departments, flows),
       });
       links.push({
         fromId: `${step.id}-false`,
         fromLabel,
         label: 'Se não',
-        toLabel: labelOf(steps, step.condition.falseStepId, departments),
+        toLabel: labelOf(steps, step.condition.falseStepId, departments, flows),
+      });
+      return;
+    }
+    if (step.action?.type === 'goToFlow') {
+      const flowId = step.action.flowId;
+      const targetName = flows.find((item) => item.id === flowId)?.name || 'fluxo';
+      links.push({
+        fromId: step.id,
+        fromLabel,
+        label: 'Salta',
+        toLabel: targetName,
       });
       return;
     }
@@ -49,7 +62,7 @@ export function flowPathLinks(
       fromId: step.id,
       fromLabel,
       label: 'Depois',
-      toLabel: labelOf(steps, step.nextStepId ?? '', departments),
+      toLabel: labelOf(steps, step.nextStepId ?? '', departments, flows),
     });
   });
   return links;

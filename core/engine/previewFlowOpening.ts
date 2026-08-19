@@ -1,7 +1,11 @@
 import { Flow, FlowStep } from '../entities/Flow';
 import { planFlowTurn } from './planFlowTurn';
 
-export function previewFlowOpening(steps: FlowStep[], now = new Date(0)): string[] {
+export function previewFlowOpening(
+  steps: FlowStep[],
+  now = new Date(0),
+  catalog: Flow[] = []
+): string[] {
   if (steps.length === 0) {
     return [];
   }
@@ -15,6 +19,7 @@ export function previewFlowOpening(steps: FlowStep[], now = new Date(0)): string
   };
   return planFlowTurn({
     flow,
+    flows: catalog.length > 0 ? [flow, ...catalog] : undefined,
     session: null,
     contactId: 'preview',
     incomingText: 'oi',

@@ -1,0 +1,63 @@
+import { FlowStep } from '@/core/entities/Flow';
+import { conditionsOwnedByQuestion, trueStepIdForOption } from './flow-option-paths';
+import { END_STEP_LABEL, stepDisplayName } from './flow-step-copy';
+
+export function ownedConditionIds(steps: FlowStep[]): Set<string> {
+  const ids = new Set<string>();
+  for (const step of steps) {
+    for (const condition of conditionsOwnedByQuestion(steps, step)) {
+      ids.add(condition.id);
+    }
+  }
+  return ids;
+}
+
+export function visibleFlowSteps(steps: FlowStep[]): { step: FlowStep; index: number }[] {
+  const owned = ownedConditionIds(steps);
+  return steps
+    .map((step, index) => ({ step, index }))
+    .filter(({ step }) => !owned.has(step.id));
+}
+
+export function optionBranchLabel(
+  steps: FlowStep[],
+  question: FlowStep,
+  option: string,
+  departments: { id: string; name: string }[] = [],
+  flows: { id: string; name: string }[] = []
+): string {
+  if (conditionsOwnedByQuestion(steps, question).length === 0) {
+    return 'Ainda sem destino — aplique as opções no roteiro';
+  }
+  const trueId = trueStepIdForOption(steps, question, option);
+  if (!trueId) {
+    return `Vai para: ${END_STEP_LABEL}`;
+  }
+  const destIndex = steps.findIndex((step) => step.id === trueId);
+  if (destIndex < 0) {
+    return `Vai para: ${END_STEP_LABEL}`;
+  }
+  const visIndex = visibleFlowSteps(steps).findIndex((item) => item.step.id === trueId);
+  const displayIndex = visIndex >= 0 ? visIndex : destIndex;
+  return `Vai para: ${stepDisplayName(steps[destIndex], displayIndex, departments, flows)}`;
+}
+
+export function moveVisibleFlowStep(
+  steps: FlowStep[],
+  stepId: string,
+  direction: -1 | 1
+): FlowStep[] {
+  const visible = visibleFlowSteps(steps);
+  const visIndex = visible.findIndex((item) => item.step.id === stepId);
+  const target = visIndex + direction;
+  if (visIndex < 0 || target < 0 || target >= visible.length) {
+    return steps;
+  }
+  const next = [...steps];
+  const from = visible[visIndex].index;
+  const to = visible[target].index;
+  const swap = next[from];
+  next[from] = next[to];
+  next[to] = swap;
+  return next;
+}

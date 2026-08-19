@@ -1,12 +1,14 @@
 import { Flow, FlowStep } from '../entities/Flow';
 import { FlowSession } from '../entities/FlowSession';
 import { evaluateCondition } from './evaluateCondition';
+import { resolveQuestionChoice } from './resolveQuestionChoice';
 
 export const MAX_FLOW_STEPS_PER_TURN = 20;
 
 export interface FlowReply {
   content: string;
   stepId: string;
+  flowId: string;
 }
 
 export type FlowEffect = {
@@ -25,7 +27,7 @@ export function formatQuestion(step: FlowStep): string {
     return step.content;
   }
 
-  const optionLines = step.options.map((option) => `- ${option}`);
+  const optionLines = step.options.map((option, index) => `${index + 1}. ${option}`);
   return [step.content, ...optionLines].filter(Boolean).join('\n');
 }
 
@@ -61,42 +63,73 @@ function initialCursor(flow: Flow, session: FlowSession | null): FlowStep | null
   return waiting;
 }
 
+function resolveGoToFlow(catalog: Flow[], flowId: string, visited: Set<string>): Flow | null {
+  const targetId = flowId.trim();
+  if (!targetId || visited.has(targetId)) {
+    return null;
+  }
+  const target = catalog.find((item) => item.id === targetId);
+  if (!target?.isActive) {
+    return null;
+  }
+  return target;
+}
+
 export function planFlowTurn(input: {
   flow: Flow;
+  flows?: Flow[];
   session: FlowSession | null;
   contactId: string;
   incomingText: string;
   now: Date;
 }): FlowTurnPlan {
-  const { flow, session, contactId, incomingText, now } = input;
+  const { session, contactId, incomingText, now } = input;
+  const catalog = input.flows?.length ? input.flows : [input.flow];
+  let active = input.flow;
   const replies: FlowReply[] = [];
   const effects: FlowEffect[] = [];
-  let cursor = initialCursor(flow, session);
+  const visitedFlows = new Set<string>([active.id]);
+  const waiting = session?.currentStepId ? findStep(active, session.currentStepId) : null;
+  const replyText =
+    waiting?.type === 'question' ? resolveQuestionChoice(waiting, incomingText) : incomingText;
+  let cursor = initialCursor(active, session);
   let waitingStepId: string | null = null;
   let steps = 0;
 
   while (cursor && steps < MAX_FLOW_STEPS_PER_TURN) {
     steps += 1;
 
+    if (cursor.type === 'action' && cursor.action?.type === 'goToFlow') {
+      const target = resolveGoToFlow(catalog, cursor.action.flowId, visitedFlows);
+      if (!target) {
+        cursor = findStep(active, cursor.nextStepId);
+        continue;
+      }
+      visitedFlows.add(target.id);
+      active = target;
+      cursor = active.steps[0] ?? null;
+      continue;
+    }
+
     if (cursor.type === 'action' && cursor.action?.type === 'setDepartment') {
       const departmentId = cursor.action.departmentId.trim();
       if (departmentId) {
         effects.push({ type: 'setDepartment', departmentId });
       }
-      cursor = findStep(flow, cursor.nextStepId);
+      cursor = findStep(active, cursor.nextStepId);
       continue;
     }
 
     if (cursor.type === 'message' || cursor.type === 'action') {
       if (cursor.content.trim()) {
-        replies.push({ content: cursor.content, stepId: cursor.id });
+        replies.push({ content: cursor.content, stepId: cursor.id, flowId: active.id });
       }
-      cursor = findStep(flow, cursor.nextStepId);
+      cursor = findStep(active, cursor.nextStepId);
       continue;
     }
 
     if (cursor.type === 'question') {
-      replies.push({ content: formatQuestion(cursor), stepId: cursor.id });
+      replies.push({ content: formatQuestion(cursor), stepId: cursor.id, flowId: active.id });
       waitingStepId = cursor.id;
       break;
     }
@@ -106,9 +139,9 @@ export function planFlowTurn(input: {
         cursor = null;
         break;
       }
-      const matched = evaluateCondition(cursor.condition, incomingText);
+      const matched = evaluateCondition(cursor.condition, replyText);
       const nextId = matched ? cursor.condition.trueStepId : cursor.condition.falseStepId;
-      cursor = findStep(flow, nextId);
+      cursor = findStep(active, nextId);
       continue;
     }
 
@@ -120,7 +153,7 @@ export function planFlowTurn(input: {
     effects,
     nextSession: {
       contactId,
-      flowId: flow.id,
+      flowId: active.id,
       currentStepId: waitingStepId,
       paused: false,
       updatedAt: now,

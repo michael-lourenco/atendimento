@@ -1,5 +1,10 @@
 import { FlowStep } from '@/core/entities/Flow';
-import { createOptionPaths, defaultOptionDestinations, hasCompleteOptionPaths } from './flow-option-paths';
+import {
+  createOptionPaths,
+  defaultOptionDestinations,
+  destinationsSyncKey,
+  hasCompleteOptionPaths,
+} from './flow-option-paths';
 
 const question = (id: string, options: string[], nextStepId?: string): FlowStep => ({
   id,
@@ -109,6 +114,15 @@ describe('createOptionPaths', () => {
     expect(action?.action).toEqual({ type: 'setDepartment', departmentId: 'dep-1' });
     expect(next.find((step) => step.type === 'condition')?.condition?.trueStepId).toBe(action?.id);
   });
+
+  it('creates a goToFlow action when the option destination is another flow', () => {
+    const steps = [question('q', ['FAQ'])];
+    const next = createOptionPaths(steps, 0, (index) => `n${index}`, {
+      FAQ: { type: 'flow', flowId: 'faq' },
+    });
+    const action = next.find((step) => step.type === 'action');
+    expect(action?.action).toEqual({ type: 'goToFlow', flowId: 'faq' });
+  });
 });
 
 describe('hasCompleteOptionPaths', () => {
@@ -124,5 +138,14 @@ describe('defaultOptionDestinations', () => {
     ]);
     expect(dest.Vendas).toEqual({ type: 'department', departmentId: '1' });
     expect(dest.Outros).toEqual({ type: 'end' });
+  });
+});
+
+describe('destinationsSyncKey', () => {
+  it('is equal for the same option and department content even with new arrays', () => {
+    const departments = [{ id: '1', name: 'Vendas' }];
+    expect(destinationsSyncKey(['Vendas'], departments)).toBe(
+      destinationsSyncKey(['Vendas'], [...departments])
+    );
   });
 });

@@ -32,11 +32,13 @@ import { EmptyState } from '@/ui/components/empty-state';
 import { InboxSkeleton } from '@/ui/components/inbox-skeleton';
 import { InboxFilterBar } from '@/ui/components/inbox-filter-bar';
 import { conversationFromInboxQuery } from '@/core/entities/conversationThread';
+import { conversationPhotoUrl } from '@/core/entities/conversationInbox';
 import { DASHBOARD_POLL_MS } from '@/ui/lib/dashboard-poll';
 import { listWhatsAppNumbersCached } from '@/ui/lib/whatsapp-number-cache';
 import { playInboxChime, shouldPlayInboxSound } from '@/ui/lib/inbox-notify';
 import { useInboxDocumentTitle, useInboxShortcuts } from '@/ui/lib/use-inbox-chrome';
 import { queueTabActiveClass } from '@/ui/lib/status-tone';
+import { syncInboxAvatars } from '@/ui/lib/sync-inbox-avatars';
 
 export default function ConversationsPage() {
   const [conversations, setConversations] = useState<Conversation[]>([]);
@@ -58,6 +60,7 @@ export default function ConversationsPage() {
   const selectedConversationId = searchParams.get('conversation') ?? '';
   const selectedPhone = searchParams.get('contact') ?? '';
   const previousConversations = useRef<Conversation[] | null>(null);
+  const avatarsTried = useRef(false);
 
   useEffect(() => {
     setMounted(true);
@@ -84,6 +87,21 @@ export default function ConversationsPage() {
         playInboxChime();
       }
       previousConversations.current = allConversations;
+
+      if (refreshCatalogs && !avatarsTried.current) {
+        avatarsTried.current = true;
+        if (allConversations.some((item) => !conversationPhotoUrl(item))) {
+          void (async () => {
+            for (let pass = 0; pass < 5; pass += 1) {
+              const filled = await syncInboxAvatars();
+              if (!filled) {
+                break;
+              }
+              await loadConversations(false, false);
+            }
+          })();
+        }
+      }
 
       if (refreshCatalogs) {
         const [agentList, departmentList, numberList, user] = await Promise.all([

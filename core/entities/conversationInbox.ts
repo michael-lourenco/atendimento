@@ -7,6 +7,11 @@ export function conversationAvatarLetter(name: string): string {
   return trimmed ? trimmed.charAt(0).toUpperCase() : '?';
 }
 
+export function conversationPhotoUrl(conversation: { contactAvatarUrl?: string }): string | undefined {
+  const url = conversation.contactAvatarUrl?.trim();
+  return url || undefined;
+}
+
 export function conversationDisplayName(conversation: {
   contactName: string;
   contactPhone: string;

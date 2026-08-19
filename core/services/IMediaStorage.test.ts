@@ -1,5 +1,5 @@
 import { assertNoOutgoingMedia } from './IWhatsAppService';
-import { mediaKindFromMime } from './IMediaStorage';
+import { contactAvatarApiHref, contactAvatarPath, mediaKindFromMime } from './IMediaStorage';
 
 describe('mediaKindFromMime', () => {
   it('classifica image/audio/video/document', () => {
@@ -7,6 +7,13 @@ describe('mediaKindFromMime', () => {
     expect(mediaKindFromMime('audio/ogg; codecs=opus')).toBe('audio');
     expect(mediaKindFromMime('video/mp4')).toBe('video');
     expect(mediaKindFromMime('application/pdf')).toBe('document');
+  });
+});
+
+describe('contactAvatarPath', () => {
+  it('href da foto no painel', () => {
+    expect(contactAvatarPath('5511999')).toBe('contacts/5511999');
+    expect(contactAvatarApiHref('5511999')).toBe('/api/contacts/5511999/avatar');
   });
 });
 

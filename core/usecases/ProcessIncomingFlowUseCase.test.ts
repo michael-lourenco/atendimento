@@ -89,6 +89,9 @@ class FakeWhatsAppService implements IWhatsAppService {
   async processWebhook(_entry: WhatsAppWebhookEntry): Promise<Message[]> {
     return [];
   }
+  async fetchProfilePicture() {
+    return null;
+  }
 }
 
 function createUseCase(flows: Flow[]) {

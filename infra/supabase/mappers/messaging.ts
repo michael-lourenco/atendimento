@@ -104,6 +104,7 @@ export function conversationFromRow(row: Record<string, unknown>): Conversation 
     lastActivity: asDate(row.last_activity),
     createdAt: asDate(row.created_at),
     tags: asStringArray(row.tags),
+    contactAvatarUrl: row.contact_avatar_url ? String(row.contact_avatar_url) : undefined,
   };
 }
 
@@ -126,6 +127,9 @@ export function conversationToRow(conversation: Conversation) {
   };
   if (conversation.lastMessage) {
     row.last_message = messageToRow(conversation.lastMessage);
+  }
+  if (conversation.contactAvatarUrl) {
+    row.contact_avatar_url = conversation.contactAvatarUrl;
   }
   return row;
 }

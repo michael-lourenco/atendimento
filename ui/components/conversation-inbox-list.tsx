@@ -4,8 +4,8 @@ import { Conversation } from '@/core/entities/Conversation';
 import { Department } from '@/core/entities/Department';
 import { WhatsAppNumber } from '@/core/entities/WhatsAppNumber';
 import {
-  conversationAvatarLetter,
   conversationDisplayName,
+  conversationPhotoUrl,
   conversationPreview,
   conversationPreviewIsOutgoing,
   departmentColorOf,
@@ -14,6 +14,7 @@ import {
 import { cn } from '@/ui/lib/utils';
 import { queueToneBar, queueToneOf } from '@/ui/lib/status-tone';
 import { MessageStatusTicks } from '@/ui/components/message-status-ticks';
+import { ConversationAvatar } from '@/ui/components/conversation-avatar';
 
 type ConversationInboxListProps = {
   conversations: Conversation[];
@@ -58,12 +59,10 @@ export function ConversationInboxList({
               )}
             >
               <span className={cn('absolute inset-y-0 left-0 w-1', queueToneBar[tone])} />
-              <div
-                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary/90 text-sm font-semibold text-primary-foreground"
-                aria-hidden
-              >
-                {conversationAvatarLetter(conversationDisplayName(conversation))}
-              </div>
+              <ConversationAvatar
+                name={conversationDisplayName(conversation)}
+                photoUrl={conversationPhotoUrl(conversation)}
+              />
               <div className="min-w-0 flex-1">
                 <div className="flex items-start justify-between gap-2">
                   <span className="truncate font-medium text-foreground">

@@ -3,6 +3,7 @@ import { Message } from '../../core/entities/Message';
 import axios, { AxiosInstance } from 'axios';
 import { mapEvolutionIncomingMessages } from './mapEvolutionIncoming';
 import { parseEvolutionMediaResponse, DownloadedMedia } from './evolutionMedia';
+import { StoredMedia } from '../../core/services/IMediaStorage';
 import { evolutionSendEnvelope, sendEvolutionMedia } from './evolutionSendMedia';
 
 /**
@@ -203,6 +204,38 @@ export class EvolutionWhatsAppService implements IWhatsAppService {
         { timeout: 120000 }
       );
       return parseEvolutionMediaResponse(response.data);
+    } catch {
+      return null;
+    }
+  }
+
+  async fetchProfilePicture(phone: string, instanceName?: string): Promise<StoredMedia | null> {
+    const instance = instanceName?.trim() || this.instanceName;
+    const number = phone.replace(/\D/g, '');
+    if (!this.apiKey || !instance || !number) {
+      return null;
+    }
+    try {
+      const response = await this.axiosClient.post(`/chat/fetchProfilePictureUrl/${instance}`, {
+        number,
+      });
+      const body = response.data ?? {};
+      const url =
+        body.profilePictureUrl ||
+        body.picture ||
+        body.url ||
+        body.wuid ||
+        body.data?.profilePictureUrl;
+      if (typeof url !== 'string' || !/^https?:\/\//i.test(url)) {
+        return null;
+      }
+      const image = await axios.get<ArrayBuffer>(url, {
+        responseType: 'arraybuffer',
+        timeout: 15000,
+      });
+      const rawType = String(image.headers['content-type'] ?? '').split(';')[0];
+      const mimeType = rawType.startsWith('image/') ? rawType : 'image/jpeg';
+      return { bytes: new Uint8Array(image.data), mimeType };
     } catch {
       return null;
     }

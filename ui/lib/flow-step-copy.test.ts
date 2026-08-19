@@ -1,5 +1,5 @@
 import { FlowStep } from '@/core/entities/Flow';
-import { END_STEP_LABEL, STEP_TYPE_LABELS, stepDisplayName } from './flow-step-copy';
+import { END_STEP_LABEL, STEP_TYPE_LABELS, stepCollapsedHint, stepDisplayName } from './flow-step-copy';
 
 describe('stepDisplayName', () => {
   it('uses the Portuguese type and the WhatsApp text', () => {
@@ -34,6 +34,30 @@ describe('stepDisplayName', () => {
     };
     expect(stepDisplayName(step, 1)).toBe('2. Condição — contém “vendas”');
     expect(stepDisplayName(step, 1)).not.toContain('cond_vendas');
+  });
+
+  it('names a jump to another flow', () => {
+    const step: FlowStep = {
+      id: 'j',
+      type: 'action',
+      content: '',
+      action: { type: 'goToFlow', flowId: 'faq' },
+    };
+    expect(stepDisplayName(step, 0, [], [{ id: 'faq', name: 'Perguntas frequentes' }])).toBe(
+      '1. Ir para fluxo — Perguntas frequentes'
+    );
+  });
+});
+
+describe('stepCollapsedHint', () => {
+  it('summarizes question options without the WhatsApp essay', () => {
+    const step: FlowStep = {
+      id: 'q',
+      type: 'question',
+      content: 'Como posso ajudar?',
+      options: ['Vendas', 'Suporte'],
+    };
+    expect(stepCollapsedHint(step)).toBe('2 opções');
   });
 });
 

@@ -1,4 +1,5 @@
 import { Message } from '../entities/Message';
+import { StoredMedia } from './IMediaStorage';
 
 export interface WhatsAppMessageResponse {
   messaging_product: string;
@@ -102,6 +103,8 @@ export interface IWhatsAppService {
    * Envia uma mensagem via WhatsApp
    */
   sendMessage(params: SendMessageParams): Promise<WhatsAppMessageResponse>;
+
+  fetchProfilePicture(phone: string, instanceName?: string): Promise<StoredMedia | null>;
 
   /**
    * Verifica a assinatura do webhook (usado para verificação inicial)

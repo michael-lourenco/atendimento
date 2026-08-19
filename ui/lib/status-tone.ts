@@ -42,4 +42,5 @@ export const flowPathLabelClass: Record<string, string> = {
   'Se sim': 'text-emerald-700 dark:text-emerald-400',
   'Se não': 'text-amber-700 dark:text-amber-400',
   Depois: 'text-muted-foreground',
+  Salta: 'text-sky-700 dark:text-sky-400',
 };

@@ -2,7 +2,7 @@
 
 import { ReactNode } from 'react';
 import { ArrowLeft } from 'lucide-react';
-import { conversationAvatarLetter } from '@/core/entities/conversationInbox';
+import { ConversationAvatar } from '@/ui/components/conversation-avatar';
 import { queueToneOf } from '@/ui/lib/status-tone';
 import { Button } from '@/ui/components/button';
 import { Badge } from '@/ui/components/badge';
@@ -11,6 +11,7 @@ type ConversationThreadHeaderProps = {
   title: string;
   phone: string;
   lineName?: string;
+  photoUrl?: string;
   queueTone: ReturnType<typeof queueToneOf> | null;
   onBack?: () => void;
   children?: ReactNode;
@@ -20,11 +21,11 @@ export function ConversationThreadHeader({
   title,
   phone,
   lineName,
+  photoUrl,
   queueTone,
   onBack,
   children,
 }: ConversationThreadHeaderProps) {
-  const initial = conversationAvatarLetter(title);
   const subtitle = [phone, lineName].filter(Boolean).join(' · ');
 
   return (
@@ -42,12 +43,7 @@ export function ConversationThreadHeader({
             <ArrowLeft className="h-4 w-4" />
           </Button>
         ) : null}
-        <div
-          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary text-sm font-semibold text-primary-foreground"
-          aria-hidden
-        >
-          {initial}
-        </div>
+        <ConversationAvatar name={title} photoUrl={photoUrl} className="bg-primary" />
         <div className="min-w-0 flex-1">
           <p className="truncate text-base font-medium leading-tight text-foreground">{title}</p>
           <p className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">

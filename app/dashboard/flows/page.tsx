@@ -141,8 +141,7 @@ export default function FlowsPage() {
       <CatalogSavedNotice show={show} />
       <div className="mb-6 flex flex-wrap items-center justify-between gap-2">
         <p className="text-muted-foreground">
-          Roteiro do chatbot no WhatsApp. Só um fluxo ativo entra no ar — de preferência o
-          Atendimento Inicial.
+          O roteiro que o chatbot envia no WhatsApp. Só um fluxo ativo entra no ar.
         </p>
         <Button onClick={openNew}>Novo Fluxo</Button>
       </div>
@@ -153,8 +152,8 @@ export default function FlowsPage() {
             <CardTitle>{editingFlow ? 'Editar Fluxo' : 'Novo Fluxo'}</CardTitle>
             <CardDescription>
               {editingFlow
-                ? 'Ajuste as mensagens, perguntas e o destino de cada passo'
-                : 'Monte o roteiro: o cliente recebe as mensagens nesta ordem'}
+                ? 'Clique num bloco para editar o que o cliente recebe. Salve no final.'
+                : 'Monte o roteiro: mensagem, pergunta ou setor. O cliente recebe nessa ordem.'}
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -188,9 +187,15 @@ export default function FlowsPage() {
                 />
                 <Label htmlFor="isActive" className="cursor-pointer">Ativo</Label>
               </div>
-              <FlowStepsEditor steps={steps} departments={departments} onChange={setSteps} />
-              <div className="flex space-x-2">
-                <Button type="submit">Salvar</Button>
+              <FlowStepsEditor
+                steps={steps}
+                departments={departments}
+                flows={flows}
+                currentFlowId={formData.id || editingFlow?.id}
+                onChange={setSteps}
+              />
+              <div className="sticky bottom-0 z-10 flex space-x-2 border-t border-border bg-card py-3">
+                <Button type="submit">Salvar fluxo</Button>
                 <Button type="button" variant="outline" onClick={handleCancel}>
                   Cancelar
                 </Button>
@@ -203,7 +208,7 @@ export default function FlowsPage() {
       <Card>
         <CardHeader>
           <CardTitle>Lista de Fluxos</CardTitle>
-          <CardDescription>Gerencie os fluxos de atendimento do chatbot</CardDescription>
+          <CardDescription>O selo WhatsApp indica qual fluxo está no ar</CardDescription>
         </CardHeader>
         <CardContent>
           {flows.length === 0 ? (

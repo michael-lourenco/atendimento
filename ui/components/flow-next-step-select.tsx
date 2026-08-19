@@ -11,6 +11,7 @@ export const flowSelectClass =
 type NextStepSelectProps = {
   steps: FlowStep[];
   departments: Department[];
+  flows?: { id: string; name: string }[];
   currentId: string;
   value: string;
   label: string;
@@ -20,6 +21,7 @@ type NextStepSelectProps = {
 export function NextStepSelect({
   steps,
   departments,
+  flows = [],
   currentId,
   value,
   label,
@@ -43,7 +45,7 @@ export function NextStepSelect({
         {!known && value ? <option value={value}>{value}</option> : null}
         {options.map(({ step, index }) => (
           <option key={step.id} value={step.id}>
-            {stepDisplayName(step, index, departments)}
+            {stepDisplayName(step, index, departments, flows)}
           </option>
         ))}
       </select>

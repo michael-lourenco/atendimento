@@ -1,16 +1,11 @@
 import { serviceLocator } from '../../infra/adapters/ServiceLocator';
 import { AuthUser } from '../entities/User';
-import { findAgentByEmail } from '../entities/uniqueAgentEmail';
+import { LoginDeniedError } from '../entities/loginDenied';
 import { IAgentRepository } from '../repositories/IAgentRepository';
 import { IAuthRepository } from '../repositories/IAuthRepository';
+import { rejectOfflineAgent } from './rejectOfflineAgent';
 
-export class LoginDeniedError extends Error {
-  constructor(message = 'Este atendente está desativado') {
-    super(message);
-    this.name = 'LoginDeniedError';
-    Object.setPrototypeOf(this, new.target.prototype);
-  }
-}
+export { LoginDeniedError } from '../entities/loginDenied';
 
 export class LoginUseCase {
   constructor(
@@ -23,13 +18,7 @@ export class LoginUseCase {
     if (!user) {
       return null;
     }
-    const list = await this.agents.getAll();
-    const agent =
-      list.find((item) => item.id === user.id) ?? findAgentByEmail(list, user.email);
-    if (agent?.status === 'offline') {
-      await this.repository.logout();
-      throw new LoginDeniedError();
-    }
+    await rejectOfflineAgent(user, this.agents, this.repository);
     return user;
   }
 }

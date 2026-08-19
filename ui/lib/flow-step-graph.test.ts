@@ -14,6 +14,11 @@ describe('addFlowStep', () => {
     expect(next).toEqual([{ id: 'a', type: 'message', content: '' }]);
   });
 
+  it('creates a question when the type is passed', () => {
+    const next = addFlowStep([], 'q', 'question');
+    expect(next[0].type).toBe('question');
+  });
+
   it('links the previous step when it has no destination', () => {
     const next = addFlowStep([message('a')], 'b');
     expect(next[0].nextStepId).toBe('b');

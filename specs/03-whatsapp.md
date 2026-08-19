@@ -5,6 +5,7 @@
 `core/services/IWhatsAppService`:
 
 - `sendMessage(params)` → envelope estilo Meta (`contacts`, `messages[].id`). `params.media` opcional. `params.instanceName` opcional (Evolution: qual instância; senão `EVOLUTION_INSTANCE_NAME`).
+- `fetchProfilePicture(phone, instanceName?)` → bytes + MIME da foto de perfil, ou `null` (Meta/Twilio nesta versão; Evolution: `fetchProfilePictureUrl` + download). Falha **não** impede persistir a mensagem.
 - `verifyWebhook(mode, token, challenge)` → string do challenge ou `null`
 - `processWebhook(entry)` → `Message[]`
 
@@ -35,7 +36,7 @@ Após persistir incoming: `HandleIncomingWhatsAppMessageUseCase` (Meta) e o webh
 
 Incoming Evolution: `instance` no body escolhe a linha. Só contato direto (`@s.whatsapp.net`, `@c.us`, `@lid` ou número sem sufixo). **Ignora grupos** (`@g.us`), listas de transmissão (`@broadcast`) e canais (`@newsletter`). Evento `messages.upsert` **ou** `MESSAGES_UPSERT`. Mensagem `fromMe` (enviada no próprio WhatsApp, fora do painel) é persistida como **outgoing** (`to` = contato) e **não** dispara o motor de fluxo. `pushName` só vale para incoming. Evento `messages.update` / `MESSAGES_UPDATE` (ack: PENDING=relógio, SERVER_ACK=um tique, DELIVERY_ACK=dois cinza, READ/PLAYED=dois azuis) chama `UpdateMessageStatusUseCase` e **não** dispara o fluxo. Qualquer outro evento (`CONNECTION_UPDATE`, presença, chats…) recebe ACK 200 **sem** processar.
 
-Mídia (imagem, áudio, vídeo, documento): o webhook baixa o arquivo (`POST /chat/getBase64FromMediaMessage/{instância}`, objeto completo da mensagem) e grava no bucket `media` em `messages/{id}`. Vídeo pede `convertToMp4: true`. Falha no download **não** impede persistir a mensagem (o painel tenta de novo no GET). Sem logar base64, payload completo nem QR.
+Mídia (imagem, áudio, vídeo, documento): o webhook baixa o arquivo (`POST /chat/getBase64FromMediaMessage/{instância}`, objeto completo da mensagem) e grava no bucket `media` em `messages/{id}`. Vídeo pede `convertToMp4: true`. Falha no download **não** impede persistir a mensagem (o painel tenta de novo no GET). Sem logar base64, payload completo nem QR. Foto de perfil: na primeira incoming sem `Contact.avatarUrl`, `POST /chat/fetchProfilePictureUrl/{instância}` + download; grava em `contacts/{id}`. Falha **não** impede o restante do turno.
 
 ## Envio
 

@@ -159,7 +159,7 @@ const steps: FlowStep[] = [
     id: 'miss',
     type: 'message',
     content:
-      'Não identifiquei essa opção. Envie o texto de uma das linhas (ou parte dele), por exemplo: sistema, demonstração, cliente ou pessoa.',
+      'Não identifiquei essa opção. Envie o número da linha (1, 2, 3…) ou o texto (ou parte dele), por exemplo: sistema, demonstração, cliente ou pessoa.',
     nextStepId: 'menu',
   },
 ];

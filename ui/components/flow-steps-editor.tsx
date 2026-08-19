@@ -1,176 +1,142 @@
 'use client';
 
-import { FlowStep } from '@/core/entities/Flow';
+import { Flow, FlowStep } from '@/core/entities/Flow';
 import { Department } from '@/core/entities/Department';
 import { Button } from '@/ui/components/button';
-import { Input } from '@/ui/components/input';
 import { Label } from '@/ui/components/label';
-import { ChevronDown, ChevronUp } from 'lucide-react';
-import { STEP_TYPE_LABELS, stepDisplayName } from '@/ui/lib/flow-step-copy';
-import { addFlowStep, moveFlowStep, removeFlowStep, withStepType } from '@/ui/lib/flow-step-graph';
-import { NextStepSelect, flowSelectClass } from '@/ui/components/flow-next-step-select';
-import { FlowConditionFields } from '@/ui/components/flow-condition-fields';
-import { FlowQuestionOptions } from '@/ui/components/flow-question-options';
+import { useEffect, useRef, useState } from 'react';
+import { addFlowStep, removeFlowStep } from '@/ui/lib/flow-step-graph';
+import { conditionsOwnedByQuestion } from '@/ui/lib/flow-option-paths';
+import { moveVisibleFlowStep, visibleFlowSteps } from '@/ui/lib/flow-step-outline';
 import { FlowPathMap } from '@/ui/components/flow-path-map';
 import { FlowWhatsAppPreview } from '@/ui/components/flow-whatsapp-preview';
-import { flowStepToneBar } from '@/ui/lib/status-tone';
+import { FlowStepCard } from '@/ui/components/flow-step-card';
 
 type FlowStepsEditorProps = {
   steps: FlowStep[];
   departments: Department[];
+  flows?: Flow[];
+  currentFlowId?: string;
   onChange: (steps: FlowStep[]) => void;
 };
 
-const TYPES: FlowStep['type'][] = ['message', 'question', 'condition', 'action'];
+const ADD_KINDS = [
+  { kind: 'message', label: 'Mensagem' },
+  { kind: 'question', label: 'Pergunta' },
+  { kind: 'action', label: 'Definir setor' },
+  { kind: 'goToFlow', label: 'Ir para fluxo' },
+] as const;
 
-export function FlowStepsEditor({ steps, departments, onChange }: FlowStepsEditorProps) {
+export function FlowStepsEditor({
+  steps,
+  departments,
+  flows = [],
+  currentFlowId,
+  onChange,
+}: FlowStepsEditorProps) {
   const activeDepartments = departments.filter((item) => item.isActive);
+  const jumpTargets = flows.filter(
+    (item) => item.isActive && item.id !== currentFlowId && item.id !== 'preview'
+  );
+  const visible = visibleFlowSteps(steps);
+  const [expandedId, setExpandedId] = useState<string | null>(null);
+  const stepCountRef = useRef(steps.length);
+
+  useEffect(() => {
+    if (expandedId && steps.some((step) => step.id === expandedId)) {
+      return;
+    }
+    setExpandedId(visibleFlowSteps(steps)[0]?.step.id ?? null);
+  }, [steps, expandedId]);
+
+  useEffect(() => {
+    if (steps.length <= stepCountRef.current) {
+      stepCountRef.current = steps.length;
+      return;
+    }
+    stepCountRef.current = steps.length;
+    const last = steps[steps.length - 1];
+    if (!last) {
+      return;
+    }
+    document.getElementById(`flow-step-${last.id}`)?.scrollIntoView({
+      behavior: 'smooth',
+      block: 'center',
+    });
+  }, [steps]);
 
   const patch = (index: number, next: FlowStep) => {
     onChange(steps.map((step, i) => (i === index ? next : step)));
   };
 
+  const add = (kind: (typeof ADD_KINDS)[number]['kind']) => {
+    const type = kind === 'goToFlow' ? 'action' : kind;
+    let next = addFlowStep(steps, undefined, type);
+    if (kind === 'goToFlow') {
+      const last = next[next.length - 1];
+      next = [...next.slice(0, -1), { ...last, action: { type: 'goToFlow', flowId: '' } }];
+    }
+    setExpandedId(next[next.length - 1]?.id ?? null);
+    onChange(next);
+  };
+
   return (
     <div className="space-y-3">
-      <div className="flex items-center justify-between">
-        <Label>Passos do atendimento</Label>
-        <Button type="button" variant="outline" size="sm" onClick={() => onChange(addFlowStep(steps))}>
-          Adicionar passo
-        </Button>
+      <div className="space-y-1">
+        <Label>Roteiro no WhatsApp</Label>
+        <p className="text-xs text-muted-foreground">
+          Clique num bloco para editar. Para reutilizar outro roteiro, use Ir para fluxo.
+        </p>
       </div>
       {steps.length === 0 ? (
         <p className="text-sm text-muted-foreground">
-          Nenhum passo. Comece com uma mensagem de boas-vindas ou uma pergunta de triagem.
+          Comece com uma mensagem de boas-vindas ou uma pergunta de menu.
         </p>
       ) : (
         <>
-          <FlowPathMap steps={steps} departments={activeDepartments} />
-          <FlowWhatsAppPreview steps={steps} />
+          <FlowWhatsAppPreview steps={steps} flows={jumpTargets} />
+          <details className="rounded-md border border-border p-3">
+            <summary className="cursor-pointer text-sm font-medium">Ver todas as ligações</summary>
+            <div className="mt-3">
+              <FlowPathMap steps={steps} departments={activeDepartments} flows={jumpTargets} />
+            </div>
+          </details>
         </>
       )}
-      {steps.map((step, index) => (
-        <div key={step.id} className={`space-y-3 rounded-md border border-border border-l-4 p-3 ${flowStepToneBar[step.type]}`}>
-          <div className="flex items-start justify-between gap-2">
-            <p className="text-sm font-medium text-foreground">
-              {stepDisplayName(step, index, activeDepartments)}
-            </p>
-            <div className="flex shrink-0 gap-1">
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon"
-                className="h-8 w-8"
-                aria-label="Mover para cima"
-                disabled={index === 0}
-                onClick={() => onChange(moveFlowStep(steps, index, -1))}
-              >
-                <ChevronUp className="h-4 w-4" />
-              </Button>
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon"
-                className="h-8 w-8"
-                aria-label="Mover para baixo"
-                disabled={index === steps.length - 1}
-                onClick={() => onChange(moveFlowStep(steps, index, 1))}
-              >
-                <ChevronDown className="h-4 w-4" />
-              </Button>
-            </div>
-          </div>
-          <div className="space-y-1">
-            <Label className="text-xs text-muted-foreground">Tipo</Label>
-            <select
-              className={flowSelectClass}
-              value={step.type}
-              aria-label="Tipo do passo"
-              onChange={(event) => patch(index, withStepType(step, event.target.value as FlowStep['type']))}
-            >
-              {TYPES.map((type) => (
-                <option key={type} value={type}>
-                  {STEP_TYPE_LABELS[type]}
-                </option>
-              ))}
-            </select>
-          </div>
-          {step.type !== 'action' && step.type !== 'condition' ? (
-            <div className="space-y-1">
-              <Label className="text-xs text-muted-foreground">
-                {step.type === 'question' ? 'Pergunta no WhatsApp' : 'Texto no WhatsApp'}
-              </Label>
-              <Input
-                value={step.content}
-                placeholder={
-                  step.type === 'question'
-                    ? 'Ex.: Como podemos ajudar?'
-                    : 'Ex.: Olá! Bem-vindo ao atendimento.'
-                }
-                onChange={(event) => patch(index, { ...step, content: event.target.value })}
-              />
-            </div>
-          ) : null}
-          {step.type === 'question' ? (
-            <FlowQuestionOptions
-              steps={steps}
-              index={index}
-              departments={activeDepartments}
-              onChangeSteps={onChange}
-              onPatch={(next) => patch(index, next)}
-            />
-          ) : null}
-          {step.type === 'action' ? (
-            <div className="space-y-1">
-              <Label className="text-xs text-muted-foreground">Setor da conversa</Label>
-              <select
-                className={flowSelectClass}
-                value={step.action?.departmentId ?? ''}
-                aria-label="Setor da ação"
-                onChange={(event) =>
-                  patch(index, {
-                    ...step,
-                    action: { type: 'setDepartment', departmentId: event.target.value },
-                  })
-                }
-              >
-                <option value="">Escolha o setor…</option>
-                {activeDepartments.map((department) => (
-                  <option key={department.id} value={department.id}>
-                    {department.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-          ) : null}
-          {step.type === 'condition' && step.condition ? (
-            <FlowConditionFields
-              step={step}
-              steps={steps}
-              departments={activeDepartments}
-              onChange={(next) => patch(index, next)}
-            />
-          ) : (
-            <NextStepSelect
-              steps={steps}
-              departments={activeDepartments}
-              currentId={step.id}
-              value={step.nextStepId ?? ''}
-              label="Depois, ir para"
-              onChange={(nextStepId) =>
-                patch(index, { ...step, nextStepId: nextStepId || undefined })
-              }
-            />
-          )}
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            onClick={() => onChange(removeFlowStep(steps, index))}
-          >
-            Remover
-          </Button>
-        </div>
+      {visible.map(({ step, index }, visibleIndex) => (
+        <FlowStepCard
+          key={step.id}
+          step={step}
+          index={index}
+          visibleIndex={visibleIndex}
+          visibleCount={visible.length}
+          steps={steps}
+          departments={activeDepartments}
+          flows={jumpTargets}
+          expanded={expandedId === step.id}
+          ownedConditions={conditionsOwnedByQuestion(steps, step)}
+          onToggle={() => setExpandedId((current) => (current === step.id ? null : step.id))}
+          onChange={onChange}
+          onPatch={(next) => patch(index, next)}
+          onPatchAt={patch}
+          onMove={(direction) => onChange(moveVisibleFlowStep(steps, step.id, direction))}
+          onRemove={() => onChange(removeFlowStep(steps, index))}
+        />
       ))}
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="text-xs text-muted-foreground">Adicionar</span>
+        {ADD_KINDS.map((item) => (
+          <Button
+            key={item.kind}
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => add(item.kind)}
+          >
+            {item.label}
+          </Button>
+        ))}
+      </div>
     </div>
   );
 }

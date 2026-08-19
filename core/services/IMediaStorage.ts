@@ -12,6 +12,14 @@ export function messageMediaPath(messageId: string): string {
   return `messages/${messageId}`;
 }
 
+export function contactAvatarPath(contactId: string): string {
+  return `contacts/${contactId}`;
+}
+
+export function contactAvatarApiHref(contactId: string): string {
+  return `/api/contacts/${encodeURIComponent(contactId)}/avatar`;
+}
+
 export function isPlayableMediaType(type: string): boolean {
   return type === 'image' || type === 'audio' || type === 'video' || type === 'document';
 }

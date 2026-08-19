@@ -16,5 +16,6 @@ export interface Conversation {
   lastActivity: Date;
   createdAt: Date;
   tags: string[];
+  contactAvatarUrl?: string;
 }
 

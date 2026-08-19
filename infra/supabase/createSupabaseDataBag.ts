@@ -151,20 +151,22 @@ function createConversationRepository(client: SupabaseClient): IConversationRepo
       return map(data as Record<string, unknown>[]);
     },
     async save(conversation: Conversation) {
-      const row = conversationToRow(conversation);
-      const first = await client.from('conversations').upsert(row);
-      if (!first.error) {
-        return;
-      }
-      if (isMissingColumnError(first.error, 'last_message') && 'last_message' in row) {
-        const { last_message: _ignored, ...withoutPreview } = row;
-        const retry = await client.from('conversations').upsert(withoutPreview);
-        if (retry.error) {
-          throw retry.error;
+      let row: Record<string, unknown> = conversationToRow(conversation);
+      for (let attempt = 0; attempt < 4; attempt += 1) {
+        const result = await client.from('conversations').upsert(row);
+        if (!result.error) {
+          return;
         }
-        return;
+        const missing = (['last_message', 'contact_avatar_url'] as const).find(
+          (column) => isMissingColumnError(result.error, column) && column in row
+        );
+        if (!missing) {
+          throw result.error;
+        }
+        const { [missing]: _ignored, ...rest } = row;
+        row = rest;
       }
-      throw first.error;
+      throw new Error('Não foi possível gravar a conversa');
     },
     async delete(id: string) {
       const { error } = await client.from('conversations').delete().eq('id', id);
