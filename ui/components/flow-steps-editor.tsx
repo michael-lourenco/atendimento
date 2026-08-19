@@ -12,6 +12,7 @@ import { NextStepSelect, flowSelectClass } from '@/ui/components/flow-next-step-
 import { FlowConditionFields } from '@/ui/components/flow-condition-fields';
 import { FlowQuestionOptions } from '@/ui/components/flow-question-options';
 import { FlowPathMap } from '@/ui/components/flow-path-map';
+import { flowStepToneBar } from '@/ui/lib/status-tone';
 
 type FlowStepsEditorProps = {
   steps: FlowStep[];
@@ -44,7 +45,7 @@ export function FlowStepsEditor({ steps, departments, onChange }: FlowStepsEdito
         <FlowPathMap steps={steps} departments={activeDepartments} />
       )}
       {steps.map((step, index) => (
-        <div key={step.id} className="space-y-3 rounded-md border border-border p-3">
+        <div key={step.id} className={`space-y-3 rounded-md border border-border border-l-4 p-3 ${flowStepToneBar[step.type]}`}>
           <div className="flex items-start justify-between gap-2">
             <p className="text-sm font-medium text-foreground">
               {stepDisplayName(step, index, activeDepartments)}

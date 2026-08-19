@@ -44,6 +44,11 @@ Runner: Jest + `ts-jest` (`npm test`). Testing Library só quando houver teste d
 - `ui/lib/flow-path-map.test.ts` — ligações Depois / Se sim / Se não
 - `core/entities/whatsappNumberLive.test.ts` — lista de Números inclui a sessão ao vivo (wid)
 - `core/usecases/SyncLiveWhatsAppNumberUseCase.test.ts` — primeira conexão grava; poll igual não regrava
+- `ui/lib/status-tone.test.ts` — fila entrada/esperando/finalizado; ligado/desligado
+- `ui/lib/contact-picker.test.ts` — busca nome/telefone; número novo; prefixo 55
+- `core/entities/messageStatus.test.ts` — ack Evolution → tiques; não rebaixa lida
+- `core/usecases/UpdateMessageStatusUseCase.test.ts` — avança sent→delivered
+- `infra/whatsapp/mapEvolutionStatus.test.ts` — MESSAGES_UPDATE
 
 ## Próximos
 

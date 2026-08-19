@@ -33,7 +33,7 @@ Novo provedor: implementar a porta, um `case` no locator, env vars nesta spec, w
 
 Após persistir incoming: `HandleIncomingWhatsAppMessageUseCase` (Meta) e o webhook Evolution (`executeMessages`) disparam `ProcessIncomingFlowUseCase` para texto. Sempre ACK HTTP 200 quando o provedor exigir retry-on-fail (Meta). BFF chat-whatsapp **não** dispara o motor até unificar na porta.
 
-Incoming Evolution: só contato direto (`@s.whatsapp.net`, `@c.us`, `@lid` ou número sem sufixo). **Ignora grupos** (`@g.us`), listas de transmissão (`@broadcast`) e canais (`@newsletter`). Evento `messages.upsert` **ou** `MESSAGES_UPSERT`. Mensagem `fromMe` (enviada no próprio WhatsApp, fora do painel) é persistida como **outgoing** (`to` = contato) e **não** dispara o motor de fluxo. `pushName` só vale para incoming.
+Incoming Evolution: só contato direto (`@s.whatsapp.net`, `@c.us`, `@lid` ou número sem sufixo). **Ignora grupos** (`@g.us`), listas de transmissão (`@broadcast`) e canais (`@newsletter`). Evento `messages.upsert` **ou** `MESSAGES_UPSERT`. Mensagem `fromMe` (enviada no próprio WhatsApp, fora do painel) é persistida como **outgoing** (`to` = contato) e **não** dispara o motor de fluxo. `pushName` só vale para incoming. Evento `messages.update` / `MESSAGES_UPDATE` (ack: PENDING=relógio, SERVER_ACK=um tique, DELIVERY_ACK=dois cinza, READ/PLAYED=dois azuis) chama `UpdateMessageStatusUseCase` e **não** dispara o fluxo.
 
 Mídia (imagem, áudio, vídeo, documento): o webhook baixa o arquivo (`POST /chat/getBase64FromMediaMessage/{instância}`, objeto completo da mensagem) e grava no bucket `media` em `messages/{id}`. Vídeo pede `convertToMp4: true`. Falha no download **não** impede persistir a mensagem (o painel tenta de novo no GET). Sem logar base64.
 

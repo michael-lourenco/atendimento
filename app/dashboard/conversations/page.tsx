@@ -27,6 +27,7 @@ import { MessageThread } from '@/ui/components/message-thread';
 import { WhatsAppDisconnectedBanner } from '@/ui/components/whatsapp-status';
 import { DASHBOARD_POLL_MS } from '@/ui/lib/dashboard-poll';
 import { playInboxChime, shouldPlayInboxSound } from '@/ui/lib/inbox-notify';
+import { queueTabActiveClass } from '@/ui/lib/status-tone';
 
 export default function ConversationsPage() {
   const [conversations, setConversations] = useState<Conversation[]>([]);
@@ -141,6 +142,15 @@ export default function ConversationsPage() {
           value={departmentFilter}
           aria-label="Filtrar por setor"
           onChange={(event) => setDepartmentFilter(event.target.value)}
+          style={
+            departmentFilter !== 'all' && departmentFilter !== 'none'
+              ? {
+                  borderLeftWidth: 6,
+                  borderLeftColor:
+                    departments.find((item) => item.id === departmentFilter)?.color || undefined,
+                }
+              : undefined
+          }
         >
           <option value="all">Todos os setores</option>
           <option value="none">Sem setor</option>
@@ -180,26 +190,26 @@ export default function ConversationsPage() {
             </div>
             <Tabs value={activeTab} onValueChange={setActiveTab}>
               <TabsList className="grid w-full grid-cols-3">
-                <TabsTrigger value="incoming" className="text-xs sm:text-sm">
+                <TabsTrigger value="incoming" className={`text-xs sm:text-sm ${queueTabActiveClass.incoming}`}>
                   Entrada
                   {incomingCount > 0 ? (
-                    <Badge variant="destructive" className="ml-1">
+                    <Badge variant="warning" className="ml-1">
                       {incomingCount}
                     </Badge>
                   ) : null}
                 </TabsTrigger>
-                <TabsTrigger value="waiting" className="text-xs sm:text-sm">
+                <TabsTrigger value="waiting" className={`text-xs sm:text-sm ${queueTabActiveClass.waiting}`}>
                   Esperando
                   {waitingCount > 0 ? (
-                    <Badge variant="secondary" className="ml-1">
+                    <Badge variant="info" className="ml-1">
                       {waitingCount}
                     </Badge>
                   ) : null}
                 </TabsTrigger>
-                <TabsTrigger value="closed" className="text-xs sm:text-sm">
+                <TabsTrigger value="closed" className={`text-xs sm:text-sm ${queueTabActiveClass.closed}`}>
                   Finalizados
                   {closedCount > 0 ? (
-                    <Badge variant="outline" className="ml-1">
+                    <Badge variant="muted" className="ml-1">
                       {closedCount}
                     </Badge>
                   ) : null}

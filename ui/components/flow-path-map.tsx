@@ -2,6 +2,7 @@
 
 import { FlowStep } from '@/core/entities/Flow';
 import { flowPathLinks } from '@/ui/lib/flow-path-map';
+import { flowPathLabelClass } from '@/ui/lib/status-tone';
 
 type FlowPathMapProps = {
   steps: FlowStep[];
@@ -21,7 +22,10 @@ export function FlowPathMap({ steps, departments }: FlowPathMapProps) {
         {links.map((link) => (
           <li key={`${link.fromId}-${link.label}`} className="text-foreground">
             <span className="font-medium">{link.fromLabel}</span>
-            <span className="text-muted-foreground"> → {link.label} → </span>
+            <span className={flowPathLabelClass[link.label] ?? 'text-muted-foreground'}>
+              {' '}
+              → {link.label} →{' '}
+            </span>
             {link.toLabel}
           </li>
         ))}

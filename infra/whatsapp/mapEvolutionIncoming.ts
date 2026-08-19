@@ -1,11 +1,7 @@
 import { Message } from '../../core/entities/Message';
+import { evolutionAckToStatus } from '../../core/entities/messageStatus';
 import { isDirectContactJid } from './isDirectContactJid';
-
-function normalizeEvent(event: unknown): string {
-  return String(event || '')
-    .toLowerCase()
-    .replace(/_/g, '.');
-}
+import { normalizeEvolutionEvent } from './mapEvolutionStatus';
 
 function asItems(data: unknown): Record<string, unknown>[] {
   if (Array.isArray(data)) {
@@ -73,7 +69,7 @@ export function mapEvolutionIncomingMessages(
   payload: { event?: string; data?: unknown },
   instanceName: string
 ): Message[] {
-  if (normalizeEvent(payload.event) !== 'messages.upsert') {
+  if (normalizeEvolutionEvent(payload.event) !== 'messages.upsert') {
     return [];
   }
 
@@ -110,7 +106,9 @@ export function mapEvolutionIncomingMessages(
       type,
       timestamp,
       direction: fromMe ? 'outgoing' : 'incoming',
-      status: fromMe ? 'sent' : 'delivered',
+      status: fromMe
+        ? evolutionAckToStatus(item.status ?? item.ack) ?? 'sent'
+        : 'delivered',
       contactName: fromMe ? undefined : readPushName(item),
     });
   }
@@ -121,7 +119,7 @@ export function listEvolutionWebhookItems(payload: {
   event?: string;
   data?: unknown;
 }): Record<string, unknown>[] {
-  if (normalizeEvent(payload.event) !== 'messages.upsert') {
+  if (normalizeEvolutionEvent(payload.event) !== 'messages.upsert') {
     return [];
   }
   return asItems(payload.data);

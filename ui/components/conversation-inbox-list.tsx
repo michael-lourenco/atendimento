@@ -9,6 +9,7 @@ import {
   formatInboxTime,
 } from '@/core/entities/conversationInbox';
 import { cn } from '@/ui/lib/utils';
+import { queueToneBar, queueToneOf } from '@/ui/lib/status-tone';
 
 type ConversationInboxListProps = {
   conversations: Conversation[];
@@ -38,16 +39,18 @@ export function ConversationInboxList({
       {conversations.map((conversation) => {
         const selected = selectedPhone === conversation.contactPhone;
         const color = departmentColorOf(departments, conversation.departmentId);
+        const tone = queueToneOf(conversation);
         return (
           <li key={conversation.id}>
             <button
               type="button"
               onClick={() => onSelect(conversation.contactPhone)}
               className={cn(
-                'flex w-full flex-col gap-1 px-3 py-3 text-left transition-colors',
+                'relative flex w-full flex-col gap-1 py-3 pl-4 pr-3 text-left transition-colors',
                 selected ? 'bg-accent/15' : 'hover:bg-muted/60'
               )}
             >
+              <span className={cn('absolute inset-y-0 left-0 w-1', queueToneBar[tone])} />
               <div className="flex items-start justify-between gap-2">
                 <span className="truncate font-medium text-foreground">
                   {conversationDisplayName(conversation)}

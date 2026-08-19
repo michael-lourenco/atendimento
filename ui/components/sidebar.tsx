@@ -82,7 +82,13 @@ export const Sidebar: React.FC<SidebarProps> = ({ className, expanded, onToggle 
             {sidebarGroups.map((group, index) => (
               <div key={group.id} className="space-y-1">
                 {expanded ? (
-                  <p className="px-3 pt-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                  <p className="flex items-center gap-2 px-3 pt-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                    <span
+                      className={cn(
+                        'h-1.5 w-1.5 rounded-full',
+                        group.id === 'atendimento' ? 'bg-accent' : 'bg-muted-foreground/60'
+                      )}
+                    />
                     {group.label}
                   </p>
                 ) : index > 0 ? (
@@ -155,7 +161,13 @@ export const MobileSidebar: React.FC<MobileSidebarProps> = ({ isOpen, onClose })
           <nav className="flex-1 overflow-y-auto px-3 py-4">
             {sidebarGroups.map((group) => (
               <div key={group.id} className="mb-4">
-                <p className="px-3 pb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                <p className="flex items-center gap-2 px-3 pb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                  <span
+                    className={cn(
+                      'h-1.5 w-1.5 rounded-full',
+                      group.id === 'atendimento' ? 'bg-accent' : 'bg-muted-foreground/60'
+                    )}
+                  />
                   {group.label}
                 </p>
                 <div className="space-y-1">

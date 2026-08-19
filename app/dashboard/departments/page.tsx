@@ -193,7 +193,7 @@ export default function DepartmentsPage() {
             <CardHeader>
               <div className="flex items-center justify-between">
                 <CardTitle className="text-lg">{dept.name}</CardTitle>
-                <Badge variant={dept.isActive ? 'default' : 'secondary'}>
+                <Badge variant={dept.isActive ? 'success' : 'muted'}>
                   {dept.isActive ? 'Ativo' : 'Inativo'}
                 </Badge>
               </div>

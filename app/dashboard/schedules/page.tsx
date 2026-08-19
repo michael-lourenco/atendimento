@@ -2,7 +2,10 @@
 
 import { useEffect, useState } from 'react';
 import { ScheduledMessage } from '@/core/entities/ScheduledMessage';
+import { Contact } from '@/core/entities/Contact';
 import { ScheduledMessageCatalogUseCase } from '@/core/usecases/ScheduledMessageCatalogUseCase';
+import { ContactCatalogUseCase } from '@/core/usecases/ContactCatalogUseCase';
+import { UpsertContactFromIncomingUseCase } from '@/core/usecases/UpsertContactFromIncomingUseCase';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/ui/components/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/ui/components/table';
 import { Button } from '@/ui/components/button';
@@ -10,24 +13,44 @@ import { Input } from '@/ui/components/input';
 import { Label } from '@/ui/components/label';
 import { Textarea } from '@/ui/components/textarea';
 import { Badge } from '@/ui/components/badge';
+import { ContactPicker } from '@/ui/components/contact-picker';
 import { Plus } from 'lucide-react';
 import { useConfirm } from '@/ui/components/confirm-dialog';
+import {
+  contactPickerLabel,
+  findContactByPhone,
+  normalizeSchedulePhone,
+} from '@/ui/lib/contact-picker';
 
 const catalog = () => new ScheduledMessageCatalogUseCase();
+const contactsCatalog = () => new ContactCatalogUseCase();
 
 function toLocalInput(date: Date) {
   const pad = (value: number) => String(value).padStart(2, '0');
   return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
 }
 
+function scheduleContactLabel(schedule: ScheduledMessage, contacts: Contact[]): string {
+  const found = findContactByPhone(contacts, schedule.contact);
+  return found ? contactPickerLabel(found) : schedule.contact;
+}
+
 export default function SchedulesPage() {
   const [schedules, setSchedules] = useState<ScheduledMessage[]>([]);
+  const [contacts, setContacts] = useState<Contact[]>([]);
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState<ScheduledMessage | null>(null);
-  const [form, setForm] = useState({ contact: '', message: '', scheduledDate: '' });
+  const [form, setForm] = useState({ contact: '', newName: '', message: '', scheduledDate: '' });
   const { confirm, dialog } = useConfirm();
 
-  const load = async () => setSchedules(await catalog().list());
+  const load = async () => {
+    const [scheduleList, contactList] = await Promise.all([
+      catalog().list(),
+      contactsCatalog().list(),
+    ]);
+    setSchedules(scheduleList);
+    setContacts(contactList);
+  };
 
   useEffect(() => {
     load();
@@ -36,14 +59,19 @@ export default function SchedulesPage() {
   const reset = () => {
     setShowForm(false);
     setEditing(null);
-    setForm({ contact: '', message: '', scheduledDate: '' });
+    setForm({ contact: '', newName: '', message: '', scheduledDate: '' });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    const phone = normalizeSchedulePhone(form.contact);
+    if (!phone) return;
+    if (!findContactByPhone(contacts, phone)) {
+      await new UpsertContactFromIncomingUseCase().execute(phone, form.newName || undefined);
+    }
     await catalog().save({
       id: editing?.id || `schedule-${Date.now()}`,
-      contact: form.contact,
+      contact: phone,
       message: form.message,
       scheduledDate: new Date(form.scheduledDate),
       status: editing?.status || 'pending',
@@ -73,12 +101,16 @@ export default function SchedulesPage() {
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="contact">Contato</Label>
-                <Input
-                  id="contact"
+                <ContactPicker
+                  contacts={contacts}
                   value={form.contact}
-                  onChange={(e) => setForm({ ...form, contact: e.target.value })}
-                  required
-                  className="bg-background"
+                  onChange={(contact) =>
+                    setForm((current) => ({ ...current, contact, newName: '' }))
+                  }
+                  newName={form.newName}
+                  onNewNameChange={(newName) =>
+                    setForm((current) => ({ ...current, newName }))
+                  }
                 />
               </div>
               <div className="space-y-2">
@@ -103,7 +135,9 @@ export default function SchedulesPage() {
                 />
               </div>
               <div className="flex gap-2">
-                <Button type="submit">Salvar</Button>
+                <Button type="submit" disabled={!form.contact}>
+                  Salvar
+                </Button>
                 <Button type="button" variant="outline" onClick={reset}>
                   Cancelar
                 </Button>
@@ -136,16 +170,18 @@ export default function SchedulesPage() {
               <TableBody>
                 {schedules.map((schedule) => (
                   <TableRow key={schedule.id}>
-                    <TableCell className="font-medium">{schedule.contact}</TableCell>
+                    <TableCell className="font-medium">
+                      {scheduleContactLabel(schedule, contacts)}
+                    </TableCell>
                     <TableCell className="max-w-md truncate">{schedule.message}</TableCell>
                     <TableCell>{new Date(schedule.scheduledDate).toLocaleString('pt-BR')}</TableCell>
                     <TableCell>
                       <Badge
                         variant={
                           schedule.status === 'sent'
-                            ? 'default'
+                            ? 'success'
                             : schedule.status === 'pending'
-                              ? 'secondary'
+                              ? 'warning'
                               : 'destructive'
                         }
                       >
@@ -167,6 +203,7 @@ export default function SchedulesPage() {
                               setEditing(schedule);
                               setForm({
                                 contact: schedule.contact,
+                                newName: '',
                                 message: schedule.message,
                                 scheduledDate: toLocalInput(new Date(schedule.scheduledDate)),
                               });

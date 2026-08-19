@@ -157,7 +157,7 @@ export default function AgentsPage() {
                     <TableCell className="font-medium">{agent.name}</TableCell>
                     <TableCell>{agent.email}</TableCell>
                     <TableCell>
-                      <Badge variant={agent.status === 'online' ? 'default' : 'secondary'}>
+                      <Badge variant={agent.status === 'online' ? 'success' : 'muted'}>
                         {agent.status === 'online' ? 'Online' : 'Offline'}
                       </Badge>
                     </TableCell>

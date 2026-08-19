@@ -1,6 +1,7 @@
 import { IWhatsAppService, WhatsAppWebhookEntry } from '../services/IWhatsAppService';
 import { IMessageRepository } from '../repositories/IMessageRepository';
 import { Message } from '../entities/Message';
+import { mergeMessageStatus } from '../entities/messageStatus';
 import { ProcessIncomingFlowUseCase } from './ProcessIncomingFlowUseCase';
 import {
   UpsertConversationFromMessageUseCase,
@@ -28,6 +29,10 @@ export class HandleIncomingWhatsAppMessageUseCase {
 
   private async persistAndRunFlow(messages: Message[]): Promise<Message[]> {
     for (const message of messages) {
+      const existing = await this.messageRepository.getById(message.id);
+      if (existing) {
+        message.status = mergeMessageStatus(existing.status, message.status);
+      }
       await this.messageRepository.save(message);
       await this.upsertContact.execute(
         contactPhoneFromMessage(message),

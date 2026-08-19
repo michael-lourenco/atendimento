@@ -1,3 +1,5 @@
+export type MessageStatus = 'pending' | 'sent' | 'delivered' | 'read' | 'failed';
+
 export interface Message {
   id: string;
   from: string;
@@ -9,6 +11,6 @@ export interface Message {
   stepId?: string;
   contactName?: string;
   direction: 'incoming' | 'outgoing';
-  status: 'sent' | 'delivered' | 'read' | 'failed';
+  status: MessageStatus;
 }
 

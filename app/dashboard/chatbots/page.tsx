@@ -157,7 +157,7 @@ export default function ChatbotsPage() {
                     <TableCell className="font-medium">{bot.name}</TableCell>
                     <TableCell>{bot.description}</TableCell>
                     <TableCell>
-                      <Badge variant={bot.isActive ? 'default' : 'secondary'}>
+                      <Badge variant={bot.isActive ? 'success' : 'muted'}>
                         {bot.isActive ? 'Ativo' : 'Inativo'}
                       </Badge>
                     </TableCell>

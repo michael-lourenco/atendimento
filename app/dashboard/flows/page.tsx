@@ -14,6 +14,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Input } from '@/ui/components/input';
 import { Label } from '@/ui/components/label';
 import { Textarea } from '@/ui/components/textarea';
+import { Badge } from '@/ui/components/badge';
 import { useConfirm } from '@/ui/components/confirm-dialog';
 
 export default function FlowsPage() {
@@ -206,15 +207,9 @@ export default function FlowsPage() {
                     <TableCell className="font-medium">{flow.name}</TableCell>
                     <TableCell>{flow.description || '-'}</TableCell>
                     <TableCell>
-                      <span
-                        className={`px-2 py-1 rounded text-xs font-medium ${
-                          flow.isActive
-                            ? 'bg-accent/20 text-accent-foreground border border-accent/30'
-                            : 'bg-muted text-muted-foreground border border-border'
-                        }`}
-                      >
+                      <Badge variant={flow.isActive ? 'success' : 'muted'}>
                         {flow.isActive ? 'Ativo' : 'Inativo'}
-                      </span>
+                      </Badge>
                     </TableCell>
                     <TableCell>{flow.steps.length}</TableCell>
                     <TableCell>

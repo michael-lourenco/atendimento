@@ -29,7 +29,7 @@ Todas as rotas abaixo são **funcionais** (use case + mock). Nenhuma é vitrine.
 | `/dashboard/contacts` | catálogo | `IContactRepository` |
 | `/dashboard/numbers` | catálogo + sessão ao vivo (`SyncLiveWhatsAppNumberUseCase`) | `IWhatsAppNumberRepository` + `/api/chat-whatsapp/status` |
 | `/dashboard/tags` | catálogo | `ITagRepository` |
-| `/dashboard/schedules` | catálogo | `IScheduledMessageRepository` |
+| `/dashboard/schedules` | catálogo + picker de contato | `IScheduledMessageRepository` + `ContactCatalogUseCase` |
 | `/dashboard/reports` | métricas + lista/gerar | mensagens/conversas + `IReportRepository` |
 
 Catálogo = `list` / `save` / `delete` via `CatalogUseCase` (subclasses no locator). Páginas **não** importam `infra/mocks`.
@@ -54,7 +54,7 @@ Catálogo = `list` / `save` / `delete` via `CatalogUseCase` (subclasses no locat
 
 A lista de Conversas **atualiza a cada 8s** (`DASHBOARD_POLL_MS`). O spinner “Carregando...” só na primeira carga. Contagens das abas vêm dos dados novos. Se o total de não lidas ou uma conversa nova aparecer no poll, toca um aviso sonoro curto (Web Audio; falha de autoplay é ignorada).
 
-Inbox: lista compacta (nome, prévia da última mensagem, setor, não lidas). Chat: cabeçalho com **nome do contato** + telefone; bolhas incoming em `muted`, outgoing em `accent`; horário no estilo da lista (hoje = hora; outro dia = data). Compositor: placeholder “Mensagem”. No mobile, com conversa aberta, a lista some e o chat oferece voltar.
+Inbox: lista compacta (nome, prévia da última mensagem, setor, não lidas). Chat: cabeçalho com **nome do contato** + telefone; bolhas incoming em `muted`, outgoing em `accent`; horário no estilo da lista (hoje = hora; outro dia = data). Mensagem **enviada** mostra tiques estilo WhatsApp (relógio / um cinza / dois cinza / dois azuis). Compositor: placeholder “Mensagem”. No mobile, com conversa aberta, a lista some e o chat oferece voltar.
 
 **Notas da equipe:** na thread (`TeamNotes`), com o usuário logado (`GetCurrentUserUseCase`). Não misturam com o WhatsApp do cliente. Sem atendente logado, só leitura.
 
@@ -74,6 +74,10 @@ Enquanto o fluxo estiver pausado, a tela indica e oferece **Retomar chatbot**. S
 **Mídia** em Conversas e em `/dashboard/messages`: `image` → `<img>`, `audio` → player, `video` → player, `document` → download. Fonte: `/api/messages/{id}/media` (cookie da sessão). Sem mídia: mostra `content` (ex.: “Áudio recebido”). Envio pelo painel usa o mesmo GET após gravar o arquivo no Storage.
 
 **Contatos**: `ContactCatalogUseCase.list()` preenche o catálogo a partir das mensagens já persistidas (telefone + nome quando houver).
+
+**Agendamentos:** o campo Contato **não** é texto livre. Busca no catálogo (nome ou telefone). Clicar escolhe o contato. Se o número com DDD (10 ou 11 dígitos) não existir, a lista oferece “Adicionar número”; nome opcional; grava no catálogo (`UpsertContactFromIncomingUseCase`) ao salvar. Telefone com 10–11 dígitos (sem 55) ganha prefixo `55`. A tabela mostra nome · telefone quando houver cadastro.
+
+**Cores de estado** (não substituem a cor cadastrada do setor/etiqueta): Entrada = âmbar (precisa pegar); Esperando = azul; Finalizado / inativo / offline = cinza; Conectado / online / ativo = verde; WhatsApp caído = vermelho; chatbot pausado = âmbar. Passos do fluxo: mensagem azul, pergunta âmbar, condição violeta, definir setor verde. Mapa: Se sim verde, Se não âmbar. Classes em `ui/lib/status-tone.ts`. Sem arco-íris no menu: só um ponto no grupo Atendimento vs Configuração.
 
 ## Regras de UI
 

@@ -20,9 +20,12 @@ import { MessageMedia } from '@/ui/components/message-media';
 import { MessageComposer } from '@/ui/components/message-composer';
 import { ConversationActions } from '@/ui/components/conversation-actions';
 import { TeamNotes } from '@/ui/components/team-notes';
+import { MessageStatusTicks } from '@/ui/components/message-status-ticks';
 import { Button } from '@/ui/components/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/ui/components/card';
+import { Badge } from '@/ui/components/badge';
 import { DASHBOARD_POLL_MS } from '@/ui/lib/dashboard-poll';
+import { queueToneOf } from '@/ui/lib/status-tone';
 
 type MessageThreadProps = {
   contact: string;
@@ -38,6 +41,7 @@ export function MessageThread({ contact, onBack, onConversationChanged }: Messag
   const [departments, setDepartments] = useState<Department[]>([]);
   const [operator, setOperator] = useState<User | null>(null);
   const [sending, setSending] = useState(false);
+  const [pendingSend, setPendingSend] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
 
@@ -73,11 +77,12 @@ export function MessageThread({ contact, onBack, onConversationChanged }: Messag
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages.length]);
+  }, [messages.length, pendingSend]);
 
   const send = async (input: { text: string; file: File | null }) => {
     setSending(true);
     setError(null);
+    setPendingSend(input.text.trim() || (input.file ? input.file.name : '…'));
     try {
       const response = input.file
         ? await fetch('/api/messages/send', {
@@ -100,8 +105,10 @@ export function MessageThread({ contact, onBack, onConversationChanged }: Messag
         throw new Error(body.message || body.error || 'Falha ao enviar');
       }
       setPaused(true);
+      setPendingSend(null);
       refresh();
     } catch (err) {
+      setPendingSend(null);
       setError(err instanceof Error ? err.message : 'Falha ao enviar');
       throw err;
     } finally {
@@ -122,6 +129,7 @@ export function MessageThread({ contact, onBack, onConversationChanged }: Messag
   const title = conversation
     ? conversationDisplayName(conversation)
     : contact;
+  const queueTone = conversation ? queueToneOf(conversation) : null;
 
   return (
     <Card className="flex h-full min-h-0 flex-col">
@@ -143,7 +151,19 @@ export function MessageThread({ contact, onBack, onConversationChanged }: Messag
             <CardTitle className="truncate">{title}</CardTitle>
             <CardDescription className="flex flex-wrap items-center gap-2">
               <span>{contact}</span>
-              {conversation?.status === 'closed' ? <span>· finalizada</span> : null}
+              {queueTone ? (
+                <Badge
+                  variant={
+                    queueTone === 'incoming' ? 'warning' : queueTone === 'waiting' ? 'info' : 'muted'
+                  }
+                >
+                  {queueTone === 'incoming'
+                    ? 'Entrada'
+                    : queueTone === 'waiting'
+                      ? 'Em atendimento'
+                      : 'Finalizada'}
+                </Badge>
+              ) : null}
             </CardDescription>
           </div>
         </div>
@@ -157,7 +177,7 @@ export function MessageThread({ contact, onBack, onConversationChanged }: Messag
         />
         {paused ? (
           <div className="flex flex-wrap items-center gap-2">
-            <span className="rounded border border-yellow-500/30 bg-yellow-500/20 px-2 py-1 text-xs text-yellow-700 dark:text-yellow-400">
+            <span className="rounded border border-amber-500/30 bg-amber-500/15 px-2 py-1 text-xs text-amber-800 dark:text-amber-300">
               Chatbot pausado
             </span>
             <Button type="button" variant="outline" size="sm" onClick={() => void resume()}>
@@ -168,7 +188,7 @@ export function MessageThread({ contact, onBack, onConversationChanged }: Messag
       </CardHeader>
       <CardContent className="flex min-h-0 flex-1 flex-col space-y-3">
         <div className="min-h-0 flex-1 overflow-y-auto rounded-md border border-border p-4">
-          {messages.length === 0 ? (
+          {messages.length === 0 && !pendingSend ? (
             <p className="py-8 text-center text-sm text-muted-foreground">
               Nenhuma mensagem neste contato
             </p>
@@ -193,13 +213,25 @@ export function MessageThread({ contact, onBack, onConversationChanged }: Messag
                         type={message.type}
                         content={message.content}
                       />
-                      <p className="mt-1 text-[11px] opacity-70">
-                        {formatInboxTime(message.timestamp)}
+                      <p className="mt-1 flex items-center justify-end gap-1 text-[11px] opacity-70">
+                        <span>{formatInboxTime(message.timestamp)}</span>
+                        <MessageStatusTicks message={message} />
                       </p>
                     </div>
                   </div>
                 );
               })}
+              {pendingSend ? (
+                <div className="flex justify-end">
+                  <div className="max-w-[75%] rounded-2xl bg-accent px-3 py-2 text-accent-foreground">
+                    <p className="whitespace-pre-wrap break-words text-sm">{pendingSend}</p>
+                    <p className="mt-1 flex items-center justify-end gap-1 text-[11px] opacity-70">
+                      <span>agora</span>
+                      <MessageStatusTicks message={{ direction: 'outgoing', status: 'pending' }} />
+                    </p>
+                  </div>
+                </div>
+              ) : null}
               <div ref={bottomRef} />
             </div>
           )}

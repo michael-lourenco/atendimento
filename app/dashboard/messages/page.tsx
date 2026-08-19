@@ -7,6 +7,7 @@ import { Message } from '@/core/entities/Message';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/ui/components/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/ui/components/table';
 import { MessageMedia } from '@/ui/components/message-media';
+import { Badge } from '@/ui/components/badge';
 import { DASHBOARD_POLL_MS } from '@/ui/lib/dashboard-poll';
 
 export default function MessagesPage() {
@@ -46,23 +47,12 @@ export default function MessagesPage() {
     return new Date(date).toLocaleString('pt-BR');
   };
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'read':
-        return 'bg-accent/20 text-accent-foreground border border-accent/30';
-      case 'delivered':
-        return 'bg-green-500/20 text-green-600 dark:text-green-400 border border-green-500/30';
-      case 'sent':
-        return 'bg-yellow-500/20 text-yellow-600 dark:text-yellow-400 border border-yellow-500/30';
-      case 'failed':
-        return 'bg-destructive/20 text-destructive border border-destructive/30';
-      default:
-        return 'bg-muted text-muted-foreground border border-border';
-    }
-  };
-
-  const getDirectionBadge = (direction: string) => {
-    return direction === 'incoming' ? 'Entrada' : 'Saída';
+  const messageStatusVariant = (status: string) => {
+    if (status === 'read') return 'success' as const;
+    if (status === 'delivered') return 'info' as const;
+    if (status === 'sent' || status === 'pending') return 'warning' as const;
+    if (status === 'failed') return 'destructive' as const;
+    return 'muted' as const;
   };
 
   const visible = messages;
@@ -113,15 +103,9 @@ export default function MessagesPage() {
                       {message.direction === 'incoming' ? message.from : message.to}
                     </TableCell>
                     <TableCell>
-                      <span
-                        className={`px-2 py-1 rounded text-xs font-medium ${
-                          message.direction === 'incoming'
-                            ? 'bg-primary/20 text-primary-foreground border border-primary/30'
-                            : 'bg-secondary/50 text-secondary-foreground border border-secondary'
-                        }`}
-                      >
-                        {getDirectionBadge(message.direction)}
-                      </span>
+                      <Badge variant={message.direction === 'incoming' ? 'info' : 'success'}>
+                        {message.direction === 'incoming' ? 'Entrada' : 'Saída'}
+                      </Badge>
                     </TableCell>
                     <TableCell className="max-w-md align-top">
                       <MessageMedia
@@ -132,11 +116,7 @@ export default function MessagesPage() {
                     </TableCell>
                     <TableCell>{message.type}</TableCell>
                     <TableCell>
-                      <span
-                        className={`px-2 py-1 rounded text-xs font-medium ${getStatusColor(message.status)}`}
-                      >
-                        {message.status}
-                      </span>
+                      <Badge variant={messageStatusVariant(message.status)}>{message.status}</Badge>
                     </TableCell>
                     <TableCell>{formatDate(message.timestamp)}</TableCell>
                     <TableCell>{message.flowId || '-'}</TableCell>

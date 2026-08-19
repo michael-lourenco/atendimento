@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { serverLocator } from '@/infra/adapters/serverLocator';
 import { EvolutionWhatsAppService } from '@/infra/whatsapp/EvolutionWhatsAppService';
 import { hydrateEvolutionMedia } from '@/infra/whatsapp/evolutionMedia';
+import { mapEvolutionStatusUpdates } from '@/infra/whatsapp/mapEvolutionStatus';
+import { UpdateMessageStatusUseCase } from '@/core/usecases/UpdateMessageStatusUseCase';
 
 export async function POST(request: NextRequest) {
   try {
@@ -20,6 +22,14 @@ export async function POST(request: NextRequest) {
     const whatsAppService = serverLocator.getWhatsAppService();
 
     if (whatsAppService instanceof EvolutionWhatsAppService) {
+      const updates = mapEvolutionStatusUpdates({ event, data });
+      if (updates.length > 0) {
+        const updateStatus = new UpdateMessageStatusUseCase(serverLocator.getRepos().message);
+        for (const update of updates) {
+          await updateStatus.execute(update.id, update.status);
+        }
+      }
+
       const messages = await whatsAppService.processEvolutionWebhook({ ...body, event, data });
 
       if (messages.length > 0) {

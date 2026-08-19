@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { CheckCircle2, XCircle } from 'lucide-react';
+import { cn } from '@/ui/lib/utils';
 import { useWhatsAppStatus } from '@/ui/lib/use-whatsapp-status';
 
 export function WhatsAppStatusChip() {
@@ -13,17 +14,20 @@ export function WhatsAppStatusChip() {
   return (
     <Link
       href="/dashboard/whatsapp"
-      className="hidden items-center gap-1.5 rounded-full border border-border px-2 py-1 text-xs sm:inline-flex"
+      className={cn(
+        'hidden items-center gap-1.5 rounded-full border px-2 py-1 text-xs sm:inline-flex',
+        connected
+          ? 'border-emerald-500/30 bg-emerald-500/15 text-emerald-800 dark:text-emerald-300'
+          : 'border-destructive/40 bg-destructive/10 text-destructive'
+      )}
       title={pushname ? `Conectado como ${pushname}` : 'Status do WhatsApp'}
     >
       {connected ? (
-        <CheckCircle2 className="h-3.5 w-3.5 text-green-500" />
+        <CheckCircle2 className="h-3.5 w-3.5" />
       ) : (
-        <XCircle className="h-3.5 w-3.5 text-red-500" />
+        <XCircle className="h-3.5 w-3.5" />
       )}
-      <span className={connected ? 'text-foreground' : 'text-red-500'}>
-        {connected ? 'WhatsApp conectado' : 'WhatsApp desconectado'}
-      </span>
+      <span>{connected ? 'WhatsApp conectado' : 'WhatsApp desconectado'}</span>
     </Link>
   );
 }

@@ -183,7 +183,7 @@ export default function NumbersPage() {
                     <TableCell className="font-medium">{num.name}</TableCell>
                     <TableCell>{num.number}</TableCell>
                     <TableCell>
-                      <Badge variant={num.status === 'active' ? 'default' : 'secondary'}>
+                      <Badge variant={num.status === 'active' ? 'success' : 'muted'}>
                         {num.status === 'active' ? 'Ativo' : 'Inativo'}
                       </Badge>
                     </TableCell>
