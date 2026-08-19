@@ -2,6 +2,7 @@
 
 import { ReactNode } from 'react';
 import { ArrowLeft } from 'lucide-react';
+import { conversationAvatarLetter } from '@/core/entities/conversationInbox';
 import { queueToneOf } from '@/ui/lib/status-tone';
 import { Button } from '@/ui/components/button';
 import { Badge } from '@/ui/components/badge';
@@ -23,11 +24,11 @@ export function ConversationThreadHeader({
   onBack,
   children,
 }: ConversationThreadHeaderProps) {
-  const initial = title.trim().charAt(0).toUpperCase() || '?';
+  const initial = conversationAvatarLetter(title);
   const subtitle = [phone, lineName].filter(Boolean).join(' · ');
 
   return (
-    <div className="shrink-0 space-y-2 border-b border-border bg-muted px-3 py-2">
+    <div className="shrink-0 border-b border-border bg-muted px-3 py-2">
       <div className="flex items-center gap-3">
         {onBack ? (
           <Button
@@ -66,8 +67,8 @@ export function ConversationThreadHeader({
             ) : null}
           </p>
         </div>
+        {children}
       </div>
-      {children}
     </div>
   );
 }

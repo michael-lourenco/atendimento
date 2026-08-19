@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { LoginUseCase } from '@/core/usecases/LoginUseCase';
+import { LoginDeniedError, LoginUseCase } from '@/core/usecases/LoginUseCase';
 import { Button } from '@/ui/components/button';
 import { Input } from '@/ui/components/input';
 import { Label } from '@/ui/components/label';
@@ -34,8 +34,10 @@ export default function LoginPage() {
       } else {
         setError('Email ou senha inválidos');
       }
-    } catch {
-      setError('Erro ao fazer login. Tente novamente.');
+    } catch (err) {
+      setError(
+        err instanceof LoginDeniedError ? err.message : 'Erro ao fazer login. Tente novamente.'
+      );
     } finally {
       setLoading(false);
     }

@@ -24,6 +24,17 @@ export async function POST(request: NextRequest) {
       .eq('id', data.user.id)
       .maybeSingle();
 
+    const { data: agent } = await supabase
+      .from('agents')
+      .select('status')
+      .eq('id', data.user.id)
+      .maybeSingle();
+
+    if (agent?.status === 'offline') {
+      await supabase.auth.signOut();
+      return apiJson(request, { error: 'Este atendente está desativado' }, { status: 403 });
+    }
+
     return apiJson(request, {
       id: data.user.id,
       email: profile?.email ?? data.user.email,

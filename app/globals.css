@@ -53,54 +53,52 @@
 }
 
 .dark {
-  /* Sistema de cores do curriculum-michael - Dark Mode */
-  --primary-color: #a4b3ba;
-  --primary-dark-color: #7d8d96;
-  --secondary-color: #5d6b74;
-  --secondary-dark-color: #313c43;
-  --accent-color: #21b6bf;
-  --accent-dark-color: #1a9ba3;
-  --neutral-color: #f8f9fa;
-  --neutral-light-color: #a4b3ba;
-  --background-color: #1b2126;
-  --surface-color: #2c383f;
-  --surface-hover-color: #313c43;
-  --border-color: #5d6b74;
-  --text-primary-color: #f8fafc;
-  --text-secondary-color: #a4b3ba;
-  --text-muted-color: #7d8d96;
-  
-  /* Cores para shadcn/ui (HSL format) - Dark Mode */
-  --background: 210 30% 10%;
-  --foreground: 210 10% 98%;
-  --card: 210 25% 15%;
-  --card-foreground: 210 10% 98%;
-  --popover: 210 25% 15%;
-  --popover-foreground: 210 10% 98%;
-  --primary: 210 15% 70%;
-  --primary-foreground: 210 30% 10%;
-  --secondary: 210 20% 25%;
-  --secondary-foreground: 210 10% 98%;
-  --muted: 210 20% 25%;
-  --muted-foreground: 210 10% 65%;
-  --accent: 182 70% 45%;
-  --accent-foreground: 0 0% 100%;
-  --destructive: 0 63% 31%;
+  /* WhatsApp Web — dark */
+  --primary-color: #00a884;
+  --primary-dark-color: #008069;
+  --secondary-color: #8696a0;
+  --secondary-dark-color: #667781;
+  --accent-color: #00a884;
+  --accent-dark-color: #005c4b;
+  --neutral-color: #e9edef;
+  --neutral-light-color: #8696a0;
+  --background-color: #111b21;
+  --surface-color: #202c33;
+  --surface-hover-color: #2a3942;
+  --border-color: #3b4a54;
+  --text-primary-color: #e9edef;
+  --text-secondary-color: #8696a0;
+  --text-muted-color: #667781;
+
+  --background: 206 32% 10%;
+  --foreground: 200 14% 93%;
+  --card: 202 23% 16%;
+  --card-foreground: 200 14% 93%;
+  --popover: 202 23% 16%;
+  --popover-foreground: 200 14% 93%;
+  --primary: 168 100% 33%;
+  --primary-foreground: 0 0% 100%;
+  --secondary: 202 22% 21%;
+  --secondary-foreground: 200 14% 93%;
+  --muted: 202 22% 21%;
+  --muted-foreground: 203 12% 58%;
+  --accent: 202 22% 21%;
+  --accent-foreground: 200 14% 93%;
+  --destructive: 0 70% 45%;
   --destructive-foreground: 0 0% 100%;
-  --border: 210 15% 35%;
-  --input: 210 15% 35%;
-  --ring: 182 70% 45%;
-  --chat: 210 25% 12%;
-  --bubble-in: 210 20% 25%;
-  --bubble-in-foreground: 210 10% 98%;
-  --bubble-out: 182 70% 45%;
+  --border: 202 15% 22%;
+  --input: 202 15% 22%;
+  --ring: 168 100% 33%;
+  --chat: 206 41% 7%;
+  --bubble-in: 202 23% 16%;
+  --bubble-in-foreground: 200 14% 93%;
+  --bubble-out: 169 100% 18%;
   --bubble-out-foreground: 0 0% 100%;
 
-  /* Sombras - Dark Mode */
-  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.3);
-  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.4), 0 2px 4px -2px rgb(0 0 0 / 0.4);
-  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.4), 0 4px 6px -4px rgb(0 0 0 / 0.4);
-  --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.4), 0 8px 10px -6px rgb(0 0 0 / 0.4);
+  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.4);
+  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.45), 0 2px 4px -2px rgb(0 0 0 / 0.4);
+  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.45), 0 4px 6px -4px rgb(0 0 0 / 0.4);
+  --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.5), 0 8px 10px -6px rgb(0 0 0 / 0.4);
 }
 
 @layer base {
@@ -122,4 +120,3 @@
     transition: background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease;
   }
 }
-

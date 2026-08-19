@@ -40,7 +40,7 @@ O domínio é relacional (conversa, contato, agente, `FlowSession`, mensagens). 
 - O **primeiro** perfil no banco é `admin`; os seguintes nascem `user`.
 - Cada perfil gera um `agents` com o **mesmo id** (trigger `handle_new_user` + backfill em `004_operator_agent.sql`). `EnsureOperatorAgentUseCase` cobre mock e perfil antigo. E-mail de agente único: índice `agents_email_lower_uidx` (`012_unique_agent_email.sql`); o trigger não insere se `lower(trim(email))` já existir.
 - Login mock (`admin@example.com` / qualquer senha) **acaba**. Seed de um admin só via SQL/dashboard Supabase, não hardcoded na UI — salvo o primeiro signup, que já é admin.
-- `LoginUseCase` / `GetCurrentUserUseCase` / `LogoutUseCase` permanecem; a página `/login` some a dica de usuários de teste.
+- `LoginUseCase` / `GetCurrentUserUseCase` / `LogoutUseCase` permanecem; a página `/login` some a dica de usuários de teste. Agente `status: offline` não entra: `POST /api/auth/login` responde 403 e faz `signOut`; o use case também recusa e encerra a sessão.
 - Dica de env na UI de login: só URL + anon (`NEXT_PUBLIC_*`). **Não** citar `SUPABASE_SERVICE_ROLE_KEY` — essa chave é só servidor (`serverLocator`).
 - `POST /api/messages/send` e demais rotas de operador exigem sessão válida (401 sem cookie).
 - `GET`/`POST /api/schedules/dispatch`: sessão de operador **ou** Bearer `CRON_SECRET` (cron HTTP; o job in-process não passa por HTTP).

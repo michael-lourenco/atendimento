@@ -1,4 +1,4 @@
-import { conversationDisplayName, conversationPreview, conversationPreviewIsOutgoing, formatInboxTime } from './conversationInbox';
+import { conversationAvatarLetter, conversationDisplayName, conversationPreview, conversationPreviewIsOutgoing, formatInboxTime } from './conversationInbox';
 import { Message } from './Message';
 
 const text = (overrides: Partial<Message> = {}): Message => ({
@@ -21,6 +21,12 @@ describe('conversationInbox', () => {
     expect(
       conversationDisplayName({ contactName: '5521999', contactPhone: '5521999' })
     ).toBe('5521999');
+  });
+
+  it('inicial do avatar', () => {
+    expect(conversationAvatarLetter('Maria')).toBe('M');
+    expect(conversationAvatarLetter('  ana')).toBe('A');
+    expect(conversationAvatarLetter('')).toBe('?');
   });
 
   it('prévia no estilo WhatsApp', () => {

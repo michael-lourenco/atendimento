@@ -1,25 +1,32 @@
 'use client';
 
 import { useState } from 'react';
+import { MoreVertical } from 'lucide-react';
 import { Agent } from '@/core/entities/Agent';
 import { Conversation } from '@/core/entities/Conversation';
 import { Department } from '@/core/entities/Department';
 import { User } from '@/core/entities/User';
 import { assignmentFromOperator } from '@/core/entities/assignmentFromOperator';
-import { agentsForDepartment, departmentNameOf } from '@/core/entities/conversationDepartment';
+import {
+  agentsAvailableForTransfer,
+  departmentNameOf,
+} from '@/core/entities/conversationDepartment';
 import { AssignConversationUseCase } from '@/core/usecases/AssignConversationUseCase';
 import { CloseConversationUseCase } from '@/core/usecases/CloseConversationUseCase';
 import { PauseContactFlowUseCase } from '@/core/usecases/PauseContactFlowUseCase';
 import { TransferAgentControl } from '@/ui/components/transfer-agent-control';
 import { ConversationDepartmentControl } from '@/ui/components/conversation-department-control';
-import { Button } from '@/ui/components/button';
+import { ActionMenu, ActionMenuItem, ActionMenuLabel } from '@/ui/components/action-menu';
 
 type ConversationActionsProps = {
   conversation: Conversation | null;
   agents: Agent[];
   departments: Department[];
   operator: User | null;
+  paused?: boolean;
   onChanged: () => void;
+  onSchedule: () => void;
+  onResume: () => void;
 };
 
 export function ConversationActions({
@@ -27,13 +34,16 @@ export function ConversationActions({
   agents,
   departments,
   operator,
+  paused,
   onChanged,
+  onSchedule,
+  onResume,
 }: ConversationActionsProps) {
   const [confirmClose, setConfirmClose] = useState(false);
   const closed = conversation?.status === 'closed';
   const assignment = operator ? assignmentFromOperator(operator, agents) : null;
   const assignedToMe = Boolean(assignment && conversation?.assignedAgentId === assignment.agentId);
-  const transferAgents = agentsForDepartment(agents, conversation?.departmentId);
+  const transferAgents = agentsAvailableForTransfer(agents, conversation?.departmentId);
   const threadId = conversation?.id;
 
   const assume = async () => {
@@ -61,67 +71,103 @@ export function ConversationActions({
   };
 
   return (
-    <div className="flex flex-wrap items-center justify-between gap-2">
-      <div className="flex flex-wrap items-center gap-2">
-        <span className="text-xs text-muted-foreground">
-          {conversation?.assignedAgentName
-            ? `Com ${conversation.assignedAgentName}`
-            : 'Sem atendente'}
-        </span>
-        <ConversationDepartmentControl
-          conversationId={threadId ?? ''}
-          departmentId={conversation?.departmentId}
-          departmentName={conversation?.departmentName}
-          departments={departments}
-          disabled={closed}
-          onChanged={onChanged}
-        />
-      </div>
-      {closed ? (
-        <span className="rounded-full border border-border px-2 py-1 text-xs text-muted-foreground">
-          Finalizada
-        </span>
-      ) : (
-        <div className="flex flex-wrap items-center gap-2">
-          <Button
-            type="button"
-            size="sm"
-            variant={assignedToMe ? 'outline' : 'default'}
-            disabled={!operator || assignedToMe}
-            title={!operator ? 'Faça login para assumir' : undefined}
-            onClick={() => void assume()}
+    <ActionMenu
+      variant="icon"
+      align="end"
+      ariaLabel="Ações da conversa"
+      label={<MoreVertical className="h-5 w-5" />}
+      onOpenChange={(open) => {
+        if (!open) {
+          setConfirmClose(false);
+        }
+      }}
+    >
+      {(dismiss) => (
+        <>
+          <ActionMenuItem
+            disabled={!operator || assignedToMe || closed || !threadId}
+            onClick={() => {
+              void assume().then(dismiss);
+            }}
           >
             {assignedToMe ? 'Com você' : 'Assumir'}
-          </Button>
+          </ActionMenuItem>
+          <ActionMenuLabel>Transferir</ActionMenuLabel>
           <TransferAgentControl
+            asItems
             conversationId={threadId ?? ''}
             agents={transferAgents}
             currentAgentId={conversation?.assignedAgentId}
             departments={departments}
+            disabled={closed}
+            onClose={dismiss}
             onTransferred={onChanged}
           />
-          {confirmClose ? (
+          <ActionMenuLabel>Setor</ActionMenuLabel>
+          <ConversationDepartmentControl
+            asItems
+            conversationId={threadId ?? ''}
+            departmentId={conversation?.departmentId}
+            departmentName={conversation?.departmentName}
+            departments={departments}
+            disabled={closed}
+            onClose={dismiss}
+            onChanged={onChanged}
+          />
+          <ActionMenuItem
+            disabled={!conversation}
+            onClick={() => {
+              onSchedule();
+              dismiss();
+            }}
+          >
+            Agendar
+          </ActionMenuItem>
+          {paused ? (
+            <ActionMenuItem
+              onClick={() => {
+                onResume();
+                dismiss();
+              }}
+            >
+              Retomar chatbot
+            </ActionMenuItem>
+          ) : null}
+          {closed ? (
+            <ActionMenuItem disabled onClick={() => undefined}>
+              Finalizada
+            </ActionMenuItem>
+          ) : confirmClose ? (
             <>
-              <Button type="button" variant="destructive" size="sm" onClick={() => void close()}>
+              <ActionMenuItem
+                destructive
+                onClick={() => {
+                  void close().then(dismiss);
+                }}
+              >
                 Confirmar
-              </Button>
-              <Button type="button" variant="ghost" size="sm" onClick={() => setConfirmClose(false)}>
+              </ActionMenuItem>
+              <ActionMenuItem
+                onClick={() => {
+                  setConfirmClose(false);
+                }}
+              >
                 Cancelar
-              </Button>
+              </ActionMenuItem>
             </>
           ) : (
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              className="text-destructive hover:text-destructive"
-              onClick={() => setConfirmClose(true)}
+            <ActionMenuItem
+              destructive
+              disabled={!threadId}
+              onClick={() => {
+                setConfirmClose(true);
+              }}
             >
               Finalizar
-            </Button>
+            </ActionMenuItem>
           )}
-        </div>
+        </>
       )}
-    </div>
+    </ActionMenu>
   );
 }

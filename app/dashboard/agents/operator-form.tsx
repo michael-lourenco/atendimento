@@ -32,6 +32,7 @@ export function OperatorForm({
   departments,
   lastAdmin,
   canSetPassword,
+  canSetOffline,
   onChange,
   onSubmit,
   onCancel,
@@ -42,6 +43,7 @@ export function OperatorForm({
   departments: Department[];
   lastAdmin: boolean;
   canSetPassword?: boolean;
+  canSetOffline?: boolean;
   onChange: (next: OperatorFormState) => void;
   onSubmit: (e: React.FormEvent) => void;
   onCancel: () => void;
@@ -155,8 +157,15 @@ export function OperatorForm({
                 onChange={(e) => onChange({ ...form, status: e.target.value as AgentStatus })}
               >
                 <option value="online">Online</option>
-                <option value="offline">Offline</option>
+                <option value="offline" disabled={!canSetOffline && form.status !== 'offline'}>
+                  Offline
+                </option>
               </select>
+              {!canSetOffline && form.status !== 'offline' ? (
+                <p className="text-xs text-muted-foreground">
+                  Não é possível desativar a si nem o último admin online.
+                </p>
+              ) : null}
             </div>
           ) : null}
           <div className="flex gap-2">

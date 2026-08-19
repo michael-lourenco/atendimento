@@ -13,6 +13,8 @@ type TransferAgentControlProps = {
   currentAgentId?: string;
   departments?: Department[];
   disabled?: boolean;
+  asItems?: boolean;
+  onClose?: () => void;
   onTransferred?: () => void;
 };
 
@@ -22,6 +24,8 @@ export function TransferAgentControl({
   currentAgentId,
   departments = [],
   disabled,
+  asItems,
+  onClose,
   onTransferred,
 }: TransferAgentControlProps) {
   const [busy, setBusy] = useState(false);
@@ -48,28 +52,34 @@ export function TransferAgentControl({
     }
   };
 
+  const items = (close: () => void) =>
+    options.map((agent) => (
+      <ActionMenuItem
+        key={agent.id}
+        disabled={disabled || busy}
+        onClick={() => {
+          void transfer(agent).then(close);
+        }}
+      >
+        {agent.name}
+      </ActionMenuItem>
+    ));
+
   if (agents.length === 0) {
-    return <span className="text-xs text-muted-foreground">Cadastre um agente</span>;
+    return <span className="px-2 py-1.5 text-xs text-muted-foreground">Cadastre um agente</span>;
   }
 
   if (options.length === 0) {
-    return <span className="text-xs text-muted-foreground">Sem outro agente</span>;
+    return <span className="px-2 py-1.5 text-xs text-muted-foreground">Sem outro agente</span>;
+  }
+
+  if (asItems) {
+    return <>{items(onClose ?? (() => undefined))}</>;
   }
 
   return (
     <ActionMenu label="Transferir" ariaLabel="Transferir conversa" disabled={disabled || busy}>
-      {(close) =>
-        options.map((agent) => (
-          <ActionMenuItem
-            key={agent.id}
-            onClick={() => {
-              void transfer(agent).then(close);
-            }}
-          >
-            {agent.name}
-          </ActionMenuItem>
-        ))
-      }
+      {(close) => items(close)}
     </ActionMenu>
   );
 }

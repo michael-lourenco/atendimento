@@ -2,6 +2,11 @@ import { Conversation } from './Conversation';
 import { Department } from './Department';
 import { Message } from './Message';
 
+export function conversationAvatarLetter(name: string): string {
+  const trimmed = name.trim();
+  return trimmed ? trimmed.charAt(0).toUpperCase() : '?';
+}
+
 export function conversationDisplayName(conversation: {
   contactName: string;
   contactPhone: string;

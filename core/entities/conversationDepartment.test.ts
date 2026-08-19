@@ -1,4 +1,5 @@
 import {
+  agentsAvailableForTransfer,
   agentsForDepartment,
   matchesDepartmentFilter,
 } from './conversationDepartment';
@@ -56,5 +57,21 @@ describe('agentsForDepartment', () => {
 
   it('se ninguém no setor, lista todos', () => {
     expect(agentsForDepartment(agents, 'financeiro').map((item) => item.id)).toEqual(['1', '2', '3']);
+  });
+});
+
+describe('agentsAvailableForTransfer', () => {
+  it('omite offline e cai nos online se o setor só tiver offline', () => {
+    const agents = [
+      agent('1', 'vendas'),
+      { ...agent('2', 'vendas'), status: 'offline' as const },
+      agent('3', 'suporte'),
+      { ...agent('4', 'financeiro'), status: 'offline' as const },
+    ];
+    expect(agentsAvailableForTransfer(agents, 'vendas').map((item) => item.id)).toEqual(['1']);
+    expect(agentsAvailableForTransfer(agents, 'financeiro').map((item) => item.id)).toEqual([
+      '1',
+      '3',
+    ]);
   });
 });

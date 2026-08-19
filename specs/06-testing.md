@@ -24,17 +24,17 @@ Runner: Jest + `ts-jest` (`npm test`). Testing Library só quando houver teste d
 - `core/usecases/TransferConversationUseCase.test.ts` — status transferred
 - `core/usecases/AssignConversationUseCase.test.ts` — assumir (waiting) e finalizar (closed)
 - `core/usecases/MarkConversationReadUseCase.test.ts` — zera unreadCount
-- `core/usecases/LoginUseCase.test.ts` — porta de auth (senha obrigatória)
+- `core/usecases/LoginUseCase.test.ts` — porta de auth (senha obrigatória); agente `offline` recusa
 - `core/usecases/GetAllConversationsUseCase.test.ts` — lista o catálogo; com snapshot não relê mensagens; sem snapshot preenche a prévia e grava; se gravar falhar ainda devolve a prévia
 - `core/usecases/UpsertConversationFromMessageUseCase.test.ts` — cria conversa; ensure não infla não lidas; **duas linhas = duas conversas** (mesmo telefone, ids `{digitos}:{lineA}` e `{digitos}:{lineB}`, mesmo `contactPhone`); **legado não duplica** (`id` = telefone já com `whatsappNumberId` daquela linha permanece; só cria `phone:lineId` se o telefone já tem thread em **outra** linha)
 - `core/usecases/UpsertContactFromIncomingUseCase.test.ts` — nome do WhatsApp no catálogo de contatos
 - `core/entities/conversationTabs.test.ts` — transferida em Esperando; filtro minhas
-- `core/entities/conversationInbox.test.ts` — nome de exibição; prévia texto / Você: / Foto / Áudio; Sem mensagens só sem lastMessage; outgoing da lista tem tiques à esquerda
+- `core/entities/conversationInbox.test.ts` — nome de exibição; inicial do avatar; prévia texto / Você: / Foto / Áudio; Sem mensagens só sem lastMessage; outgoing da lista tem tiques à esquerda
 - `core/usecases/UpdateMessageStatusUseCase.test.ts` — avança sent→delivered; se o id é o lastMessage da conversa, atualiza o snapshot
 - `core/entities/lastMessageForConversation.test.ts` — última mensagem da thread (telefone + linha); ack atualiza o snapshot da prévia
 - `core/entities/conversationThread.test.ts` — `conversationThreadId`; legado vs outra linha; `?contact=` abre a mais recente; `threadsForContactPhone` ordena pela atividade; mensagens filtradas por linha
 - `core/entities/whatsappNumberLine.test.ts` — liga instância/dígitos ao cadastro; linha de envio da conversa; `lineNameOf` usa o `name` do catálogo
-- `core/entities/conversationDepartment.test.ts` — filtro de setor; agentes do mesmo setor
+- `core/entities/conversationDepartment.test.ts` — filtro de setor; agentes do mesmo setor; transferência só online
 - `core/usecases/SetConversationDepartmentUseCase.test.ts` — grava e remove setor na conversa da thread (`id`); não grava numa conversa “só telefone” se já existir thread composta
 - `infra/whatsapp/mapEvolutionIncoming.test.ts` — pushName; MESSAGES_UPSERT; ignora grupo/fromMe; tipo imagem
 - `infra/whatsapp/evolutionMedia.test.ts` — parse base64; hydrate grava no storage fake
@@ -66,7 +66,8 @@ Runner: Jest + `ts-jest` (`npm test`). Testing Library só quando houver teste d
 - `core/entities/uniqueAgentEmail.test.ts` — e-mail de agente único (trim + lower); ignora o próprio id
 - `core/usecases/EnsureOperatorAgentUseCase.test.ts` — cria agente com o id do perfil; e-mail já existente (outro id) não duplica
 - `core/usecases/CreateOperatorUseCase.test.ts` — só admin cria; senha curta falha; segundo cadastro com o mesmo e-mail → 409
-- `core/usecases/AgentCatalogUseCase.test.ts` — save recusa outro id com o mesmo e-mail
+- `core/entities/agentStatus.test.ts` — não desativa a si nem o último admin online
+- `core/usecases/AgentCatalogUseCase.test.ts` — save recusa outro id com o mesmo e-mail; recusa desativar a si ou o último admin online
 - `core/usecases/DeleteOperatorUseCase.test.ts` — exclui login + agente; bloqueia último admin
 - `core/usecases/SetOperatorRoleUseCase.test.ts` — promove; bloqueia último admin
 - `core/usecases/SetOperatorPasswordUseCase.test.ts` — só admin; senha curta falha; id inexistente 404

@@ -24,7 +24,6 @@ import { ConversationSchedulePanel } from '@/ui/components/conversation-schedule
 import { ConversationThreadHeader } from '@/ui/components/conversation-thread-header';
 import { TeamNotes } from '@/ui/components/team-notes';
 import { MessageStatusTicks } from '@/ui/components/message-status-ticks';
-import { Button } from '@/ui/components/button';
 import { Card, CardContent } from '@/ui/components/card';
 import { DASHBOARD_POLL_MS } from '@/ui/lib/dashboard-poll';
 import { queueToneOf } from '@/ui/lib/status-tone';
@@ -46,6 +45,7 @@ export function MessageThread({ conversationId, onBack, onConversationChanged }:
   const [pendingSend, setPendingSend] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [lineName, setLineName] = useState('');
+  const [scheduleOpen, setScheduleOpen] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
 
   const lineRef = useRef<WhatsAppNumber | null>(null);
@@ -91,6 +91,7 @@ export function MessageThread({ conversationId, onBack, onConversationChanged }:
   useEffect(() => {
     lineRef.current = null;
     setLineName('');
+    setScheduleOpen(false);
     load(true).catch((err) => console.error('Erro ao carregar conversa:', err));
     const timer = setInterval(() => {
       load(false).catch((err) => console.error('Erro ao atualizar conversa:', err));
@@ -171,20 +172,22 @@ export function MessageThread({ conversationId, onBack, onConversationChanged }:
           agents={agents}
           departments={departments}
           operator={operator}
+          paused={paused}
           onChanged={refresh}
+          onSchedule={() => setScheduleOpen(true)}
+          onResume={() => void resume()}
         />
-        {conversation ? <ConversationSchedulePanel conversation={conversation} /> : null}
-        {paused ? (
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="rounded border border-amber-500/30 bg-amber-500/15 px-2 py-1 text-xs text-amber-800 dark:text-amber-300">
-              Chatbot pausado
-            </span>
-            <Button type="button" variant="outline" size="sm" onClick={() => void resume()}>
-              Retomar chatbot
-            </Button>
-          </div>
-        ) : null}
       </ConversationThreadHeader>
+      {conversation && scheduleOpen ? (
+        <div className="shrink-0 border-b border-border bg-muted px-3 py-2">
+          <ConversationSchedulePanel
+            conversation={conversation}
+            open={scheduleOpen}
+            onOpenChange={setScheduleOpen}
+            hideTrigger
+          />
+        </div>
+      ) : null}
       <CardContent className="flex min-h-0 flex-1 flex-col p-0">
         <div className="min-h-0 flex-1 overflow-y-auto bg-chat p-4">
           {messages.length === 0 && !pendingSend ? (

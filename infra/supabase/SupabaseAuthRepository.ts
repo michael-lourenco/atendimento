@@ -1,5 +1,6 @@
 import { AuthUser, User } from '../../core/entities/User';
 import { CreateOperatorInput, IAuthRepository } from '../../core/repositories/IAuthRepository';
+import { LoginDeniedError } from '../../core/usecases/LoginUseCase';
 
 async function parseUser(response: Response): Promise<AuthUser | User | null> {
   if (response.status === 401) {
@@ -19,6 +20,10 @@ export class SupabaseAuthRepository implements IAuthRepository {
       credentials: 'include',
       body: JSON.stringify({ email, password }),
     });
+    if (response.status === 403) {
+      const body = (await response.json().catch(() => ({}))) as { error?: string };
+      throw new LoginDeniedError(body.error || 'Este atendente está desativado');
+    }
     if (!response.ok) {
       return null;
     }

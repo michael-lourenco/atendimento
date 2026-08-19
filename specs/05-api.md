@@ -90,7 +90,7 @@ Erros de rede: 500 com `message` genérico (sem vazar secrets nem stack). Com Ev
 
 ## Auth
 
-`POST /api/auth/login` — `{ email, password }` (Zod) → 200 usuário (sem token) + cookies; 400 body inválido; 401 inválido; 503 sem Supabase. A dica de env na UI de login cita só `NEXT_PUBLIC_SUPABASE_URL` e `NEXT_PUBLIC_SUPABASE_ANON_KEY`. **Não** citar `SUPABASE_SERVICE_ROLE_KEY` (só servidor). **Não** há rota de “esqueci a senha”: o reset é o e-mail do Auth no cliente (anon) — `08-supabase.md`.
+`POST /api/auth/login` — `{ email, password }` (Zod) → 200 usuário (sem token) + cookies; 400 body inválido; 401 inválido; 403 agente `offline`; 503 sem Supabase. A dica de env na UI de login cita só `NEXT_PUBLIC_SUPABASE_URL` e `NEXT_PUBLIC_SUPABASE_ANON_KEY`. **Não** citar `SUPABASE_SERVICE_ROLE_KEY` (só servidor). **Não** há rota de “esqueci a senha”: o reset é o e-mail do Auth no cliente (anon) — `08-supabase.md`.
 
 `POST /api/auth/logout` — encerra sessão.
 

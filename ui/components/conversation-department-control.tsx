@@ -10,6 +10,8 @@ type ConversationDepartmentControlProps = {
   departmentName?: string;
   departments: Department[];
   disabled?: boolean;
+  asItems?: boolean;
+  onClose?: () => void;
   onChanged?: () => void;
 };
 
@@ -19,6 +21,8 @@ export function ConversationDepartmentControl({
   departmentName,
   departments,
   disabled,
+  asItems,
+  onClose,
   onChanged,
 }: ConversationDepartmentControlProps) {
   const active = departments.filter((item) => item.isActive);
@@ -35,8 +39,42 @@ export function ConversationDepartmentControl({
     onChanged?.();
   };
 
+  const items = (close: () => void) => (
+    <>
+      <ActionMenuItem
+        active={!departmentId}
+        disabled={disabled}
+        onClick={() => {
+          void change('').then(close);
+        }}
+      >
+        Sem setor
+      </ActionMenuItem>
+      {active.map((department) => (
+        <ActionMenuItem
+          key={department.id}
+          active={department.id === departmentId}
+          disabled={disabled}
+          onClick={() => {
+            void change(department.id).then(close);
+          }}
+        >
+          <span
+            className="h-2 w-2 shrink-0 rounded-full"
+            style={{ backgroundColor: department.color }}
+          />
+          {department.name}
+        </ActionMenuItem>
+      ))}
+    </>
+  );
+
   if (active.length === 0) {
-    return <span className="text-xs text-muted-foreground">Cadastre um setor</span>;
+    return <span className="px-2 py-1.5 text-xs text-muted-foreground">Cadastre um setor</span>;
+  }
+
+  if (asItems) {
+    return items(onClose ?? (() => undefined));
   }
 
   return (
@@ -53,33 +91,7 @@ export function ConversationDepartmentControl({
         </span>
       }
     >
-      {(close) => (
-        <>
-          <ActionMenuItem
-            active={!departmentId}
-            onClick={() => {
-              void change('').then(close);
-            }}
-          >
-            Sem setor
-          </ActionMenuItem>
-          {active.map((department) => (
-            <ActionMenuItem
-              key={department.id}
-              active={department.id === departmentId}
-              onClick={() => {
-                void change(department.id).then(close);
-              }}
-            >
-              <span
-                className="h-2 w-2 shrink-0 rounded-full"
-                style={{ backgroundColor: department.color }}
-              />
-              {department.name}
-            </ActionMenuItem>
-          ))}
-        </>
-      )}
+      {(close) => items(close)}
     </ActionMenu>
   );
 }

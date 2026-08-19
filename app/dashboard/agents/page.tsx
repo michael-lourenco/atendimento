@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { Agent } from '@/core/entities/Agent';
 import { Department } from '@/core/entities/Department';
+import { canSetAgentOffline, operatorForAgent } from '@/core/entities/agentStatus';
 import { canChangeOperatorRole, canDeleteOperator } from '@/core/entities/operatorRole';
 import { User } from '@/core/entities/User';
 import { AgentCatalogUseCase } from '@/core/usecases/AgentCatalogUseCase';
@@ -27,14 +28,6 @@ import { emptyOperatorForm, OperatorForm, OperatorFormState } from './operator-f
 import { useCatalogSavedFlash } from '@/ui/lib/use-catalog-saved-flash';
 
 const catalog = () => new AgentCatalogUseCase();
-
-function operatorForAgent(agent: Agent, operators: User[]): User | undefined {
-  const email = agent.email.trim().toLowerCase();
-  return (
-    operators.find((item) => item.id === agent.id) ??
-    operators.find((item) => item.email.trim().toLowerCase() === email)
-  );
-}
 
 export default function AgentsPage() {
   const [agents, setAgents] = useState<Agent[]>([]);
@@ -156,6 +149,9 @@ export default function AgentsPage() {
           departments={departments}
           lastAdmin={lastAdmin}
           canSetPassword={Boolean(editingOperator)}
+          canSetOffline={Boolean(
+            editing && actor && canSetAgentOffline(actor, editing, agents, operators)
+          )}
           onChange={setForm}
           onSubmit={handleSubmit}
           onCancel={reset}
@@ -268,19 +264,29 @@ export default function AgentsPage() {
                             >
                               Excluir
                             </Button>
-                          ) : linked ? (
+                          ) : linked &&
+                            actor &&
+                            canSetAgentOffline(actor, agent, agents, operators) ? (
                             <Button
                               variant="outline"
                               size="sm"
                               onClick={async () => {
                                 if (!(await confirm('Desativar este atendente (offline)?'))) return;
-                                await catalog().save({ ...agent, status: 'offline' });
-                                load();
+                                try {
+                                  await catalog().save({ ...agent, status: 'offline' });
+                                  await load();
+                                } catch (error) {
+                                  setFormError(
+                                    error instanceof CreateOperatorError
+                                      ? error.message
+                                      : 'Não foi possível desativar'
+                                  );
+                                }
                               }}
                             >
                               Desativar
                             </Button>
-                          ) : (
+                          ) : linked ? null : (
                             <Button
                               variant="destructive"
                               size="sm"

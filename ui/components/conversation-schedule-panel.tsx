@@ -22,10 +22,25 @@ const catalog = () => new ScheduledMessageCatalogUseCase();
 
 type ConversationSchedulePanelProps = {
   conversation: Conversation;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+  hideTrigger?: boolean;
 };
 
-export function ConversationSchedulePanel({ conversation }: ConversationSchedulePanelProps) {
-  const [open, setOpen] = useState(false);
+export function ConversationSchedulePanel({
+  conversation,
+  open,
+  onOpenChange,
+  hideTrigger,
+}: ConversationSchedulePanelProps) {
+  const [internalOpen, setInternalOpen] = useState(false);
+  const isOpen = open ?? internalOpen;
+  const setOpen = (next: boolean) => {
+    if (open === undefined) {
+      setInternalOpen(next);
+    }
+    onOpenChange?.(next);
+  };
   const [items, setItems] = useState<ScheduledMessage[]>([]);
   const [message, setMessage] = useState('');
   const [scheduledDate, setScheduledDate] = useState(() => defaultScheduleDatetimeValue());
@@ -80,13 +95,22 @@ export function ConversationSchedulePanel({ conversation }: ConversationSchedule
   return (
     <div className="space-y-2">
       {dialog}
-      <Button type="button" size="sm" variant="outline" onClick={() => setOpen((current) => !current)}>
-        <CalendarClock className="mr-2 h-4 w-4" />
-        Agendar
-      </Button>
-      {open ? (
+      {!hideTrigger ? (
+        <Button type="button" size="sm" variant="outline" onClick={() => setOpen(!isOpen)}>
+          <CalendarClock className="mr-2 h-4 w-4" />
+          Agendar
+        </Button>
+      ) : null}
+      {isOpen ? (
         <div className="space-y-3 rounded-md border border-border p-3">
           <CatalogSavedNotice show={show} />
+          {hideTrigger ? (
+            <div className="flex justify-end">
+              <Button type="button" variant="ghost" size="sm" onClick={() => setOpen(false)}>
+                Fechar
+              </Button>
+            </div>
+          ) : null}
           <form onSubmit={(event) => void save(event)} className="space-y-3">
             <div className="space-y-1">
               <Label htmlFor="thread-schedule-when">Data/hora</Label>

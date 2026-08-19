@@ -4,6 +4,7 @@ import { Conversation } from '@/core/entities/Conversation';
 import { Department } from '@/core/entities/Department';
 import { WhatsAppNumber } from '@/core/entities/WhatsAppNumber';
 import {
+  conversationAvatarLetter,
   conversationDisplayName,
   conversationPreview,
   conversationPreviewIsOutgoing,
@@ -52,43 +53,51 @@ export function ConversationInboxList({
               type="button"
               onClick={() => onSelect(conversation)}
               className={cn(
-                'relative flex w-full flex-col gap-1 py-3 pl-4 pr-3 text-left transition-colors',
+                'relative flex w-full items-center gap-3 py-2 pl-4 pr-3 text-left transition-colors',
                 selected ? 'bg-muted' : 'hover:bg-muted/70'
               )}
             >
               <span className={cn('absolute inset-y-0 left-0 w-1', queueToneBar[tone])} />
-              <div className="flex items-start justify-between gap-2">
-                <span className="truncate font-medium text-foreground">
-                  {conversationDisplayName(conversation)}
-                </span>
-                <span className="shrink-0 text-xs text-muted-foreground">
-                  {mounted ? formatInboxTime(conversation.lastActivity) : ''}
-                </span>
+              <div
+                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary/90 text-sm font-semibold text-primary-foreground"
+                aria-hidden
+              >
+                {conversationAvatarLetter(conversationDisplayName(conversation))}
               </div>
-              <p className="flex min-w-0 items-center gap-1 text-sm text-muted-foreground">
-                {conversationPreviewIsOutgoing(conversation) && conversation.lastMessage ? (
-                  <MessageStatusTicks message={conversation.lastMessage} />
-                ) : null}
-                <span className="truncate">{conversationPreview(conversation)}</span>
-              </p>
-              <div className="flex items-center justify-between gap-2">
-                {conversation.departmentName ? (
-                  <span className="inline-flex items-center gap-1.5 truncate text-xs text-muted-foreground">
-                    <span
-                      className="h-2 w-2 shrink-0 rounded-full"
-                      style={{ backgroundColor: color || 'hsl(var(--accent))' }}
-                    />
-                    {conversation.departmentName}
-                    {lineName ? ` · ${lineName}` : ''}
+              <div className="min-w-0 flex-1">
+                <div className="flex items-start justify-between gap-2">
+                  <span className="truncate font-medium text-foreground">
+                    {conversationDisplayName(conversation)}
                   </span>
-                ) : (
-                  <span className="text-xs text-muted-foreground">{lineName || 'Sem setor'}</span>
-                )}
-                {conversation.unreadCount > 0 ? (
-                  <span className="rounded-full bg-primary px-1.5 py-0.5 text-[10px] font-semibold text-primary-foreground">
-                    {conversation.unreadCount}
+                  <span className="shrink-0 text-xs text-muted-foreground">
+                    {mounted ? formatInboxTime(conversation.lastActivity) : ''}
                   </span>
-                ) : null}
+                </div>
+                <p className="flex min-w-0 items-center gap-1 text-sm text-muted-foreground">
+                  {conversationPreviewIsOutgoing(conversation) && conversation.lastMessage ? (
+                    <MessageStatusTicks message={conversation.lastMessage} />
+                  ) : null}
+                  <span className="truncate">{conversationPreview(conversation)}</span>
+                </p>
+                <div className="flex items-center justify-between gap-2">
+                  {conversation.departmentName ? (
+                    <span className="inline-flex items-center gap-1.5 truncate text-xs text-muted-foreground">
+                      <span
+                        className="h-2 w-2 shrink-0 rounded-full"
+                        style={{ backgroundColor: color || 'hsl(var(--accent))' }}
+                      />
+                      {conversation.departmentName}
+                      {lineName ? ` · ${lineName}` : ''}
+                    </span>
+                  ) : (
+                    <span className="text-xs text-muted-foreground">{lineName || 'Sem setor'}</span>
+                  )}
+                  {conversation.unreadCount > 0 ? (
+                    <span className="rounded-full bg-primary px-1.5 py-0.5 text-[10px] font-semibold text-primary-foreground">
+                      {conversation.unreadCount}
+                    </span>
+                  ) : null}
+                </div>
               </div>
             </button>
           </li>

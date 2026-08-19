@@ -29,6 +29,13 @@ export function agentsForDepartment(agents: Agent[], departmentId?: string): Age
   return same.length > 0 ? same : agents;
 }
 
+export function agentsAvailableForTransfer(agents: Agent[], departmentId?: string): Agent[] {
+  return agentsForDepartment(
+    agents.filter((agent) => agent.status !== 'offline'),
+    departmentId
+  );
+}
+
 export function departmentNameOf(departments: Department[], departmentId?: string): string {
   if (!departmentId) {
     return '';
