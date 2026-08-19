@@ -210,7 +210,7 @@ export function MessageThread({ conversationId, onBack, onConversationChanged }:
         ) : null}
       </CardHeader>
       <CardContent className="flex min-h-0 flex-1 flex-col space-y-3">
-        <div className="min-h-0 flex-1 overflow-y-auto rounded-md border border-border p-4">
+        <div className="min-h-0 flex-1 overflow-y-auto rounded-md border border-border bg-chat p-4">
           {messages.length === 0 && !pendingSend ? (
             <p className="py-8 text-center text-sm text-muted-foreground">
               Nenhuma mensagem neste contato
@@ -225,10 +225,10 @@ export function MessageThread({ conversationId, onBack, onConversationChanged }:
                     className={`flex ${incoming ? 'justify-start' : 'justify-end'}`}
                   >
                     <div
-                      className={`max-w-[75%] rounded-2xl px-3 py-2 ${
+                      className={`max-w-[75%] rounded-2xl px-3 py-2 shadow-sm ${
                         incoming
-                          ? 'bg-muted text-foreground'
-                          : 'bg-accent text-accent-foreground'
+                          ? 'bg-bubble-in text-bubble-in-foreground'
+                          : 'bg-bubble-out text-bubble-out-foreground'
                       }`}
                     >
                       <MessageMedia
@@ -255,7 +255,7 @@ export function MessageThread({ conversationId, onBack, onConversationChanged }:
               })}
               {pendingSend ? (
                 <div className="flex justify-end">
-                  <div className="max-w-[75%] rounded-2xl bg-accent px-3 py-2 text-accent-foreground">
+                  <div className="max-w-[75%] rounded-2xl bg-bubble-out px-3 py-2 text-bubble-out-foreground shadow-sm">
                     <p className="whitespace-pre-wrap break-words text-sm">{pendingSend}</p>
                     <p className="mt-1 flex items-center justify-end gap-1 text-[11px] opacity-70">
                       <span>agora</span>

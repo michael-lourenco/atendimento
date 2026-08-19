@@ -47,7 +47,7 @@ class FakeAuth implements IAuthRepository {
     return [...this.users];
   }
   async createOperator(input: CreateOperatorInput) {
-    if (this.users.some((item) => item.email === input.email)) {
+    if (this.users.some((item) => item.email.trim().toLowerCase() === input.email.trim().toLowerCase())) {
       return null;
     }
     const user: User = {
@@ -67,6 +67,11 @@ class FakeAuth implements IAuthRepository {
     }
     user.role = role;
     return true;
+  }
+  async deleteOperator(id: string) {
+    const before = this.users.length;
+    this.users = this.users.filter((item) => item.id !== id);
+    return this.users.length < before;
   }
 }
 
@@ -108,5 +113,30 @@ describe('CreateOperatorUseCase', () => {
         { email: 'ana@x.com', password: 'secret1', name: 'Ana', role: 'user' }
       )
     ).rejects.toMatchObject({ status: 403 });
+  });
+
+  it('recusa e-mail já usado por outro agente', async () => {
+    const auth = new FakeAuth();
+    const agents = new MemoryAgents([
+      {
+        id: 'old',
+        name: 'Michael',
+        email: 'DevMichaelLourenco@gmail.com',
+        status: 'online',
+        conversationsCount: 0,
+        responseTime: '—',
+        createdAt: new Date('2026-08-19'),
+      },
+    ]);
+    await expect(
+      new CreateOperatorUseCase(auth, agents, new EnsureOperatorAgentUseCase(agents)).execute(admin, {
+        email: 'devmichaellourenco@gmail.com',
+        password: 'secret1',
+        name: 'Michael',
+        role: 'user',
+      })
+    ).rejects.toMatchObject({ status: 409, message: 'Este e-mail já está cadastrado' });
+    expect(auth.users).toHaveLength(1);
+    expect(agents.items).toHaveLength(1);
   });
 });

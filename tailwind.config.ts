@@ -54,6 +54,13 @@ const config = {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
         },
+        chat: "hsl(var(--chat))",
+        bubble: {
+          in: "hsl(var(--bubble-in))",
+          "in-foreground": "hsl(var(--bubble-in-foreground))",
+          out: "hsl(var(--bubble-out))",
+          "out-foreground": "hsl(var(--bubble-out-foreground))",
+        },
         // Cores customizadas do curriculum-michael
         'primary-color': 'var(--primary-color)',
         'primary-dark': 'var(--primary-dark-color)',

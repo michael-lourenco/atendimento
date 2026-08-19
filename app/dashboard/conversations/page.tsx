@@ -288,7 +288,7 @@ export default function ConversationsPage() {
               onConversationChanged={() => loadConversations()}
             />
           ) : (
-            <div className="flex h-full items-center justify-center rounded-lg border border-dashed border-border bg-card text-sm text-muted-foreground">
+            <div className="flex h-full items-center justify-center rounded-lg border border-dashed border-border bg-chat text-sm text-muted-foreground">
               Selecione uma conversa para atender
             </div>
           )}

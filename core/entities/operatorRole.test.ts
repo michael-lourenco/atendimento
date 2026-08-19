@@ -1,4 +1,4 @@
-import { canChangeOperatorRole, isAdmin } from './operatorRole';
+import { canChangeOperatorRole, canDeleteOperator, isAdmin } from './operatorRole';
 import { User } from './User';
 
 const admin: User = {
@@ -22,5 +22,16 @@ describe('operatorRole', () => {
       canChangeOperatorRole(admin, [admin, { ...admin, id: 'b', role: 'user' }], 'a', 'user')
     ).toBe(true);
     expect(canChangeOperatorRole({ ...admin, role: 'user' }, [admin], 'a', 'admin')).toBe(false);
+  });
+
+  it('não exclui o último admin', () => {
+    expect(canDeleteOperator(admin, [admin], 'a')).toBe(false);
+    expect(
+      canDeleteOperator(admin, [admin, { ...admin, id: 'b', role: 'admin', email: 'b@x.com' }], 'a')
+    ).toBe(true);
+    expect(
+      canDeleteOperator(admin, [admin, { ...admin, id: 'b', role: 'user', email: 'b@x.com' }], 'b')
+    ).toBe(true);
+    expect(canDeleteOperator({ ...admin, role: 'user' }, [admin], 'a')).toBe(false);
   });
 });

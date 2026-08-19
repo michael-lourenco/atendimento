@@ -3,10 +3,11 @@
 import { useEffect, useState } from 'react';
 import { Agent } from '@/core/entities/Agent';
 import { Department } from '@/core/entities/Department';
-import { canChangeOperatorRole } from '@/core/entities/operatorRole';
+import { canChangeOperatorRole, canDeleteOperator } from '@/core/entities/operatorRole';
 import { User } from '@/core/entities/User';
 import { AgentCatalogUseCase } from '@/core/usecases/AgentCatalogUseCase';
 import { CreateOperatorError, CreateOperatorUseCase } from '@/core/usecases/CreateOperatorUseCase';
+import { DeleteOperatorUseCase } from '@/core/usecases/DeleteOperatorUseCase';
 import { DepartmentCatalogUseCase } from '@/core/usecases/DepartmentCatalogUseCase';
 import { GetCurrentUserUseCase } from '@/core/usecases/GetCurrentUserUseCase';
 import { ListOperatorsUseCase } from '@/core/usecases/ListOperatorsUseCase';
@@ -130,6 +131,9 @@ export default function AgentsPage() {
     <div>
       {dialog}
       <CatalogSavedNotice show={show} />
+      {formError && !showForm ? (
+        <p className="mb-4 text-sm text-destructive">{formError}</p>
+      ) : null}
       <div className="mb-6 flex justify-between items-center">
         <p className="text-muted-foreground">
           Cada login já é um agente. O admin cadastra atendentes e define o papel.
@@ -239,7 +243,27 @@ export default function AgentsPage() {
                           >
                             Editar
                           </Button>
-                          {linked ? (
+                          {linked && actor && canDeleteOperator(actor, operators, linked.id) ? (
+                            <Button
+                              variant="destructive"
+                              size="sm"
+                              onClick={async () => {
+                                if (!(await confirm('Excluir este atendente? O login também some.'))) return;
+                                try {
+                                  await new DeleteOperatorUseCase().execute(actor, linked.id);
+                                  await load();
+                                } catch (error) {
+                                  setFormError(
+                                    error instanceof CreateOperatorError
+                                      ? error.message
+                                      : 'Não foi possível excluir'
+                                  );
+                                }
+                              }}
+                            >
+                              Excluir
+                            </Button>
+                          ) : linked ? (
                             <Button
                               variant="outline"
                               size="sm"

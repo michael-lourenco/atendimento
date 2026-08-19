@@ -53,7 +53,7 @@ export function ConversationInboxList({
               onClick={() => onSelect(conversation)}
               className={cn(
                 'relative flex w-full flex-col gap-1 py-3 pl-4 pr-3 text-left transition-colors',
-                selected ? 'bg-accent/15' : 'hover:bg-muted/60'
+                selected ? 'bg-muted' : 'hover:bg-muted/70'
               )}
             >
               <span className={cn('absolute inset-y-0 left-0 w-1', queueToneBar[tone])} />
@@ -85,7 +85,7 @@ export function ConversationInboxList({
                   <span className="text-xs text-muted-foreground">{lineName || 'Sem setor'}</span>
                 )}
                 {conversation.unreadCount > 0 ? (
-                  <span className="rounded-full bg-destructive px-1.5 py-0.5 text-[10px] font-semibold text-destructive-foreground">
+                  <span className="rounded-full bg-primary px-1.5 py-0.5 text-[10px] font-semibold text-primary-foreground">
                     {conversation.unreadCount}
                   </span>
                 ) : null}

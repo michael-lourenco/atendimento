@@ -88,7 +88,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ className, expanded, onToggle,
                     <span
                       className={cn(
                         'h-1.5 w-1.5 rounded-full',
-                        group.id === 'atendimento' ? 'bg-accent' : 'bg-muted-foreground/60'
+                        group.id === 'atendimento' ? 'bg-primary' : 'bg-muted-foreground/60'
                       )}
                     />
                     {group.label}
@@ -169,7 +169,7 @@ export const MobileSidebar: React.FC<MobileSidebarProps> = ({ isOpen, onClose, r
                   <span
                     className={cn(
                       'h-1.5 w-1.5 rounded-full',
-                      group.id === 'atendimento' ? 'bg-accent' : 'bg-muted-foreground/60'
+                      group.id === 'atendimento' ? 'bg-primary' : 'bg-muted-foreground/60'
                     )}
                   />
                   {group.label}

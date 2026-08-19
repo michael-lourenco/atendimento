@@ -68,4 +68,12 @@ export class SupabaseAuthRepository implements IAuthRepository {
     });
     return response.ok;
   }
+
+  async deleteOperator(id: string): Promise<boolean> {
+    const response = await fetch(`/api/operators/${id}`, {
+      method: 'DELETE',
+      credentials: 'include',
+    });
+    return response.ok;
+  }
 }

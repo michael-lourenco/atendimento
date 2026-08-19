@@ -26,6 +26,9 @@ class FakeAuth implements IAuthRepository {
   async setOperatorRole() {
     return false;
   }
+  async deleteOperator() {
+    return false;
+  }
 }
 
 const admin: AuthUser = {

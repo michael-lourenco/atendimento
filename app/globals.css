@@ -3,50 +3,53 @@
 @tailwind utilities;
 
 :root {
-  /* Sistema de cores do curriculum-michael - Light Mode */
-  --primary-color: #313c43;
-  --primary-dark-color: #1b2126;
-  --secondary-color: #5d6b74;
-  --secondary-dark-color: #2c383f;
-  --accent-color: #21b6bf;
-  --accent-dark-color: #1a9ba3;
-  --neutral-color: #1b2126;
-  --neutral-light-color: #7d8d96;
-  --background-color: #ffffff;
-  --surface-color: #f8f9fa;
-  --surface-hover-color: #e9ecef;
-  --border-color: #a4b3ba;
-  --text-primary-color: #1b2126;
-  --text-secondary-color: #5d6b74;
-  --text-muted-color: #7d8d96;
-  
-  /* Cores para shadcn/ui (HSL format) - Light Mode */
-  --background: 0 0% 100%;
-  --foreground: 210 20% 12%;
+  /* WhatsApp Web — light */
+  --primary-color: #008069;
+  --primary-dark-color: #046358;
+  --secondary-color: #667781;
+  --secondary-dark-color: #3b4a54;
+  --accent-color: #00a884;
+  --accent-dark-color: #008069;
+  --neutral-color: #111b21;
+  --neutral-light-color: #667781;
+  --background-color: #f0f2f5;
+  --surface-color: #ffffff;
+  --surface-hover-color: #f5f6f6;
+  --border-color: #e9edef;
+  --text-primary-color: #111b21;
+  --text-secondary-color: #667781;
+  --text-muted-color: #8696a0;
+
+  --background: 216 20% 95%;
+  --foreground: 206 32% 10%;
   --card: 0 0% 100%;
-  --card-foreground: 210 20% 12%;
+  --card-foreground: 206 32% 10%;
   --popover: 0 0% 100%;
-  --popover-foreground: 210 20% 12%;
-  --primary: 210 20% 25%;
+  --popover-foreground: 206 32% 10%;
+  --primary: 168 100% 33%;
   --primary-foreground: 0 0% 100%;
-  --secondary: 210 10% 96%;
-  --secondary-foreground: 210 20% 25%;
-  --muted: 210 10% 96%;
-  --muted-foreground: 210 10% 45%;
-  --accent: 182 70% 45%;
-  --accent-foreground: 0 0% 100%;
+  --secondary: 210 16% 96%;
+  --secondary-foreground: 206 32% 10%;
+  --muted: 210 16% 94%;
+  --muted-foreground: 202 12% 45%;
+  --accent: 168 45% 93%;
+  --accent-foreground: 169 100% 22%;
   --destructive: 0 84% 60%;
   --destructive-foreground: 0 0% 100%;
-  --border: 210 15% 75%;
-  --input: 210 15% 75%;
-  --ring: 182 70% 45%;
+  --border: 200 14% 88%;
+  --input: 200 14% 88%;
+  --ring: 168 100% 33%;
   --radius: 0.5rem;
-  
-  /* Sombras - Light Mode */
-  --shadow-sm: 0 1px 2px 0 rgb(27 33 38 / 0.05);
-  --shadow-md: 0 4px 6px -1px rgb(27 33 38 / 0.1), 0 2px 4px -2px rgb(27 33 38 / 0.1);
-  --shadow-lg: 0 10px 15px -3px rgb(27 33 38 / 0.1), 0 4px 6px -4px rgb(27 33 38 / 0.1);
-  --shadow-xl: 0 20px 25px -5px rgb(27 33 38 / 0.1), 0 8px 10px -6px rgb(27 33 38 / 0.1);
+  --chat: 37 29% 91%;
+  --bubble-in: 0 0% 100%;
+  --bubble-in-foreground: 206 32% 10%;
+  --bubble-out: 111 91% 91%;
+  --bubble-out-foreground: 206 32% 10%;
+
+  --shadow-sm: 0 1px 2px 0 rgb(17 27 33 / 0.06);
+  --shadow-md: 0 4px 6px -1px rgb(17 27 33 / 0.08), 0 2px 4px -2px rgb(17 27 33 / 0.06);
+  --shadow-lg: 0 10px 15px -3px rgb(17 27 33 / 0.08), 0 4px 6px -4px rgb(17 27 33 / 0.06);
+  --shadow-xl: 0 20px 25px -5px rgb(17 27 33 / 0.08), 0 8px 10px -6px rgb(17 27 33 / 0.06);
 }
 
 .dark {
@@ -87,7 +90,12 @@
   --border: 210 15% 35%;
   --input: 210 15% 35%;
   --ring: 182 70% 45%;
-  
+  --chat: 210 25% 12%;
+  --bubble-in: 210 20% 25%;
+  --bubble-in-foreground: 210 10% 98%;
+  --bubble-out: 182 70% 45%;
+  --bubble-out-foreground: 0 0% 100%;
+
   /* Sombras - Dark Mode */
   --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.3);
   --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.4), 0 2px 4px -2px rgb(0 0 0 / 0.4);

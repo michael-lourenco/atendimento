@@ -62,9 +62,12 @@ Runner: Jest + `ts-jest` (`npm test`). Testing Library só quando houver teste d
 - `core/entities/inboxFilterHint.test.ts` — quantas a aba tem vs o filtro
 - `core/engine/previewFlowOpening.test.ts` — primeiro “oi” vira bolhas da prévia
 - `core/entities/assignmentFromOperator.test.ts` — e-mail liga agente; senão linked false
-- `core/entities/operatorRole.test.ts` — admin; último admin não rebaixa
-- `core/usecases/EnsureOperatorAgentUseCase.test.ts` — cria agente com o id do perfil
-- `core/usecases/CreateOperatorUseCase.test.ts` — só admin cria; senha curta falha
+- `core/entities/operatorRole.test.ts` — admin; último admin não rebaixa nem exclui
+- `core/entities/uniqueAgentEmail.test.ts` — e-mail de agente único (trim + lower); ignora o próprio id
+- `core/usecases/EnsureOperatorAgentUseCase.test.ts` — cria agente com o id do perfil; e-mail já existente (outro id) não duplica
+- `core/usecases/CreateOperatorUseCase.test.ts` — só admin cria; senha curta falha; segundo cadastro com o mesmo e-mail → 409
+- `core/usecases/AgentCatalogUseCase.test.ts` — save recusa outro id com o mesmo e-mail
+- `core/usecases/DeleteOperatorUseCase.test.ts` — exclui login + agente; bloqueia último admin
 - `core/usecases/SetOperatorRoleUseCase.test.ts` — promove; bloqueia último admin
 - `ui/lib/emoji.test.ts` — insere emoji na posição do cursor e substitui a seleção; o mesmo helper insere `body` de resposta rápida (texto Unicode, inclusive com emoji)
 - `core/entities/QuickReply.test.ts` — lista ordenada pelo título

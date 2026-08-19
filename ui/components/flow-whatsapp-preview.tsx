@@ -8,7 +8,7 @@ type FlowWhatsAppPreviewProps = {
 export function FlowWhatsAppPreview({ steps }: FlowWhatsAppPreviewProps) {
   const replies = previewFlowOpening(steps);
   return (
-    <div className="space-y-2 rounded-md border border-border bg-muted/30 p-3">
+    <div className="space-y-2 rounded-md border border-border bg-chat p-3">
       <p className="text-xs font-medium text-muted-foreground">Como o cliente vê (primeiro oi)</p>
       {replies.length === 0 ? (
         <p className="text-sm text-muted-foreground">
@@ -19,7 +19,7 @@ export function FlowWhatsAppPreview({ steps }: FlowWhatsAppPreviewProps) {
           {replies.map((text, index) => (
             <div
               key={`${index}-${text.slice(0, 24)}`}
-              className="ml-8 whitespace-pre-wrap rounded-lg bg-accent px-3 py-2 text-sm text-accent-foreground"
+              className="ml-8 whitespace-pre-wrap rounded-lg bg-bubble-out px-3 py-2 text-sm text-bubble-out-foreground shadow-sm"
             >
               {text}
             </div>

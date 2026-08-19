@@ -19,3 +19,17 @@ export function canChangeOperatorRole(
   const admins = operators.filter((item) => item.role === 'admin');
   return !(admins.length === 1 && admins[0].id === targetId);
 }
+
+export function canDeleteOperator(actor: User, operators: User[], targetId: string): boolean {
+  if (!isAdmin(actor)) {
+    return false;
+  }
+  const target = operators.find((item) => item.id === targetId);
+  if (!target) {
+    return false;
+  }
+  if (target.role !== 'admin') {
+    return true;
+  }
+  return operators.filter((item) => item.role === 'admin').length > 1;
+}

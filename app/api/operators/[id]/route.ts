@@ -1,5 +1,5 @@
 import { NextRequest } from 'next/server';
-import { canChangeOperatorRole } from '@/core/entities/operatorRole';
+import { canChangeOperatorRole, canDeleteOperator } from '@/core/entities/operatorRole';
 import { User } from '@/core/entities/User';
 import { apiJson } from '@/infra/http/apiJson';
 import { logApiError } from '@/infra/http/apiLog';
@@ -10,6 +10,10 @@ import { asDate } from '@/infra/supabase/crud';
 import { isPublicSupabaseConfigured } from '@/infra/supabase/env';
 import { requireAdminUser } from '@/infra/supabase/requireAdmin';
 import { createCookieSupabase } from '@/infra/supabase/cookieClient';
+import {
+  createServiceRoleClient,
+  isServiceRoleConfigured,
+} from '@/infra/supabase/serviceRoleClient';
 
 function profileToUser(row: Record<string, unknown>): User {
   return {
@@ -58,4 +62,56 @@ export async function PATCH(
     logApiError(requestIdFrom(request), 'Erro ao alterar papel', error);
     return apiJson(request, { error: 'Erro ao alterar papel' }, { status: 500 });
   }
+}
+
+export async function DELETE(
+  request: NextRequest,
+  context: { params: Promise<{ id: string }> }
+) {
+  if (!isPublicSupabaseConfigured() || !isServiceRoleConfigured()) {
+    return apiJson(request, { error: 'Supabase não configurado' }, { status: 503 });
+  }
+  const gate = await requireAdminUser(request);
+  if ('response' in gate) {
+    return gate.response;
+  }
+  const { id } = await context.params;
+  const adminClient = createServiceRoleClient();
+  const { data, error } = await adminClient.from('profiles').select('*');
+  if (error) {
+    logApiError(requestIdFrom(request), 'Erro ao listar operadores', error);
+    return apiJson(request, { error: 'Erro ao excluir operador' }, { status: 500 });
+  }
+  const operators = (data ?? []).map((row) => profileToUser(row as Record<string, unknown>));
+  const target = operators.find((item) => item.id === id);
+  if (!target) {
+    return apiJson(request, { error: 'Operador não encontrado' }, { status: 404 });
+  }
+  if (!canDeleteOperator(gate.user, operators, id)) {
+    return apiJson(request, { error: 'Não é possível excluir o último admin' }, { status: 400 });
+  }
+  const email = target.email.trim().toLowerCase();
+  const { data: agentRows } = await adminClient.from('agents').select('id, email');
+  const agentIds = (agentRows ?? [])
+    .filter((row) => {
+      const agentId = String((row as { id?: string }).id ?? '');
+      const agentEmail = String((row as { email?: string }).email ?? '')
+        .trim()
+        .toLowerCase();
+      return agentId === id || agentEmail === email;
+    })
+    .map((row) => String((row as { id?: string }).id));
+  if (agentIds.length > 0) {
+    const { error: agentError } = await adminClient.from('agents').delete().in('id', agentIds);
+    if (agentError) {
+      logApiError(requestIdFrom(request), 'Erro ao excluir agente', agentError);
+      return apiJson(request, { error: 'Erro ao excluir operador' }, { status: 500 });
+    }
+  }
+  const { error: deleteError } = await adminClient.auth.admin.deleteUser(id);
+  if (deleteError) {
+    logApiError(requestIdFrom(request), 'Erro ao excluir operador', deleteError);
+    return apiJson(request, { error: 'Erro ao excluir operador' }, { status: 500 });
+  }
+  return apiJson(request, { ok: true });
 }

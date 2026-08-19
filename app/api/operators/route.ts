@@ -56,6 +56,16 @@ export async function POST(request: NextRequest) {
     const role = body.role === 'admin' ? 'admin' : 'user';
     const departmentId = body.departmentId?.trim() ?? '';
     const adminClient = createServiceRoleClient();
+    const [{ data: profileRows }, { data: agentRows }] = await Promise.all([
+      adminClient.from('profiles').select('email'),
+      adminClient.from('agents').select('email'),
+    ]);
+    const emailTaken = [...(profileRows ?? []), ...(agentRows ?? [])].some(
+      (row) => String((row as { email?: string }).email ?? '').trim().toLowerCase() === email
+    );
+    if (emailTaken) {
+      return apiJson(request, { error: 'E-mail já cadastrado' }, { status: 409 });
+    }
     const { data, error } = await adminClient.auth.admin.createUser({
       email,
       password: body.password,

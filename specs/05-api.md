@@ -15,7 +15,7 @@ Erros de servidor logam `[requestId] mensagem: detalhe`. **Não** logar: token, 
 
 ## Validação Zod (POST/PATCH com JSON)
 
-Bodies JSON das rotas abaixo passam por schema Zod na borda. Inválido → `400 { error: string }` (sem stack). GET sem body **não** precisa de Zod. Multipart de `POST /api/messages/send` continua no parser existente; o ramo JSON passa a usar Zod.
+Bodies JSON das rotas abaixo passam por schema Zod na borda. Inválido → `400 { error: string }` (sem stack). GET e DELETE sem body **não** precisam de Zod. Multipart de `POST /api/messages/send` continua no parser existente; o ramo JSON passa a usar Zod.
 
 | Rota | Schema (campos) |
 |------|-----------------|
@@ -98,8 +98,10 @@ Erros de rede: 500 com `message` genérico (sem vazar secrets nem stack). Com Ev
 
 `GET /api/operators` — lista `User[]`. Só admin. 401/403.
 
-`POST /api/operators` — `{ email, password, name, role?: "admin"|"user", departmentId? }` (Zod). Cria login (Auth) + perfil + agente. Senha mín. 6. 201 `User`. 400 body inválido. 409 e-mail duplicado. Só admin.
+`POST /api/operators` — `{ email, password, name, role?: "admin"|"user", departmentId? }` (Zod). Cria login (Auth) + perfil + agente. Senha mín. 6. 201 `User`. 400 body inválido. 409 e-mail duplicado (já existe em Auth, `profiles` ou `agents`, case-insensitive). Só admin.
 
 `PATCH /api/operators/{id}` — `{ role: "admin"|"user" }` (Zod). 400 se body inválido ou se for o último admin. Só admin.
 
-Sessão em cookie httpOnly. `POST /api/messages/send` → 401 sem sessão se o Supabase estiver configurado. `GET`/`POST /api/schedules/dispatch` aceita sessão **ou** Bearer `CRON_SECRET`. Webhooks **não** usam sessão de operador. `service_role` só no servidor (`serverLocator`). `POST /api/operators` usa `service_role` só para `auth.admin.createUser`.
+`DELETE /api/operators/{id}` — apaga Auth + perfil + agente. 400 se for o último admin. 404 se o id não existir. Só admin. `service_role` só no servidor para `auth.admin.deleteUser`.
+
+Sessão em cookie httpOnly. `POST /api/messages/send` → 401 sem sessão se o Supabase estiver configurado. `GET`/`POST /api/schedules/dispatch` aceita sessão **ou** Bearer `CRON_SECRET`. Webhooks **não** usam sessão de operador. `service_role` só no servidor (`serverLocator`). `POST /api/operators` usa `service_role` só para `auth.admin.createUser`. `DELETE /api/operators/{id}` usa `service_role` só para `auth.admin.deleteUser` e para apagar o agente.

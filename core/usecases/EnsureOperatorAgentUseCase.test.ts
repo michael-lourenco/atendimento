@@ -53,4 +53,24 @@ describe('EnsureOperatorAgentUseCase', () => {
     expect(agent.conversationsCount).toBe(3);
     expect(repo.items).toHaveLength(1);
   });
+
+  it('não duplica se o e-mail já existe com outro id', async () => {
+    const existing: Agent = {
+      id: 'agent-old',
+      name: 'Michael',
+      email: 'DevMichaelLourenco@gmail.com',
+      status: 'online',
+      conversationsCount: 1,
+      responseTime: '—',
+      createdAt: user.createdAt,
+    };
+    const repo = new MemoryAgents([existing]);
+    const agent = await new EnsureOperatorAgentUseCase(repo).execute({
+      ...user,
+      id: 'uuid-2',
+      email: 'devmichaellourenco@gmail.com',
+    });
+    expect(agent.id).toBe('agent-old');
+    expect(repo.items).toHaveLength(1);
+  });
 });

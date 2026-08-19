@@ -116,6 +116,16 @@ export class MockAuthRepository implements IAuthRepository {
     }
     return true;
   }
+
+  async deleteOperator(id: string): Promise<boolean> {
+    const before = this.users.length;
+    this.users = this.users.filter((item) => item.id !== id);
+    const stored = this.getCurrentUserFromStorage();
+    if (stored?.id === id) {
+      this.setCurrentUserToStorage(null);
+    }
+    return this.users.length < before;
+  }
 }
 
 export const mockAuthRepository = new MockAuthRepository();
