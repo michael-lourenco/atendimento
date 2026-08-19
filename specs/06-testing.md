@@ -53,6 +53,7 @@ Runner: Jest + `ts-jest` (`npm test`). Testing Library só quando houver teste d
 - `ui/lib/flow-step-copy.test.ts` — rótulo do passo sem expor id; resumo com o bloco recolhido
 - `ui/lib/inbox-notify.test.ts` — som só após a primeira carga, se não lidas sobem
 - `ui/lib/flow-path-map.test.ts` — ligações Depois / Se sim / Se não
+- `ui/lib/flow-canvas-graph.test.ts` — nós sem condições da pergunta; setas next/opção; `canvasPosition`; ligar/desligar handle
 - `core/entities/whatsappNumberLive.test.ts` — lista de Números inclui a sessão ao vivo (wid)
 - `core/usecases/SyncLiveWhatsAppNumberUseCase.test.ts` — primeira conexão grava; poll igual não regrava
 - `ui/lib/status-tone.test.ts` — fila entrada/esperando/finalizado; ligado/desligado

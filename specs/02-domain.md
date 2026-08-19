@@ -5,7 +5,7 @@
 | Entidade | Papel |
 |----------|--------|
 | `User` / `AuthUser` | Operador do painel (`admin` \| `user`) |
-| `Flow` + `FlowStep` | Automação: `message` \| `question` \| `condition` \| `action` (`setDepartment` ou `goToFlow`) |
+| `Flow` + `FlowStep` | Automação: `message` \| `question` \| `condition` \| `action` (`setDepartment` ou `goToFlow`). `canvasPosition` opcional (só o quadro do painel; o motor ignora) |
 | `FlowSession` | Passo atual do contato no fluxo |
 | `Message` | Mensagem WhatsApp (in/out, tipo, status) |
 | `Conversation` | Atendimento com contato, setor, agente, tags, status |

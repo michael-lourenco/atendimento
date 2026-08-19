@@ -1,18 +1,62 @@
 import { FlowStep } from '@/core/entities/Flow';
 
+export type AddFlowStepOptions = {
+  linkPrevious?: boolean;
+  canvasPosition?: { x: number; y: number };
+};
+
 export function addFlowStep(
   steps: FlowStep[],
   id = `step-${Date.now()}`,
-  type: FlowStep['type'] = 'message'
+  type: FlowStep['type'] = 'message',
+  options: AddFlowStepOptions = {}
 ): FlowStep[] {
-  const created = withStepType({ id, type: 'message', content: '' }, type);
+  const created = withStepType(
+    {
+      id,
+      type: 'message',
+      content: '',
+      ...(options.canvasPosition ? { canvasPosition: options.canvasPosition } : {}),
+    },
+    type
+  );
   if (steps.length === 0) {
     return [created];
+  }
+  if (options.linkPrevious === false) {
+    return [...steps, created];
   }
   const last = steps[steps.length - 1];
   const linked =
     last.type !== 'condition' && !last.nextStepId ? { ...last, nextStepId: id } : last;
   return [...steps.slice(0, -1), linked, created];
+}
+
+export type FlowAddKind = 'message' | 'question' | 'action' | 'goToFlow';
+
+export function addFlowKind(
+  steps: FlowStep[],
+  kind: FlowAddKind,
+  extras: AddFlowStepOptions = {}
+): FlowStep[] {
+  const type = kind === 'goToFlow' ? 'action' : kind;
+  const id = `step-${Date.now()}-${steps.length}`;
+  let next = addFlowStep(steps, id, type, extras);
+  if (kind === 'goToFlow') {
+    const last = next[next.length - 1];
+    next = [...next.slice(0, -1), { ...last, action: { type: 'goToFlow', flowId: '' } }];
+  }
+  return next;
+}
+
+export function moveStepToStart(steps: FlowStep[], stepId: string): FlowStep[] {
+  const index = steps.findIndex((step) => step.id === stepId);
+  if (index <= 0) {
+    return steps;
+  }
+  const next = [...steps];
+  const [item] = next.splice(index, 1);
+  return [item, ...next];
 }
 
 function clearStepRef(step: FlowStep, removedId: string): FlowStep {

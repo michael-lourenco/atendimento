@@ -1,5 +1,5 @@
 import { atendimentoInicialFlow, salesIntakeFlows } from '@/core/entities/atendimentoInicialFlow';
-import { optionBranchLabel, visibleFlowSteps, moveVisibleFlowStep } from './flow-step-outline';
+import { optionBranchLabel, visibleFlowSteps, moveVisibleFlowStep, removeVisibleFlowStep } from './flow-step-outline';
 
 const now = new Date('2026-08-19T12:00:00Z');
 
@@ -36,5 +36,15 @@ describe('moveVisibleFlowStep', () => {
     const moved = moveVisibleFlowStep(steps, 'menu', -1);
     expect(moved[0].id).toBe('menu');
     expect(moved[1].id).toBe('welcome');
+  });
+});
+
+describe('removeVisibleFlowStep', () => {
+  it('removes the question and its hidden option conditions', () => {
+    const steps = atendimentoInicialFlow(now).steps;
+    const hiddenBefore = steps.filter((step) => step.type === 'condition').length;
+    const next = removeVisibleFlowStep(steps, 'menu');
+    expect(next.some((step) => step.id === 'menu')).toBe(false);
+    expect(next.filter((step) => step.type === 'condition').length).toBeLessThan(hiddenBefore);
   });
 });

@@ -91,6 +91,14 @@ export default function FlowsPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    await saveFlow();
+  };
+
+  const saveFlow = async () => {
+    if (!formData.name.trim()) {
+      setError('Dê um nome ao fluxo.');
+      return;
+    }
     try {
       const saveFlowUseCase = new SaveFlowUseCase();
       const flow: Flow = {
@@ -103,6 +111,7 @@ export default function FlowsPage() {
         updatedAt: new Date(),
       };
       await saveFlowUseCase.execute(flow);
+      setError(null);
       setShowForm(false);
       setEditingFlow(null);
       setSteps([]);
@@ -160,12 +169,10 @@ export default function FlowsPage() {
           <CardHeader>
             <CardTitle>{editingFlow ? 'Editar Fluxo' : 'Novo Fluxo'}</CardTitle>
             <CardDescription>
-              {editingFlow
-                ? 'Clique num bloco para editar o que o cliente recebe. Salve no final.'
-                : 'Monte o roteiro: mensagem, pergunta ou setor. O cliente recebe nessa ordem.'}
+              Arraste os blocos no quadro, ligue as bolinhas e salve no final.
             </CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="space-y-4">
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="name">Nome</Label>
@@ -196,20 +203,23 @@ export default function FlowsPage() {
                 />
                 <Label htmlFor="isActive" className="cursor-pointer">Ativo</Label>
               </div>
-              <FlowStepsEditor
-                steps={steps}
-                departments={departments}
-                flows={flows}
-                currentFlowId={formData.id || editingFlow?.id}
-                onChange={setSteps}
-              />
-              <div className="sticky bottom-0 z-10 flex space-x-2 border-t border-border bg-card py-3">
-                <Button type="submit">Salvar fluxo</Button>
-                <Button type="button" variant="outline" onClick={handleCancel}>
-                  Cancelar
-                </Button>
-              </div>
             </form>
+            <FlowStepsEditor
+              key={formData.id || editingFlow?.id || 'new'}
+              steps={steps}
+              departments={departments}
+              flows={flows}
+              currentFlowId={formData.id || editingFlow?.id}
+              onChange={setSteps}
+            />
+            <div className="sticky bottom-0 z-10 flex space-x-2 border-t border-border bg-card py-3">
+              <Button type="button" onClick={() => void saveFlow()}>
+                Salvar fluxo
+              </Button>
+              <Button type="button" variant="outline" onClick={handleCancel}>
+                Cancelar
+              </Button>
+            </div>
           </CardContent>
         </Card>
       )}

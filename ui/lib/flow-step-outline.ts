@@ -1,5 +1,6 @@
 import { FlowStep } from '@/core/entities/Flow';
 import { conditionsOwnedByQuestion, trueStepIdForOption } from './flow-option-paths';
+import { removeFlowStep } from './flow-step-graph';
 import { END_STEP_LABEL, stepDisplayName } from './flow-step-copy';
 
 export function ownedConditionIds(steps: FlowStep[]): Set<string> {
@@ -59,5 +60,18 @@ export function moveVisibleFlowStep(
   const swap = next[from];
   next[from] = next[to];
   next[to] = swap;
+  return next;
+}
+
+export function removeVisibleFlowStep(steps: FlowStep[], stepId: string): FlowStep[] {
+  const step = steps.find((item) => item.id === stepId);
+  const ownedIds = step ? conditionsOwnedByQuestion(steps, step).map((item) => item.id) : [];
+  let next = steps;
+  for (const id of [...ownedIds, stepId]) {
+    const index = next.findIndex((item) => item.id === id);
+    if (index >= 0) {
+      next = removeFlowStep(next, index);
+    }
+  }
   return next;
 }

@@ -4,13 +4,15 @@ import { Flow, FlowStep } from '@/core/entities/Flow';
 import { Department } from '@/core/entities/Department';
 import { Button } from '@/ui/components/button';
 import { Label } from '@/ui/components/label';
-import { useEffect, useRef, useState } from 'react';
-import { addFlowStep, removeFlowStep } from '@/ui/lib/flow-step-graph';
+import { useEffect, useState } from 'react';
+import { addFlowKind, FlowAddKind, moveStepToStart } from '@/ui/lib/flow-step-graph';
+import { applyCanvasLayout, fallbackCanvasPosition } from '@/ui/lib/flow-canvas-layout';
 import { conditionsOwnedByQuestion } from '@/ui/lib/flow-option-paths';
-import { moveVisibleFlowStep, visibleFlowSteps } from '@/ui/lib/flow-step-outline';
-import { FlowPathMap } from '@/ui/components/flow-path-map';
+import { removeVisibleFlowStep, visibleFlowSteps } from '@/ui/lib/flow-step-outline';
 import { FlowWhatsAppPreview } from '@/ui/components/flow-whatsapp-preview';
 import { FlowStepCard } from '@/ui/components/flow-step-card';
+import { FlowCanvasBoard } from '@/ui/components/flow-canvas-board';
+import { FlowCanvasPalette } from '@/ui/components/flow-canvas-palette';
 
 type FlowStepsEditorProps = {
   steps: FlowStep[];
@@ -19,13 +21,6 @@ type FlowStepsEditorProps = {
   currentFlowId?: string;
   onChange: (steps: FlowStep[]) => void;
 };
-
-const ADD_KINDS = [
-  { kind: 'message', label: 'Mensagem' },
-  { kind: 'question', label: 'Pergunta' },
-  { kind: 'action', label: 'Definir setor' },
-  { kind: 'goToFlow', label: 'Ir para fluxo' },
-] as const;
 
 export function FlowStepsEditor({
   steps,
@@ -39,44 +34,36 @@ export function FlowStepsEditor({
     (item) => item.isActive && item.id !== currentFlowId && item.id !== 'preview'
   );
   const visible = visibleFlowSteps(steps);
-  const [expandedId, setExpandedId] = useState<string | null>(null);
-  const stepCountRef = useRef(steps.length);
+  const [selectedId, setSelectedId] = useState<string | null>(
+    () => visibleFlowSteps(steps)[0]?.step.id ?? null
+  );
 
   useEffect(() => {
-    if (expandedId && steps.some((step) => step.id === expandedId)) {
-      return;
+    if (selectedId && !steps.some((step) => step.id === selectedId)) {
+      setSelectedId(null);
     }
-    setExpandedId(visibleFlowSteps(steps)[0]?.step.id ?? null);
-  }, [steps, expandedId]);
+  }, [steps, selectedId]);
 
   useEffect(() => {
-    if (steps.length <= stepCountRef.current) {
-      stepCountRef.current = steps.length;
-      return;
-    }
-    stepCountRef.current = steps.length;
-    const last = steps[steps.length - 1];
-    if (!last) {
-      return;
-    }
-    document.getElementById(`flow-step-${last.id}`)?.scrollIntoView({
-      behavior: 'smooth',
-      block: 'center',
-    });
-  }, [steps]);
+    onChange(applyCanvasLayout(steps, false));
+    // Abre o fluxo: se não houver posição salva, organiza o quadro.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentFlowId]);
+
+  const selectedIndex = steps.findIndex((step) => step.id === selectedId);
+  const selected = selectedIndex >= 0 ? steps[selectedIndex] : null;
+  const selectedVisibleIndex = visible.findIndex((item) => item.step.id === selectedId);
 
   const patch = (index: number, next: FlowStep) => {
     onChange(steps.map((step, i) => (i === index ? next : step)));
   };
 
-  const add = (kind: (typeof ADD_KINDS)[number]['kind']) => {
-    const type = kind === 'goToFlow' ? 'action' : kind;
-    let next = addFlowStep(steps, undefined, type);
-    if (kind === 'goToFlow') {
-      const last = next[next.length - 1];
-      next = [...next.slice(0, -1), { ...last, action: { type: 'goToFlow', flowId: '' } }];
-    }
-    setExpandedId(next[next.length - 1]?.id ?? null);
+  const add = (kind: FlowAddKind) => {
+    const next = addFlowKind(steps, kind, {
+      linkPrevious: false,
+      canvasPosition: fallbackCanvasPosition(visible.length),
+    });
+    setSelectedId(next[next.length - 1]?.id ?? null);
     onChange(next);
   };
 
@@ -85,57 +72,73 @@ export function FlowStepsEditor({
       <div className="space-y-1">
         <Label>Roteiro no WhatsApp</Label>
         <p className="text-xs text-muted-foreground">
-          Clique num bloco para editar. Para reutilizar outro roteiro, use Ir para fluxo.
+          Arraste os blocos. Puxe a bolinha de um bloco até o próximo. Clique para editar o texto.
         </p>
       </div>
-      {steps.length === 0 ? (
-        <p className="text-sm text-muted-foreground">
-          Comece com uma mensagem de boas-vindas ou uma pergunta de menu.
-        </p>
-      ) : (
-        <>
-          <FlowWhatsAppPreview steps={steps} flows={jumpTargets} />
-          <details className="rounded-md border border-border p-3">
-            <summary className="cursor-pointer text-sm font-medium">Ver todas as ligações</summary>
-            <div className="mt-3">
-              <FlowPathMap steps={steps} departments={activeDepartments} flows={jumpTargets} />
-            </div>
-          </details>
-        </>
-      )}
-      {visible.map(({ step, index }, visibleIndex) => (
-        <FlowStepCard
-          key={step.id}
-          step={step}
-          index={index}
-          visibleIndex={visibleIndex}
-          visibleCount={visible.length}
-          steps={steps}
-          departments={activeDepartments}
-          flows={jumpTargets}
-          expanded={expandedId === step.id}
-          ownedConditions={conditionsOwnedByQuestion(steps, step)}
-          onToggle={() => setExpandedId((current) => (current === step.id ? null : step.id))}
-          onChange={onChange}
-          onPatch={(next) => patch(index, next)}
-          onPatchAt={patch}
-          onMove={(direction) => onChange(moveVisibleFlowStep(steps, step.id, direction))}
-          onRemove={() => onChange(removeFlowStep(steps, index))}
-        />
-      ))}
-      <div className="flex flex-wrap items-center gap-2">
-        <span className="text-xs text-muted-foreground">Adicionar</span>
-        {ADD_KINDS.map((item) => (
+      <FlowCanvasPalette onAdd={add} />
+      <div className="flex flex-wrap gap-2">
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          onClick={() => onChange(applyCanvasLayout(steps, true))}
+          disabled={visible.length === 0}
+        >
+          Organizar
+        </Button>
+        {selected && steps[0]?.id !== selected.id ? (
           <Button
-            key={item.kind}
             type="button"
             variant="outline"
             size="sm"
-            onClick={() => add(item.kind)}
+            onClick={() => onChange(moveStepToStart(steps, selected.id))}
           >
-            {item.label}
+            Começar por este bloco
           </Button>
-        ))}
+        ) : null}
+      </div>
+      <div className="grid gap-3 xl:grid-cols-[1fr_320px]">
+        <FlowCanvasBoard
+          steps={steps}
+          departments={activeDepartments}
+          flows={jumpTargets}
+          selectedId={selectedId}
+          fitSeed={currentFlowId || 'new'}
+          onChange={onChange}
+          onSelect={setSelectedId}
+        />
+        <div className="space-y-3">
+          <FlowWhatsAppPreview steps={steps} flows={jumpTargets} />
+          {selected && selectedIndex >= 0 ? (
+            <FlowStepCard
+              step={selected}
+              index={selectedIndex}
+              visibleIndex={selectedVisibleIndex >= 0 ? selectedVisibleIndex : selectedIndex}
+              visibleCount={visible.length}
+              steps={steps}
+              departments={activeDepartments}
+              flows={jumpTargets}
+              expanded
+              collapsible={false}
+              showReorder={false}
+              ownedConditions={conditionsOwnedByQuestion(steps, selected)}
+              onToggle={() => undefined}
+              onChange={onChange}
+              onPatch={(next) => patch(selectedIndex, next)}
+              onPatchAt={patch}
+              onMove={() => undefined}
+              onRemove={() => {
+                const next = removeVisibleFlowStep(steps, selected.id);
+                onChange(next);
+                setSelectedId(null);
+              }}
+            />
+          ) : (
+            <p className="rounded-md border border-dashed border-border p-3 text-sm text-muted-foreground">
+              Clique num bloco no quadro para editar o texto, as opções ou o destino.
+            </p>
+          )}
+        </div>
       </div>
     </div>
   );

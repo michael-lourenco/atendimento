@@ -3,6 +3,8 @@ export interface FlowStep {
   type: 'message' | 'question' | 'condition' | 'action';
   content: string;
   options?: string[];
+  /** Só o painel: posição no quadro. O motor ignora. */
+  canvasPosition?: { x: number; y: number };
   nextStepId?: string;
   action?:
     | { type: 'setDepartment'; departmentId: string }

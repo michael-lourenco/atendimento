@@ -1,5 +1,5 @@
 import { FlowStep } from '@/core/entities/Flow';
-import { addFlowStep, moveFlowStep, optionMatchesConditionValue, questionOptionsForCondition, removeFlowStep, withStepType } from './flow-step-graph';
+import { addFlowStep, addFlowKind, moveFlowStep, moveStepToStart, optionMatchesConditionValue, questionOptionsForCondition, removeFlowStep, withStepType } from './flow-step-graph';
 
 const message = (id: string, nextStepId?: string): FlowStep => ({
   id,
@@ -45,6 +45,29 @@ describe('addFlowStep', () => {
     };
     const next = addFlowStep([condition], 'b');
     expect(next[0].nextStepId).toBeUndefined();
+  });
+
+  it('skips linking when linkPrevious is false', () => {
+    const next = addFlowStep([message('a')], 'b', 'message', { linkPrevious: false });
+    expect(next[0].nextStepId).toBeUndefined();
+    expect(next[1].id).toBe('b');
+  });
+});
+
+describe('addFlowKind', () => {
+  it('creates a goToFlow action without linking the previous step', () => {
+    const next = addFlowKind([message('a')], 'goToFlow', { linkPrevious: false });
+    expect(next[0].nextStepId).toBeUndefined();
+    expect(next[1].action).toEqual({ type: 'goToFlow', flowId: '' });
+  });
+});
+
+describe('moveStepToStart', () => {
+  it('moves the chosen step to index 0', () => {
+    expect(moveStepToStart([message('a'), message('b')], 'b').map((step) => step.id)).toEqual([
+      'b',
+      'a',
+    ]);
   });
 });
 

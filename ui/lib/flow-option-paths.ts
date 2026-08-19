@@ -77,6 +77,33 @@ export function trueStepIdForOption(
   return match?.condition?.trueStepId ?? '';
 }
 
+export function setOptionTrueStepId(
+  steps: FlowStep[],
+  questionId: string,
+  option: string,
+  targetId: string
+): FlowStep[] {
+  const questionIndex = steps.findIndex((step) => step.id === questionId);
+  const question = steps[questionIndex];
+  if (!question || question.type !== 'question') {
+    return steps;
+  }
+  const next = hasCompleteOptionPaths(steps, questionIndex)
+    ? steps
+    : createOptionPaths(steps, questionIndex);
+  const match = conditionsOwnedByQuestion(next, next[questionIndex]).find((step) =>
+    conditionCoversOption(option, step.condition?.value ?? '')
+  );
+  if (!match?.condition) {
+    return next;
+  }
+  return next.map((step) =>
+    step.id === match.id
+      ? { ...step, condition: { ...match.condition!, trueStepId: targetId } }
+      : step
+  );
+}
+
 function makeCondition(id: string, option: string): FlowStep {
   return {
     id,

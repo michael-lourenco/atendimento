@@ -29,6 +29,8 @@ type FlowStepCardProps = {
   flows?: { id: string; isActive: boolean; name: string }[];
   expanded: boolean;
   ownedConditions: FlowStep[];
+  showReorder?: boolean;
+  collapsible?: boolean;
   onToggle: () => void;
   onChange: (steps: FlowStep[]) => void;
   onPatch: (next: FlowStep) => void;
@@ -47,6 +49,8 @@ export function FlowStepCard({
   flows = [],
   expanded,
   ownedConditions,
+  showReorder = true,
+  collapsible = true,
   onToggle,
   onChange,
   onPatch,
@@ -58,51 +62,65 @@ export function FlowStepCard({
   const jumpsToFlow = step.action?.type === 'goToFlow';
   const jumpTargets = flows.filter((item) => item.isActive);
 
+  const open = !collapsible || expanded;
+
   return (
     <div
       id={`flow-step-${step.id}`}
       className={`rounded-md border border-border border-l-4 ${flowStepToneBar[step.type]}`}
     >
       <div className="flex items-start gap-1 p-3">
-        <button
-          type="button"
-          className="min-w-0 flex-1 text-left"
-          onClick={onToggle}
-          aria-expanded={expanded}
-        >
-          <p className="text-sm font-medium text-foreground">
-            {stepDisplayName(step, visibleIndex, departments, flows)}
-          </p>
-          {!expanded ? (
-            <p className="mt-0.5 text-xs text-muted-foreground">
-              {stepCollapsedHint(step, departments, flows)} · clique para editar
+        {collapsible ? (
+          <button
+            type="button"
+            className="min-w-0 flex-1 text-left"
+            onClick={onToggle}
+            aria-expanded={expanded}
+          >
+            <p className="text-sm font-medium text-foreground">
+              {stepDisplayName(step, visibleIndex, departments, flows)}
             </p>
-          ) : null}
-        </button>
-        <Button
-          type="button"
-          variant="ghost"
-          size="icon"
-          className="h-8 w-8 shrink-0"
-          aria-label="Mover para cima"
-          disabled={visibleIndex === 0}
-          onClick={() => onMove(-1)}
-        >
-          <ChevronUp className="h-4 w-4" />
-        </Button>
-        <Button
-          type="button"
-          variant="ghost"
-          size="icon"
-          className="h-8 w-8 shrink-0"
-          aria-label="Mover para baixo"
-          disabled={visibleIndex === visibleCount - 1}
-          onClick={() => onMove(1)}
-        >
-          <ChevronDown className="h-4 w-4" />
-        </Button>
+            {!open ? (
+              <p className="mt-0.5 text-xs text-muted-foreground">
+                {stepCollapsedHint(step, departments, flows)} · clique para editar
+              </p>
+            ) : null}
+          </button>
+        ) : (
+          <div className="min-w-0 flex-1">
+            <p className="text-sm font-medium text-foreground">
+              {stepDisplayName(step, visibleIndex, departments, flows)}
+            </p>
+          </div>
+        )}
+        {showReorder ? (
+          <>
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 shrink-0"
+              aria-label="Mover para cima"
+              disabled={visibleIndex === 0}
+              onClick={() => onMove(-1)}
+            >
+              <ChevronUp className="h-4 w-4" />
+            </Button>
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 shrink-0"
+              aria-label="Mover para baixo"
+              disabled={visibleIndex === visibleCount - 1}
+              onClick={() => onMove(1)}
+            >
+              <ChevronDown className="h-4 w-4" />
+            </Button>
+          </>
+        ) : null}
       </div>
-      {expanded ? (
+      {open ? (
         <div className="space-y-3 border-t border-border p-3">
           {step.type !== 'action' && step.type !== 'condition' ? (
             <div className="space-y-1">

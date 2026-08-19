@@ -38,6 +38,14 @@ export const flowStepToneBar: Record<FlowStep['type'], string> = {
   action: 'border-l-emerald-500',
 };
 
+export const flowCanvasNodeBorder: Record<string, string> = {
+  message: 'border-sky-500',
+  question: 'border-amber-500',
+  condition: 'border-violet-500',
+  action: 'border-emerald-500',
+  goToFlow: 'border-sky-400',
+};
+
 export const flowPathLabelClass: Record<string, string> = {
   'Se sim': 'text-emerald-700 dark:text-emerald-400',
   'Se não': 'text-amber-700 dark:text-amber-400',

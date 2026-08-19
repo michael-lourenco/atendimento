@@ -5,7 +5,7 @@
 | Área | Tecnologia |
 |------|------------|
 | App | Next.js 15 (App Router), React 18, TypeScript strict |
-| UI | Tailwind + componentes em `ui/` (estilo shadcn/Radix) |
+| UI | Tailwind + componentes em `ui/` (estilo shadcn/Radix). Editor de fluxos: quadro `@xyflow/react` |
 | HTTP | Route Handlers em `app/api/**` |
 | Alias | `@/*` → raiz do projeto (`tsconfig.json`) |
 | Composição | `infra/adapters/ServiceLocator.ts` + `createMockRepositoryBag.ts` |

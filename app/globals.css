@@ -101,6 +101,27 @@
   --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.5), 0 8px 10px -6px rgb(0 0 0 / 0.4);
 }
 
+/* O quadro de fluxos não pode herdar a transição global — o arraste fica lento. */
+.flow-canvas,
+.flow-canvas * {
+  transition: none;
+}
+
+.flow-canvas .react-flow__attribution {
+  background: hsl(var(--card));
+  color: hsl(var(--muted-foreground));
+}
+
+.flow-canvas .react-flow__controls-button {
+  background: hsl(var(--card));
+  border-color: hsl(var(--border));
+  fill: hsl(var(--foreground));
+}
+
+.flow-canvas .react-flow__edge-text {
+  fill: hsl(var(--foreground));
+}
+
 @layer base {
   * {
     @apply border-border;

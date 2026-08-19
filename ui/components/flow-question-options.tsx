@@ -64,7 +64,8 @@ export function FlowQuestionOptions({
     <div className="space-y-3">
       <div className="space-y-2">
         <Label className="text-xs text-muted-foreground">
-          Opções (o cliente vê 1, 2, 3… e pode responder com o número ou o texto)
+          Opções (o cliente vê 1, 2, 3… e pode responder com o número ou o texto). No quadro, puxe a
+          bolinha da opção até o próximo bloco.
         </Label>
         {optionRows.map((option, optionIndex) => {
           const trimmed = option.trim();
