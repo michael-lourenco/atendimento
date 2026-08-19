@@ -41,6 +41,8 @@ Mídia (imagem, áudio, vídeo, documento): o webhook baixa o arquivo (`POST /ch
 
 `POST /api/messages/send` → `SendWhatsAppMessageUseCase`. JSON: `to`, `message`, opcional `type` (`text` \| `template`), `templateName`, `templateParams`. Multipart: `to`, `message` (legenda opcional), `file` (imagem/áudio/vídeo/documento, máx. 16 MB). Evolution envia via `sendMedia` / `sendWhatsAppAudio` e o arquivo vai ao bucket `media` em `messages/{id}`. Meta/Twilio recusam mídia nesta versão. Após sucesso, pausa o fluxo.
 
+`GET`/`POST /api/schedules/dispatch` → `DispatchDueScheduledMessagesUseCase` reutiliza o mesmo `SendWhatsAppMessageUseCase` (texto, `to` = telefone do agendamento) e pausa o fluxo de cada contato enviado. Cron HTTP (Vercel ou crontab) usa esta rota com `Authorization: Bearer CRON_SECRET`.
+
 ## BFF QR / status (`/api/chat-whatsapp/*`)
 
 Usado pela página `/dashboard/whatsapp` (QR + status; mensagens ficam em Conversas). O shape JSON permanece `{ qr, available, connected }` e `{ connected, qrAvailable, info }`.
@@ -54,7 +56,7 @@ Rotas proxy: `/api/chat-whatsapp/qr`, `/status`, `/messages`, `/messages/[userId
 
 ## Variáveis de ambiente (nunca commitar)
 
-**Comuns:** `WHATSAPP_PROVIDER`, `NEXT_PUBLIC_APP_URL`
+**Comuns:** `WHATSAPP_PROVIDER`, `NEXT_PUBLIC_APP_URL`, `CRON_SECRET` (Bearer do cron HTTP; não usar no cliente)
 
 **Meta:** `WHATSAPP_PHONE_NUMBER_ID`, `WHATSAPP_ACCESS_TOKEN`, `WHATSAPP_API_VERSION`, `WHATSAPP_VERIFY_TOKEN`
 

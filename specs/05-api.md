@@ -14,6 +14,17 @@ Route Handlers em `app/api/**/route.ts`. Sem inventar rotas que não estejam aqu
 - 401: sem sessão de operador quando o Supabase está configurado
 - 500: falha no provedor
 
+`GET` / `POST /api/schedules/dispatch`
+
+- Sem body
+- Envia os `ScheduledMessage` `pending` cuja `scheduledDate` já passou (`DispatchDueScheduledMessagesUseCase`)
+- 200: `{ sent: string[], failed: string[] }` (ids)
+- Auth: sessão de operador **ou** `Authorization: Bearer CRON_SECRET` (secret não vazio)
+- 401: Supabase configurado e nenhum dos dois
+- 500: falha ao ler/gravar agendamentos
+- Lock `inFlight` no processo: chamadas simultâneas no mesmo Node compartilham a execução
+- Cron Vercel: `vercel.json` chama `GET` a cada minuto (`CRON_SECRET` no host). `next dev` / `next start` (não Vercel) disparam no processo a cada 60s, sem HTTP
+
 `GET /api/messages/{id}/media`
 
 - Stream do arquivo (áudio/imagem/vídeo/documento) para o painel
@@ -52,4 +63,4 @@ Erros de rede: 500 com `message` (sem vazar secrets). Com Evolution, hint aponta
 
 `GET /api/auth/me` — 200 `User` ou 401.
 
-Sessão em cookie httpOnly. `POST /api/messages/send` → 401 sem sessão se o Supabase estiver configurado. Webhooks **não** usam sessão de operador. `service_role` só no servidor (`serverLocator`).
+Sessão em cookie httpOnly. `POST /api/messages/send` → 401 sem sessão se o Supabase estiver configurado. `GET`/`POST /api/schedules/dispatch` aceita sessão **ou** Bearer `CRON_SECRET`. Webhooks **não** usam sessão de operador. `service_role` só no servidor (`serverLocator`).

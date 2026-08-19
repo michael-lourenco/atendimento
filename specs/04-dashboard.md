@@ -29,7 +29,7 @@ Todas as rotas abaixo são **funcionais** (use case + mock). Nenhuma é vitrine.
 | `/dashboard/contacts` | catálogo | `IContactRepository` |
 | `/dashboard/numbers` | catálogo + sessão ao vivo (`SyncLiveWhatsAppNumberUseCase`) | `IWhatsAppNumberRepository` + `/api/chat-whatsapp/status` |
 | `/dashboard/tags` | catálogo | `ITagRepository` |
-| `/dashboard/schedules` | catálogo + picker de contato | `IScheduledMessageRepository` + `ContactCatalogUseCase` |
+| `/dashboard/schedules` | catálogo + picker + disparo na hora | `IScheduledMessageRepository` + `ContactCatalogUseCase` + cron / `POST /api/schedules/dispatch` |
 | `/dashboard/reports` | métricas + lista/gerar | mensagens/conversas + `IReportRepository` |
 
 Catálogo = `list` / `save` / `delete` via `CatalogUseCase` (subclasses no locator). Páginas **não** importam `infra/mocks`.
@@ -76,6 +76,8 @@ Enquanto o fluxo estiver pausado, a tela indica e oferece **Retomar chatbot**. S
 **Contatos**: `ContactCatalogUseCase.list()` preenche o catálogo a partir das mensagens já persistidas (telefone + nome quando houver).
 
 **Agendamentos:** o campo Contato **não** é texto livre. Busca no catálogo (nome ou telefone). Clicar escolhe o contato. Se o número com DDD (10 ou 11 dígitos) não existir, a lista oferece “Adicionar número”; nome opcional; grava no catálogo (`UpsertContactFromIncomingUseCase`) ao salvar. Telefone com 10–11 dígitos (sem 55) ganha prefixo `55`. A tabela mostra nome · telefone quando houver cadastro.
+
+Salvar um agendamento chama `POST /api/schedules/dispatch` na hora (no-op se a data ainda é futura). O vencido sai pelo **cron** (processo Next a cada 60s, ou `GET /api/schedules/dispatch` na Vercel), mesmo com o painel fechado. A tabela recarrega a cada `DASHBOARD_POLL_MS`: `pending` → `sent` / `failed`. WhatsApp precisa estar conectado; falha do provedor marca `failed`.
 
 **Cores de estado** (não substituem a cor cadastrada do setor/etiqueta): Entrada = âmbar (precisa pegar); Esperando = azul; Finalizado / inativo / offline = cinza; Conectado / online / ativo = verde; WhatsApp caído = vermelho; chatbot pausado = âmbar. Passos do fluxo: mensagem azul, pergunta âmbar, condição violeta, definir setor verde. Mapa: Se sim verde, Se não âmbar. Classes em `ui/lib/status-tone.ts`. Sem arco-íris no menu: só um ponto no grupo Atendimento vs Configuração.
 

@@ -49,6 +49,10 @@ Runner: Jest + `ts-jest` (`npm test`). Testing Library só quando houver teste d
 - `core/entities/messageStatus.test.ts` — ack Evolution → tiques; não rebaixa lida
 - `core/usecases/UpdateMessageStatusUseCase.test.ts` — avança sent→delivered
 - `infra/whatsapp/mapEvolutionStatus.test.ts` — MESSAGES_UPDATE
+- `core/entities/dueScheduledMessages.test.ts` — só pending com hora já passada
+- `core/usecases/DispatchDueScheduledMessagesUseCase.test.ts` — vencido envia; futuro não; vazio/provedor → failed
+- `infra/schedules/cronAuth.test.ts` — Bearer `CRON_SECRET`
+- `infra/schedules/shouldStartInProcessScheduleCron.test.ts` — não sobe em test / build / Vercel
 
 ## Próximos
 

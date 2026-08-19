@@ -1,6 +1,8 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { DASHBOARD_POLL_MS } from '@/ui/lib/dashboard-poll';
+import { dispatchDueSchedules } from '@/ui/lib/use-dispatch-due-schedules';
 import { ScheduledMessage } from '@/core/entities/ScheduledMessage';
 import { Contact } from '@/core/entities/Contact';
 import { ScheduledMessageCatalogUseCase } from '@/core/usecases/ScheduledMessageCatalogUseCase';
@@ -54,6 +56,8 @@ export default function SchedulesPage() {
 
   useEffect(() => {
     load();
+    const timer = setInterval(() => load(), DASHBOARD_POLL_MS);
+    return () => clearInterval(timer);
   }, []);
 
   const reset = () => {
@@ -77,6 +81,11 @@ export default function SchedulesPage() {
       status: editing?.status || 'pending',
       createdAt: editing?.createdAt || new Date(),
     });
+    try {
+      await dispatchDueSchedules();
+    } catch {
+      // o cron tenta de novo se esta chamada falhar
+    }
     reset();
     load();
   };
@@ -85,7 +94,7 @@ export default function SchedulesPage() {
     <div>
       {dialog}
       <div className="mb-6 flex justify-between items-center">
-        <p className="text-muted-foreground">Envio de mensagens para o futuro</p>
+        <p className="text-muted-foreground">Envio na hora marcada, mesmo com o painel fechado</p>
         <Button onClick={() => setShowForm(true)}>
           <Plus className="h-4 w-4 mr-2" />
           Novo Agendamento
@@ -150,7 +159,9 @@ export default function SchedulesPage() {
       <Card>
         <CardHeader>
           <CardTitle>Mensagens Agendadas</CardTitle>
-          <CardDescription>Visualize e gerencie suas mensagens agendadas</CardDescription>
+          <CardDescription>
+            Pendente até a hora chegar; Enviada ou Falhou depois do disparo
+          </CardDescription>
         </CardHeader>
         <CardContent>
           {schedules.length === 0 ? (

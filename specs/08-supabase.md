@@ -27,6 +27,7 @@ O domínio é relacional (conversa, contato, agente, `FlowSession`, mensagens). 
 - Login mock (`admin@example.com` / qualquer senha) **acaba**. Seed de um admin só via SQL/dashboard Supabase, não hardcoded na UI.
 - `LoginUseCase` / `GetCurrentUserUseCase` / `LogoutUseCase` permanecem; a página `/login` some a dica de usuários de teste.
 - `POST /api/messages/send` e demais rotas de operador exigem sessão válida (401 sem cookie).
+- `GET`/`POST /api/schedules/dispatch`: sessão de operador **ou** Bearer `CRON_SECRET` (cron HTTP; o job in-process não passa por HTTP).
 - Webhooks (`/api/webhook/*`) **não** usam sessão de operador; continuam verify token do provedor + client `service_role`.
 
 ## RLS (mínimo)
@@ -62,6 +63,7 @@ Bucket privado `media` para anexos WhatsApp na v1. Objetos em `messages/{id}`. O
 NEXT_PUBLIC_SUPABASE_URL=
 NEXT_PUBLIC_SUPABASE_ANON_KEY=
 SUPABASE_SERVICE_ROLE_KEY=
+CRON_SECRET=
 ```
 
 ## Fora desta fase

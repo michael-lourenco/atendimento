@@ -27,6 +27,7 @@ Spec: `08-supabase.md`.
 - Webhooks e envio usam `serverLocator` (`service_role`)
 - Painel usa `anon` + RLS via browser client
 - `POST /api/messages/send` exige sessão quando o Supabase está configurado
+- Agendamentos: cron in-process (60s) em `next dev`/`next start`; na Vercel, `GET /api/schedules/dispatch` (`vercel.json` + `CRON_SECRET`)
 
 ## Fase atual: 5
 

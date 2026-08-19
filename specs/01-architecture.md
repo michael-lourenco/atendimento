@@ -45,6 +45,8 @@ Use cases importam `serviceLocator` de `infra`. Aceitável na Fase 1. Ao persist
 
 Não simular dados em prod. Mocks só em `infra/mocks` e testes.
 
+`instrumentation.ts` sobe o cron de agendamentos no runtime Node (não Edge, não `next build`, não Vercel).
+
 ## Tamanho de código
 
 Arquivo ≤ 300 linhas; funções curtas e com uma responsabilidade. Dividir ao ultrapassar.

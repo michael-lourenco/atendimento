@@ -4,6 +4,7 @@ import { createMockRepositoryBag, RepositoryBag } from './createMockRepositoryBa
 import { isPublicSupabaseConfigured, isTestEnv } from '../supabase/env';
 import { createServiceRoleClient, isServiceRoleConfigured } from '../supabase/serviceRoleClient';
 import { createSupabaseDataBag } from '../supabase/createSupabaseDataBag';
+import { SupabaseMediaStorage } from '../supabase/SupabaseMediaStorage';
 import { mockAuthRepository } from '../mocks/MockAuthRepository';
 import { mockMediaStorage } from '../mocks/MockMediaStorage';
 import { createWhatsAppServiceFromEnv } from '../whatsapp/createFromEnv';

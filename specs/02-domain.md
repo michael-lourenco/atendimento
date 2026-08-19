@@ -40,6 +40,7 @@ Auth: `LoginUseCase`, `LogoutUseCase`, `GetCurrentUserUseCase`
 Fluxos: `GetAllFlowsUseCase`, `GetFlowByIdUseCase`, `SaveFlowUseCase`, `DeleteFlowUseCase`  
 Mensagens: `GetAllMessagesUseCase`, `GetMessagesByContactUseCase`  
 WhatsApp: `SendWhatsAppMessageUseCase`, `HandleIncomingWhatsAppMessageUseCase`, `UpsertConversationFromMessageUseCase`, `UpsertContactFromIncomingUseCase`, `SyncLiveWhatsAppNumberUseCase`, `UpdateMessageStatusUseCase`  
+Agendamentos: `ScheduledMessageCatalogUseCase`, `DispatchDueScheduledMessagesUseCase` (pendente com `scheduledDate <= agora` → envia, pausa o fluxo, marca `sent` ou `failed`)  
 Motor: `ProcessIncomingFlowUseCase` (incoming texto → respostas do fluxo)  
 Atendimento humano: `PauseContactFlowUseCase`, `ResumeContactFlowUseCase`, `GetFlowSessionUseCase`  
 Fila: `AssignConversationUseCase` (assumir → `waiting` + agente), `TransferConversationUseCase` (`transferred`), `CloseConversationUseCase` (`closed`), `MarkConversationReadUseCase` (`unreadCount: 0`), `SetConversationDepartmentUseCase` (`departmentId` / `departmentName`)
@@ -54,6 +55,7 @@ Fila: `AssignConversationUseCase` (assumir → `waiting` + agente), `TransferCon
 6. Uma sessão por `contactId`. Sem fluxo ativo: incoming é persistida e **nenhuma** resposta automática é enviada.
 7. No máximo 20 passos por turno (ciclo).
 8. Envio pelo painel (`POST /api/messages/send`) **pausa** a sessão (`paused: true`). Texto ou mídia (imagem/áudio/vídeo/documento). Mídia outgoing é cacheada em `IMediaStorage` (`messages/{id}`). Enquanto pausado, incoming é persistida e o motor **não** responde. `ResumeContactFlowUseCase` volta `paused: false` e zera `currentStepId` (próxima mensagem recomeça o fluxo). Respostas automáticas do motor **não** pausam.
+9. Agendamento `pending` com `scheduledDate <= agora` é enviado pelo mesmo `SendWhatsAppMessageUseCase` (`to` = telefone do contato). Sucesso → `sent` e pausa o fluxo; falha do provedor ou texto vazio → `failed`. Futuro permanece `pending`. O disparo **não** depende do painel: cron in-process a cada 60s em `next dev` / `next start` (exceto Vercel serverless); na Vercel, `GET /api/schedules/dispatch` via `vercel.json`. Salvar no painel ainda dispara na hora.
 
 ## FlowSession
 
