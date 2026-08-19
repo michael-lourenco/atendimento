@@ -21,6 +21,7 @@ import { Badge } from '@/ui/components/badge';
 import { useConfirm } from '@/ui/components/confirm-dialog';
 import { CatalogSavedNotice } from '@/ui/components/catalog-saved-notice';
 import { useCatalogSavedFlash } from '@/ui/lib/use-catalog-saved-flash';
+import { catalogPersistErrorMessage } from '@/ui/lib/catalog-persist-error';
 
 export default function FlowsPage() {
   const [flows, setFlows] = useState<Flow[]>([]);
@@ -37,6 +38,7 @@ export default function FlowsPage() {
   });
   const { confirm, dialog } = useConfirm();
   const { show, markSaved } = useCatalogSavedFlash();
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     void loadFlows(true);
@@ -67,9 +69,11 @@ export default function FlowsPage() {
     try {
       const deleteFlowUseCase = new DeleteFlowUseCase();
       await deleteFlowUseCase.execute(id);
+      setError(null);
       loadFlows();
     } catch (error) {
       console.error('Erro ao excluir fluxo:', error);
+      setError(catalogPersistErrorMessage(error, 'flows'));
     }
   };
 
@@ -139,6 +143,11 @@ export default function FlowsPage() {
     <div>
       {dialog}
       <CatalogSavedNotice show={show} />
+      {error ? (
+        <p className="mb-4 rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+          {error}
+        </p>
+      ) : null}
       <div className="mb-6 flex flex-wrap items-center justify-between gap-2">
         <p className="text-muted-foreground">
           O roteiro que o chatbot envia no WhatsApp. Só um fluxo ativo entra no ar.

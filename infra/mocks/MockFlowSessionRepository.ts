@@ -11,6 +11,14 @@ export class MockFlowSessionRepository implements IFlowSessionRepository {
   async save(session: FlowSession): Promise<void> {
     this.sessions.set(session.contactId, { ...session });
   }
+
+  async deleteByFlowId(flowId: string): Promise<void> {
+    for (const [contactId, session] of this.sessions) {
+      if (session.flowId === flowId) {
+        this.sessions.delete(contactId);
+      }
+    }
+  }
 }
 
 export const mockFlowSessionRepository = new MockFlowSessionRepository();

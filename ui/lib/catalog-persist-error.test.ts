@@ -10,4 +10,8 @@ describe('catalogPersistErrorMessage', () => {
   it('usa a mensagem do Error', () => {
     expect(catalogPersistErrorMessage(new Error('falhou'), 'tags')).toBe('falhou');
   });
+
+  it('explica FK de sessões ao excluir fluxo', () => {
+    expect(catalogPersistErrorMessage({ code: '23503' }, 'flows')).toContain('015_flow_delete_cascade');
+  });
 });

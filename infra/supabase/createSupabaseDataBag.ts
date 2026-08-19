@@ -113,6 +113,10 @@ function createSessionRepository(client: SupabaseClient): IFlowSessionRepository
       });
       if (error) throw error;
     },
+    async deleteByFlowId(flowId: string) {
+      const { error } = await client.from('flow_sessions').delete().eq('flow_id', flowId);
+      if (error) throw error;
+    },
   };
 }
 

@@ -1,12 +1,12 @@
 import { IFlowRepository } from '../../core/repositories/IFlowRepository';
 import { Flow } from '../../core/entities/Flow';
-import { atendimentoInicialFlow } from '../../core/entities/atendimentoInicialFlow';
+import { salesIntakeFlows } from '../../core/entities/atendimentoInicialFlow';
 
-const seeded = atendimentoInicialFlow(new Date('2024-01-01'));
+const seeded = salesIntakeFlows(new Date('2024-01-01'));
 
 export class MockFlowRepository implements IFlowRepository {
   private flows: Flow[] = [
-    seeded,
+    ...seeded,
     {
       id: 'suporte',
       name: 'Fluxo de Suporte',

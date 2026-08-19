@@ -1,9 +1,24 @@
 import { serviceLocator } from '../../infra/adapters/ServiceLocator';
+import { IFlowRepository } from '../repositories/IFlowRepository';
+import { IFlowSessionRepository } from '../repositories/IFlowSessionRepository';
+import { IChatbotRepository } from '../repositories/IChatbotRepository';
 
 export class DeleteFlowUseCase {
+  constructor(
+    private flows: IFlowRepository = serviceLocator.getFlowRepository(),
+    private sessions: IFlowSessionRepository = serviceLocator.getFlowSessionRepository(),
+    private chatbots: IChatbotRepository = serviceLocator.getChatbotRepository()
+  ) {}
+
   async execute(id: string): Promise<void> {
-    const repository = serviceLocator.getFlowRepository();
-    return repository.delete(id);
+    await this.sessions.deleteByFlowId(id);
+    const now = new Date();
+    const bots = await this.chatbots.getAll();
+    for (const bot of bots) {
+      if (bot.flowId === id) {
+        await this.chatbots.save({ ...bot, flowId: undefined, updatedAt: now });
+      }
+    }
+    await this.flows.delete(id);
   }
 }
-

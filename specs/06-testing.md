@@ -21,7 +21,7 @@ Runner: Jest + `ts-jest` (`npm test`). Testing Library só quando houver teste d
 - `core/engine/resolveQuestionChoice.test.ts` — `1` / `1.` viram a primeira opção; texto livre permanece
 - `core/usecases/ProcessIncomingFlowUseCase.test.ts` — envio via fake + persistência de sessão; pausado não responde; action grava setor da thread; duas linhas = duas sessões
 - `core/usecases/PauseContactFlowUseCase.test.ts` — pausa e retoma sessão da thread (`contactId` = `Conversation.id`)
-- `core/usecases/CatalogUseCase.test.ts` — list/save/delete (cobre o CRUD de `QuickReplyCatalogUseCase`; teste específico só se houver arquivo próprio — não é obrigatório)
+- `core/usecases/DeleteFlowUseCase.test.ts` — excluir fluxo remove sessões daquele roteiro e solta chatbot
 - `core/usecases/TransferConversationUseCase.test.ts` — status transferred
 - `core/usecases/AssignConversationUseCase.test.ts` — assumir (waiting) e finalizar (closed)
 - `core/usecases/MarkConversationReadUseCase.test.ts` — zera unreadCount
@@ -64,7 +64,7 @@ Runner: Jest + `ts-jest` (`npm test`). Testing Library só quando houver teste d
 - `core/usecases/DispatchDueScheduledMessagesUseCase.test.ts` — vencido envia; futuro não; vazio/provedor → failed; com `conversationId` o send/pause usam a thread
 - `core/entities/schedulesForConversation.test.ts` — lista da thread: `conversationId` bate; sem id, mesmo telefone
 - `core/entities/scheduleOutgoingLine.test.ts` — coluna Linha: `conversationId` fixa a thread; sem id, a mais recente do telefone
-- `core/entities/atendimentoInicialFlow.test.ts` — menu; contratar → Comercial; demo e cliente; opção inválida → miss + menu sem Olá; **número** da opção no menu
+- `core/entities/atendimentoInicialFlow.test.ts` — menu no `inicio`; saltos `goToFlow` para sistema/demo/cliente/comercial; contratar → Comercial; opção inválida → miss + menu sem Olá; **número** da opção no menu
 - `core/entities/inboxFilterHint.test.ts` — quantas a aba tem vs o filtro
 - `core/engine/previewFlowOpening.test.ts` — primeiro “oi” vira bolhas da prévia (opções numeradas); salto `goToFlow`
 - `core/entities/assignmentFromOperator.test.ts` — e-mail liga agente; senão linked false
@@ -79,7 +79,7 @@ Runner: Jest + `ts-jest` (`npm test`). Testing Library só quando houver teste d
 - `core/usecases/SetOperatorPasswordUseCase.test.ts` — só admin; senha curta falha; id inexistente 404
 - `ui/lib/emoji.test.ts` — insere emoji na posição do cursor e substitui a seleção; o mesmo helper insere `body` de resposta rápida (texto Unicode, inclusive com emoji)
 - `core/entities/QuickReply.test.ts` — lista ordenada pelo título
-- `ui/lib/catalog-persist-error.test.ts` — PGRST205 vira aviso de migration
+- `ui/lib/catalog-persist-error.test.ts` — PGRST205 vira aviso de migration; 23503 ao excluir fluxo
 - `ui/lib/catalog-load-phase.test.ts` — enquanto carrega não é empty state
 - `ui/lib/sidebar-nav.test.ts` — atendente vê Conversas, Contatos, `/dashboard/quick-replies` **e** `/dashboard/schedules`; `isAdminPath` dessas duas é false; admin vê Configuração. Sem Testing Library obrigatório para esta feature
 - `ui/lib/inbox-href.test.ts` — Contatos: uma thread → `?conversation=`; nenhuma → `?contact=`; várias → `?contact=` (o menu escolhe o id)

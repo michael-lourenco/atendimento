@@ -54,6 +54,13 @@ class InMemorySessionRepository implements IFlowSessionRepository {
   async save(session: FlowSession) {
     this.sessions.set(session.contactId, session);
   }
+  async deleteByFlowId(flowId: string) {
+    for (const [contactId, session] of this.sessions) {
+      if (session.flowId === flowId) {
+        this.sessions.delete(contactId);
+      }
+    }
+  }
 }
 
 class InMemoryMessageRepository implements IMessageRepository {
