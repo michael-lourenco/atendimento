@@ -1,6 +1,6 @@
 'use client';
 
-import { FLOW_STEP_MAX_DELAY_MS, FlowStep } from '@/core/entities/Flow';
+import { FlowStep } from '@/core/entities/Flow';
 import { Department } from '@/core/entities/Department';
 import { Button } from '@/ui/components/button';
 import { Label } from '@/ui/components/label';
@@ -8,8 +8,13 @@ import { Input } from '@/ui/components/input';
 import { Textarea } from '@/ui/components/textarea';
 import { FlowQuestionOptions } from '@/ui/components/flow-question-options';
 import { FlowStepActionFields } from '@/ui/components/flow-step-action-fields';
-import { flowSelectClass } from '@/ui/components/flow-next-step-select';
+import { FlowStepMediaFields } from '@/ui/components/flow-step-media-fields';
 import { stepDisplayName } from '@/ui/lib/flow-step-copy';
+import {
+  FLOW_STEP_MAX_DELAY_SECONDS,
+  flowStepDelayMsFromSeconds,
+  flowStepDelaySeconds,
+} from '@/ui/lib/flow-step-delay';
 
 type FlowStepInspectorProps = {
   step: FlowStep;
@@ -17,6 +22,10 @@ type FlowStepInspectorProps = {
   steps: FlowStep[];
   departments: Department[];
   flows: { id: string; isActive: boolean; name: string }[];
+  flowId?: string;
+  canAttachMedia?: boolean;
+  onEnsureSaved?: () => Promise<string | null>;
+  onPersisted?: (flowId: string) => void;
   onPatch: (next: FlowStep) => void;
   onOpenFlow?: (flowId: string) => void;
   onRemove: () => void;
@@ -28,6 +37,10 @@ export function FlowStepInspector({
   steps,
   departments,
   flows,
+  flowId,
+  canAttachMedia = false,
+  onEnsureSaved,
+  onPersisted,
   onPatch,
   onOpenFlow,
   onRemove,
@@ -52,35 +65,26 @@ export function FlowStepInspector({
       {step.type === 'message' ? (
         <div className="space-y-2">
           <div className="space-y-1">
-            <Label className="text-xs text-muted-foreground">Pausa antes (ms)</Label>
+            <Label className="text-xs text-muted-foreground">Pausa antes (segundos)</Label>
             <Input
               type="number"
               min={0}
-              max={FLOW_STEP_MAX_DELAY_MS}
-              value={step.delayMs ?? 0}
+              max={FLOW_STEP_MAX_DELAY_SECONDS}
+              step={0.1}
+              value={flowStepDelaySeconds(step.delayMs)}
               onChange={(event) =>
-                onPatch({ ...step, delayMs: Number(event.target.value) || 0 })
+                onPatch({ ...step, delayMs: flowStepDelayMsFromSeconds(event.target.value) })
               }
             />
           </div>
-          <div className="space-y-1">
-            <Label className="text-xs text-muted-foreground">Mídia (URL)</Label>
-            <Input
-              value={step.mediaUrl ?? ''}
-              onChange={(event) => onPatch({ ...step, mediaUrl: event.target.value })}
-            />
-            <select
-              className={flowSelectClass}
-              value={step.mediaKind ?? 'image'}
-              aria-label="Tipo da mídia"
-              onChange={(event) =>
-                onPatch({ ...step, mediaKind: event.target.value as 'image' | 'audio' })
-              }
-            >
-              <option value="image">Imagem</option>
-              <option value="audio">Áudio</option>
-            </select>
-          </div>
+          <FlowStepMediaFields
+            flowId={flowId}
+            canAttach={canAttachMedia}
+            step={step}
+            onPatch={onPatch}
+            onEnsureSaved={onEnsureSaved}
+            onPersisted={onPersisted}
+          />
         </div>
       ) : null}
       {step.type === 'question' ? (

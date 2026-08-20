@@ -48,6 +48,8 @@ export function liveWhatsAppNumberForCatalog(
     createdAt: match?.createdAt ?? now,
     ...(instanceName ? { instanceName } : {}),
     ...(match?.behavior ? { behavior: match.behavior } : {}),
+    ...(match?.flowId ? { flowId: match.flowId } : {}),
+    ...(match?.businessHours ? { businessHours: match.businessHours } : {}),
   };
 }
 

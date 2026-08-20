@@ -12,6 +12,7 @@ import { SendWhatsAppMessageUseCase } from './SendWhatsAppMessageUseCase';
 import { SetConversationDepartmentUseCase } from './SetConversationDepartmentUseCase';
 import { ProcessIncomingFlowUseCase } from './ProcessIncomingFlowUseCase';
 import { IChatbotRepository } from '../repositories/IChatbotRepository';
+import { IWhatsAppNumberRepository } from '../repositories/IWhatsAppNumberRepository';
 import { ZERO_BOT_BEHAVIOR } from '../entities/botBehavior';
 
 const now = new Date('2026-08-18T15:00:00Z');
@@ -416,5 +417,72 @@ describe('ProcessIncomingFlowUseCase', () => {
     await useCase.execute({ contactId: '5511999999999', text: 'oi' });
     expect(whatsApp.sent.map((item) => item.message)).toEqual(['FAQ olá', 'Dúvida?']);
     expect((await sessions.getByContactId('5511999999999'))?.flowId).toBe('faq');
+  });
+
+  it('entrada da linha sobrepõe o flowId do chatbot', async () => {
+    const suporte: Flow = {
+      id: 'suporte',
+      name: 'Suporte',
+      isActive: true,
+      createdAt: now,
+      updatedAt: now,
+      steps: [
+        { id: 'hi', type: 'message', content: 'Suporte olá', nextStepId: 'ask' },
+        { id: 'ask', type: 'question', content: 'Qual chamado?' },
+      ],
+    };
+    const chatbots: IChatbotRepository = {
+      getAll: async () => [
+        {
+          id: '1',
+          name: 'Bot',
+          isActive: true,
+          flowId: 'inicio',
+          messagesCount: 0,
+          createdAt: now,
+          updatedAt: now,
+          behavior: ZERO_BOT_BEHAVIOR,
+        },
+      ],
+      getById: async () => null,
+      save: async () => {},
+      delete: async () => {},
+    };
+    const numbers: IWhatsAppNumberRepository = {
+      getAll: async () => [
+        {
+          id: 'n-sup',
+          name: 'Suporte',
+          number: '5511000000002',
+          status: 'active',
+          provider: 'evolution',
+          instanceName: 'suporte',
+          flowId: 'suporte',
+          createdAt: now,
+        },
+      ],
+      getById: async () => null,
+      save: async () => {},
+      delete: async () => {},
+    };
+    const whatsApp = new FakeWhatsAppService();
+    const sessions = new InMemorySessionRepository();
+    const send = new SendWhatsAppMessageUseCase(whatsApp, new InMemoryMessageRepository());
+    const useCase = new ProcessIncomingFlowUseCase(
+      new InMemoryFlowRepository([sampleFlow, suporte]),
+      sessions,
+      send,
+      null,
+      null,
+      numbers,
+      chatbots
+    );
+    await useCase.execute({
+      contactId: '5511999999999',
+      text: 'oi',
+      instanceName: 'suporte',
+    });
+    expect(whatsApp.sent.map((item) => item.message)).toEqual(['Suporte olá', 'Qual chamado?']);
+    expect((await sessions.getByContactId('5511999999999'))?.flowId).toBe('suporte');
   });
 });

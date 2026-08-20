@@ -145,6 +145,11 @@ export function numberFromRow(row: Record<string, unknown>): WhatsAppNumber {
       row.behavior && typeof row.behavior === 'object'
         ? (row.behavior as WhatsAppNumber['behavior'])
         : undefined,
+    flowId: row.flow_id ? String(row.flow_id) : undefined,
+    businessHours:
+      row.business_hours && typeof row.business_hours === 'object'
+        ? (row.business_hours as WhatsAppNumber['businessHours'])
+        : undefined,
     createdAt: asDate(row.created_at),
   };
 }
@@ -158,6 +163,8 @@ export function numberToRow(number: WhatsAppNumber) {
     provider: number.provider,
     instance_name: number.instanceName ?? null,
     behavior: number.behavior ?? null,
+    flow_id: number.flowId ?? null,
+    business_hours: number.businessHours ?? null,
     created_at: number.createdAt.toISOString(),
   };
 }

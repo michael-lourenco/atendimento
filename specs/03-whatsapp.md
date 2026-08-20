@@ -48,6 +48,8 @@ Mídia (imagem, áudio, vídeo, documento): o webhook baixa o arquivo (`POST /ch
 
 `POST /api/messages/send` → `SendWhatsAppMessageUseCase`. JSON: `to`, `message`, opcional `conversationId`, `quotedMessageId`, `type` (`text` \| `template`), `templateName`, `templateParams`. Multipart: `to`, `message` (legenda opcional), `file` (imagem/áudio/vídeo/documento, máx. 16 MB), opcional `conversationId`, `quotedMessageId`. PTT do painel é o mesmo multipart com `file` de áudio (ogg/webm). `conversationId` escolhe a **linha** da thread (instância Evolution da conversa). Sem `conversationId`, resolve pela conversa do telefone (`to`) — a mais recente se houver várias. Evolution envia via `sendMedia` / `sendWhatsAppAudio` e o arquivo vai ao bucket `media` em `messages/{id}`. Meta/Twilio recusam mídia nesta versão. Após sucesso, pausa o fluxo **dessa thread**.
 
+Passo `message` do motor: o mesmo `SendWhatsAppMessageUseCase` com `media` em bytes. Sem rota de send nova. `loadFlowStepMedia` resolve URL `http(s)` pública **ou** objeto no Storage (`flows/{flowId}/{stepId}`) antes de chamar o send (`02-domain.md`).
+
 `POST /api/messages/read` → `MarkWhatsAppMessagesReadUseCase`. JSON: `{ conversationId }`. Incoming da linha ainda não `read` vão ao provedor e, se o envio ok, o status local vira `read`. Falha do provedor: 200 e **não** marca local (retry). Conversa inexistente: 404.
 
 `GET`/`POST /api/schedules/dispatch` → `DispatchDueScheduledMessagesUseCase` reutiliza o mesmo `SendWhatsAppMessageUseCase` (texto, `to` = telefone do agendamento) e pausa a sessão da conversa resolvida pelo telefone (a mais recente se houver várias). Cron HTTP (Vercel ou crontab) usa esta rota com `Authorization: Bearer CRON_SECRET`.

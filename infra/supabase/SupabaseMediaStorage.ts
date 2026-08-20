@@ -28,4 +28,11 @@ export class SupabaseMediaStorage implements IMediaStorage {
     const mimeType = data.type && data.type !== 'application/octet-stream' ? data.type : 'application/octet-stream';
     return { bytes, mimeType };
   }
+
+  async remove(path: string): Promise<void> {
+    const { error } = await this.client.storage.from(BUCKET).remove([path]);
+    if (error) {
+      throw error;
+    }
+  }
 }

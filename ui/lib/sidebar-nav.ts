@@ -47,7 +47,7 @@ export const sidebarGroups: SidebarGroup[] = [
     adminOnly: true,
     items: [
       { title: 'Fluxos', href: '/dashboard/flows', icon: Workflow },
-      { title: 'Chatbots', href: '/dashboard/chatbots', icon: Bot },
+      { title: 'Chatbot', href: '/dashboard/chatbots', icon: Bot },
       { title: 'Agentes', href: '/dashboard/agents', icon: UserCog },
       { title: 'Setores', href: '/dashboard/departments', icon: Building2 },
       { title: 'Números', href: '/dashboard/numbers', icon: Phone },

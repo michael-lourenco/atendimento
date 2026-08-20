@@ -6,6 +6,7 @@ import { IMessageRepository } from '../repositories/IMessageRepository';
 import { IConversationRepository } from '../repositories/IConversationRepository';
 import { IDepartmentRepository } from '../repositories/IDepartmentRepository';
 import { IChatbotRepository } from '../repositories/IChatbotRepository';
+import { IWhatsAppNumberRepository } from '../repositories/IWhatsAppNumberRepository';
 import { Message } from '../entities/Message';
 import {
   IWhatsAppService,
@@ -144,49 +145,105 @@ function salesDepartment(): IDepartmentRepository {
   };
 }
 
+function closedChatbots(): IChatbotRepository {
+  return {
+    getAll: async () => [
+      {
+        id: '1',
+        name: 'Bot',
+        isActive: true,
+        messagesCount: 0,
+        createdAt: now,
+        updatedAt: now,
+        behavior: ZERO_BOT_BEHAVIOR,
+        businessHours: {
+          enabled: true,
+          timezone: 'UTC',
+          days: [],
+          start: '08:00',
+          end: '18:00',
+          closedMessage: 'Estamos fechados agora.',
+        },
+      },
+    ],
+    getById: async () => null,
+    save: async () => {},
+    delete: async () => {},
+  };
+}
+
+function alwaysOpenLine(): IWhatsAppNumberRepository {
+  return {
+    getAll: async () => [
+      {
+        id: 'n-sup',
+        name: 'Suporte',
+        number: '5511000000002',
+        status: 'active',
+        provider: 'evolution',
+        instanceName: 'suporte',
+        businessHours: {
+          enabled: false,
+          timezone: 'UTC',
+          days: [],
+          start: '08:00',
+          end: '18:00',
+          closedMessage: '',
+        },
+        createdAt: now,
+      },
+    ],
+    getById: async () => null,
+    save: async () => {},
+    delete: async () => {},
+  };
+}
+
+function flowHarness(args: {
+  chatbots?: IChatbotRepository | null;
+  numbers?: IWhatsAppNumberRepository | null;
+  flows?: Flow[];
+  setDepartment?: SetConversationDepartmentUseCase | null;
+  departments?: IDepartmentRepository | null;
+  conversations?: IConversationRepository | null;
+}) {
+  const whatsApp = new FakeWhatsAppService();
+  const sessions = new InMemorySessionRepository();
+  const send = new SendWhatsAppMessageUseCase(whatsApp, new InMemoryMessageRepository());
+  const useCase = new ProcessIncomingFlowUseCase(
+    new InMemoryFlowRepository(args.flows ?? [sampleFlow]),
+    sessions,
+    send,
+    args.setDepartment ?? null,
+    args.departments ?? null,
+    args.numbers ?? null,
+    args.chatbots ?? null,
+    args.conversations ?? null
+  );
+  return { useCase, whatsApp, sessions };
+}
+
 describe('ProcessIncomingFlowUseCase horário e fila', () => {
   it('fora do expediente só avisa e não avança o fluxo', async () => {
-    const chatbots: IChatbotRepository = {
-      getAll: async () => [
-        {
-          id: '1',
-          name: 'Bot',
-          isActive: true,
-          messagesCount: 0,
-          createdAt: now,
-          updatedAt: now,
-          behavior: ZERO_BOT_BEHAVIOR,
-          businessHours: {
-            enabled: true,
-            timezone: 'UTC',
-            days: [],
-            start: '08:00',
-            end: '18:00',
-            closedMessage: 'Estamos fechados agora.',
-          },
-        },
-      ],
-      getById: async () => null,
-      save: async () => {},
-      delete: async () => {},
-    };
-    const whatsApp = new FakeWhatsAppService();
-    const sessions = new InMemorySessionRepository();
-    const send = new SendWhatsAppMessageUseCase(whatsApp, new InMemoryMessageRepository());
-    const useCase = new ProcessIncomingFlowUseCase(
-      new InMemoryFlowRepository([sampleFlow]),
-      sessions,
-      send,
-      null,
-      null,
-      null,
-      chatbots
-    );
+    const { useCase, whatsApp, sessions } = flowHarness({ chatbots: closedChatbots() });
     await useCase.execute({ contactId: '5511999999999', text: 'oi' });
     expect(whatsApp.sent.map((item) => item.message)).toEqual(['Estamos fechados agora.']);
     expect((await sessions.getByContactId('5511999999999'))?.outsideHoursNotified).toBe(true);
     await useCase.execute({ contactId: '5511999999999', text: 'oi de novo' });
     expect(whatsApp.sent).toHaveLength(1);
+  });
+
+  it('linha com expediente próprio atende mesmo com a empresa fechada', async () => {
+    const { useCase, whatsApp } = flowHarness({
+      chatbots: closedChatbots(),
+      numbers: alwaysOpenLine(),
+    });
+    await useCase.execute({
+      contactId: '5511999999999',
+      text: 'oi',
+      instanceName: 'suporte',
+    });
+    expect(whatsApp.sent.map((item) => item.message)).toEqual(['Olá', 'Qual área?']);
   });
 
   it('handoff acrescenta a posição na fila', async () => {
@@ -228,19 +285,12 @@ describe('ProcessIncomingFlowUseCase horário e fila', () => {
       },
     ];
     const store = conversationStore(conversations);
-    const whatsApp = new FakeWhatsAppService();
-    const sessions = new InMemorySessionRepository();
-    const send = new SendWhatsAppMessageUseCase(whatsApp, new InMemoryMessageRepository());
-    const useCase = new ProcessIncomingFlowUseCase(
-      new InMemoryFlowRepository([handoffFlow]),
-      sessions,
-      send,
-      new SetConversationDepartmentUseCase(store),
-      salesDepartment(),
-      null,
-      null,
-      store
-    );
+    const { useCase, whatsApp, sessions } = flowHarness({
+      flows: [handoffFlow],
+      setDepartment: new SetConversationDepartmentUseCase(store),
+      departments: salesDepartment(),
+      conversations: store,
+    });
     await useCase.execute({ contactId: '5511999999999', text: 'oi' });
     expect(whatsApp.sent.map((item) => item.message)).toEqual([
       'Um humano vem. Você é o 2 na fila.',

@@ -237,7 +237,11 @@ function createWhatsAppNumberRepository(client: SupabaseClient) {
     numberToRow
   );
   const save = (number: WhatsAppNumber) =>
-    upsertOmittingMissingColumns(client, 'whatsapp_numbers', numberToRow(number), ['behavior']);
+    upsertOmittingMissingColumns(client, 'whatsapp_numbers', numberToRow(number), [
+      'behavior',
+      'flow_id',
+      'business_hours',
+    ]);
   return {
     getAll: () => crud.getAll(),
     getById: (id: string) => crud.getById(id),

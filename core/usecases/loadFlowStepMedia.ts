@@ -1,12 +1,36 @@
 import { OutgoingMedia } from '../services/IWhatsAppService';
-
-const MAX_BYTES = 16 * 1024 * 1024;
+import {
+  IMediaStorage,
+  MAX_OUTGOING_MEDIA_BYTES,
+  flowStepStoragePathFromRef,
+} from '../services/IMediaStorage';
 
 export async function loadFlowStepMedia(
   url: string,
-  kind: 'image' | 'audio'
+  kind: 'image' | 'audio',
+  storage?: IMediaStorage | null
 ): Promise<OutgoingMedia | null> {
   const trimmed = url.trim();
+  const storedPath = flowStepStoragePathFromRef(trimmed);
+  if (storedPath) {
+    if (!storage) {
+      return null;
+    }
+    try {
+      const file = await storage.get(storedPath);
+      if (!file || file.bytes.byteLength === 0 || file.bytes.byteLength > MAX_OUTGOING_MEDIA_BYTES) {
+        return null;
+      }
+      const mimeType = file.mimeType || (kind === 'audio' ? 'audio/ogg' : 'image/jpeg');
+      return {
+        mimeType,
+        fileName: kind === 'audio' ? 'audio.ogg' : 'image.jpg',
+        bytes: file.bytes,
+      };
+    } catch {
+      return null;
+    }
+  }
   if (!/^https?:\/\//i.test(trimmed)) {
     return null;
   }
@@ -16,7 +40,7 @@ export async function loadFlowStepMedia(
       return null;
     }
     const bytes = new Uint8Array(await response.arrayBuffer());
-    if (bytes.byteLength === 0 || bytes.byteLength > MAX_BYTES) {
+    if (bytes.byteLength === 0 || bytes.byteLength > MAX_OUTGOING_MEDIA_BYTES) {
       return null;
     }
     const header = response.headers.get('content-type')?.split(';')[0]?.trim();

@@ -1,5 +1,14 @@
 import { assertNoOutgoingMedia } from './IWhatsAppService';
-import { contactAvatarApiHref, contactAvatarPath, mediaKindFromMime, quickReplyMediaApiHref, quickReplyMediaPath } from './IMediaStorage';
+import {
+  contactAvatarApiHref,
+  contactAvatarPath,
+  flowStepMediaApiHref,
+  flowStepMediaPath,
+  mediaKindFromMime,
+  quickReplyMediaApiHref,
+  quickReplyMediaPath,
+} from './IMediaStorage';
+import { MockMediaStorage } from '../../infra/mocks/MockMediaStorage';
 
 describe('mediaKindFromMime', () => {
   it('classifica image/audio/video/document', () => {
@@ -21,6 +30,27 @@ describe('quickReplyMediaPath', () => {
   it('href do áudio no painel', () => {
     expect(quickReplyMediaPath('qr-1')).toBe('quick-replies/qr-1');
     expect(quickReplyMediaApiHref('qr-1')).toBe('/api/quick-replies/qr-1/media');
+  });
+});
+
+describe('flowStepMediaPath', () => {
+  it('href da mídia do passo no painel', () => {
+    expect(flowStepMediaPath('inicio', 'welcome')).toBe('flows/inicio/welcome');
+    expect(flowStepMediaApiHref('inicio', 'welcome')).toBe(
+      '/api/flows/inicio/steps/welcome/media'
+    );
+  });
+});
+
+describe('IMediaStorage.remove', () => {
+  it('apaga o objeto', async () => {
+    const storage = new MockMediaStorage();
+    await storage.save('flows/inicio/welcome', {
+      bytes: new Uint8Array([1]),
+      mimeType: 'image/png',
+    });
+    await storage.remove('flows/inicio/welcome');
+    expect(await storage.get('flows/inicio/welcome')).toBeNull();
   });
 });
 

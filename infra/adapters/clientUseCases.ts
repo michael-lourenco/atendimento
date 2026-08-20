@@ -88,7 +88,8 @@ export const clientUseCases = {
     new DeleteFlowUseCase(
       serviceLocator.getFlowRepository(),
       serviceLocator.getFlowSessionRepository(),
-      serviceLocator.getChatbotRepository()
+      serviceLocator.getChatbotRepository(),
+      serviceLocator.getWhatsAppNumberRepository()
     ),
 
   conversations: () =>
@@ -112,7 +113,9 @@ export const clientUseCases = {
     new PauseContactFlowUseCase(
       serviceLocator.getFlowSessionRepository(),
       serviceLocator.getFlowRepository(),
-      serviceLocator.getChatbotRepository()
+      serviceLocator.getChatbotRepository(),
+      serviceLocator.getWhatsAppNumberRepository(),
+      serviceLocator.getConversationRepository()
     ),
   resumeContactFlow: () => new ResumeContactFlowUseCase(serviceLocator.getFlowSessionRepository()),
   setConversationDepartment: () =>

@@ -1,4 +1,5 @@
 import { FlowStep } from '../entities/Flow';
+import { isValidFlowStepMediaUrl } from '../services/IMediaStorage';
 import { trueStepIdForOption } from './flowOptionPaths';
 import { listQuestionOptions } from './questionOptions';
 import { visibleFlowSteps } from './visibleFlowSteps';
@@ -7,10 +8,6 @@ export type FlowHealthIssue = {
   stepId?: string;
   message: string;
 };
-
-function isHttpUrl(value: string): boolean {
-  return /^https?:\/\//i.test(value.trim());
-}
 
 function pointedStepIds(steps: FlowStep[]): Set<string> {
   const visible = new Set(visibleFlowSteps(steps).map(({ step }) => step.id));
@@ -94,7 +91,7 @@ export function flowHealthIssues(
       if (!step.content.trim() && !step.mediaUrl?.trim()) {
         issues.push({ stepId: step.id, message: 'Mensagem sem texto nem mídia' });
       }
-      if (step.mediaUrl?.trim() && !isHttpUrl(step.mediaUrl)) {
+      if (step.mediaUrl?.trim() && !isValidFlowStepMediaUrl(step.mediaUrl)) {
         issues.push({ stepId: step.id, message: 'URL de mídia inválida' });
       }
     }

@@ -94,6 +94,7 @@ class ServerLocator {
       {
         messages: repos.message,
         presence: new SendWhatsAppPresenceUseCase(whatsApp),
+        mediaStorage: this.getMediaStorage(),
       }
     );
     return new HandleIncomingWhatsAppMessageUseCase(

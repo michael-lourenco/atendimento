@@ -1,13 +1,13 @@
 'use client';
 
 import { Flow } from '@/core/entities/Flow';
-import { ChatbotFormState, entryFlowChoices } from '@/ui/lib/chatbot-form';
+import { ChatbotFormState } from '@/ui/lib/chatbot-form';
 import { BotBehaviorFields } from '@/ui/components/bot-behavior-fields';
 import { BusinessHoursFields } from '@/ui/components/business-hours-fields';
+import { EntryFlowSelect } from '@/ui/components/entry-flow-select';
 import { Input } from '@/ui/components/input';
 import { Label } from '@/ui/components/label';
 import { Textarea } from '@/ui/components/textarea';
-import Link from 'next/link';
 
 type ChatbotCompanyFieldsProps = {
   form: ChatbotFormState;
@@ -16,7 +16,6 @@ type ChatbotCompanyFieldsProps = {
 };
 
 export function ChatbotCompanyFields({ form, flows, onChange }: ChatbotCompanyFieldsProps) {
-  const choices = entryFlowChoices(flows, form.flowId);
   return (
     <>
       <div className="space-y-2">
@@ -46,29 +45,12 @@ export function ChatbotCompanyFields({ form, flows, onChange }: ChatbotCompanyFi
         />
         Ativo (desligado = o WhatsApp não responde sozinho)
       </label>
-      <div className="space-y-1">
-        <Label htmlFor="entry-flow">Fluxo de entrada</Label>
-        <select
-          id="entry-flow"
-          className="flex h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
-          value={form.flowId}
-          onChange={(event) => onChange({ ...form, flowId: event.target.value })}
-        >
-          {choices.length === 0 ? <option value="">Nenhum fluxo ativo</option> : null}
-          {choices.map((item) => (
-            <option key={item.id} value={item.id}>
-              {item.name}
-              {item.isActive ? '' : ' (inativo)'}
-            </option>
-          ))}
-        </select>
-        <p className="text-xs text-muted-foreground">
-          Contato novo começa neste roteiro.{' '}
-          <Link href="/dashboard/flows" className="underline">
-            Abrir Fluxos
-          </Link>
-        </p>
-      </div>
+      <EntryFlowSelect
+        value={form.flowId}
+        flows={flows}
+        hint="Contato novo nesta empresa começa neste roteiro."
+        onChange={(flowId) => onChange({ ...form, flowId })}
+      />
       <BusinessHoursFields value={form.hours} onChange={(hours) => onChange({ ...form, hours })} />
       <BotBehaviorFields
         value={form.behavior}

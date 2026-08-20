@@ -41,7 +41,13 @@ export async function POST(request: NextRequest) {
     const result = await useCase.execute(input);
 
     try {
-      await new PauseContactFlowUseCase(repos.flowSession, repos.flow, repos.chatbot).execute(
+      await new PauseContactFlowUseCase(
+        repos.flowSession,
+        repos.flow,
+        repos.chatbot,
+        repos.whatsAppNumber,
+        repos.conversation
+      ).execute(
         input.conversationId?.trim() || input.to
       );
     } catch (pauseError) {

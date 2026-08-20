@@ -39,6 +39,13 @@ export function catalogPersistErrorMessage(error: unknown, tableHint: string): s
     return 'Falta a coluna behavior no banco. Rode 024_bot_behavior.sql no SQL Editor do Supabase.';
   }
   if (code === 'PGRST204' && tableHint === 'whatsapp_numbers') {
+    const detail = errorMessage(error);
+    if (detail.includes('business_hours')) {
+      return 'Falta a coluna business_hours no banco. Rode 027_line_business_hours.sql no SQL Editor do Supabase.';
+    }
+    if (detail.includes('flow_id')) {
+      return 'Falta a coluna flow_id no banco. Rode 026_line_entry_flow.sql no SQL Editor do Supabase.';
+    }
     return 'Falta a coluna behavior no banco. Rode 025_line_bot_behavior.sql no SQL Editor do Supabase.';
   }
   if (code === 'PGRST204') {

@@ -1,14 +1,18 @@
 import { IFlowSessionRepository } from '../repositories/IFlowSessionRepository';
 import { IFlowRepository } from '../repositories/IFlowRepository';
 import { IChatbotRepository } from '../repositories/IChatbotRepository';
+import { IWhatsAppNumberRepository } from '../repositories/IWhatsAppNumberRepository';
+import { IConversationRepository } from '../repositories/IConversationRepository';
 import { resolveActiveFlow } from '../engine/resolveActiveFlow';
-import { companyChatbotFlowId } from '../entities/chatbotActive';
+import { resolveEntryFlowId } from '../entities/chatbotActive';
 
 export class PauseContactFlowUseCase {
   constructor(
     private sessions: IFlowSessionRepository,
     private flows: IFlowRepository,
-    private chatbots: IChatbotRepository | null = null
+    private chatbots: IChatbotRepository | null = null,
+    private numbers: IWhatsAppNumberRepository | null = null,
+    private conversations: IConversationRepository | null = null
   ) {}
 
   async execute(contactId: string): Promise<void> {
@@ -28,8 +32,13 @@ export class PauseContactFlowUseCase {
     }
 
     const bots = this.chatbots ? await this.chatbots.getAll() : [];
+    const conversation = this.conversations ? await this.conversations.getById(phone) : null;
+    const line =
+      conversation?.whatsappNumberId && this.numbers
+        ? await this.numbers.getById(conversation.whatsappNumberId)
+        : null;
     const flow = resolveActiveFlow(await this.flows.getAll(), {
-      entryFlowId: companyChatbotFlowId(bots),
+      entryFlowId: resolveEntryFlowId({ bots, lineFlowId: line?.flowId }),
     });
     if (!flow) {
       return;

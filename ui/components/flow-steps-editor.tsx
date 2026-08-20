@@ -14,6 +14,7 @@ import {
 import { applyCanvasLayout, fallbackCanvasPosition } from '@/ui/lib/flow-canvas-layout';
 import { removeVisibleFlowStep, visibleFlowSteps } from '@/ui/lib/flow-step-outline';
 import { flowHealthIssues } from '@/ui/lib/flow-health';
+import { FlowHealthIssueList } from '@/ui/components/flow-health-issue-list';
 import { FlowSimulator } from '@/ui/components/flow-simulator';
 import { FlowStepInspector } from '@/ui/components/flow-step-inspector';
 import { FlowCanvasBoard } from '@/ui/components/flow-canvas-board';
@@ -24,8 +25,11 @@ type FlowStepsEditorProps = {
   departments: Department[];
   flows?: Flow[];
   currentFlowId?: string;
+  savedStepIds?: string[];
   onChange: (steps: FlowStep[]) => void;
   onOpenFlow?: (flowId: string) => void;
+  onEnsureSaved?: () => Promise<string | null>;
+  onPersisted?: (flowId: string) => void;
 };
 
 export function FlowStepsEditor({
@@ -33,8 +37,11 @@ export function FlowStepsEditor({
   departments,
   flows = [],
   currentFlowId,
+  savedStepIds = [],
   onChange,
   onOpenFlow,
+  onEnsureSaved,
+  onPersisted,
 }: FlowStepsEditorProps) {
   const activeDepartments = departments.filter((item) => item.isActive);
   const jumpTargets = flows.filter(
@@ -44,6 +51,7 @@ export function FlowStepsEditor({
   const issues = flowHealthIssues(steps, jumpTargets);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [simulateOpen, setSimulateOpen] = useState(false);
+  const [focusToken, setFocusToken] = useState(0);
 
   useEffect(() => {
     if (selectedId && !steps.some((step) => step.id === selectedId)) {
@@ -81,11 +89,14 @@ export function FlowStepsEditor({
           Arraste os blocos. Puxe a bolinha até o próximo. Clique para editar.
         </p>
       </div>
-      {issues.length > 0 ? (
-        <p className="rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive">
-          {issues.length === 1 ? issues[0].message : `${issues.length} problemas no roteiro`}
-        </p>
-      ) : null}
+      <FlowHealthIssueList
+        issues={issues}
+        onSelect={(stepId) => {
+          setSimulateOpen(false);
+          setSelectedId(stepId);
+          setFocusToken((token) => token + 1);
+        }}
+      />
       <FlowCanvasPalette onAdd={add} />
       <div className="flex flex-wrap gap-2">
         <Button
@@ -137,6 +148,8 @@ export function FlowStepsEditor({
           flows={jumpTargets}
           selectedId={selectedId}
           fitSeed={currentFlowId || 'new'}
+          focusNodeId={selectedId}
+          focusToken={focusToken}
           onChange={onChange}
           onSelect={setSelectedId}
         />
@@ -180,6 +193,12 @@ export function FlowStepsEditor({
                   steps={steps}
                   departments={activeDepartments}
                   flows={jumpTargets}
+                  flowId={currentFlowId}
+                  canAttachMedia={Boolean(
+                    currentFlowId && savedStepIds.includes(selected.id)
+                  )}
+                  onEnsureSaved={onEnsureSaved}
+                  onPersisted={onPersisted}
                   onPatch={(next) => patch(selectedIndex, next)}
                   onOpenFlow={onOpenFlow}
                   onRemove={() => {

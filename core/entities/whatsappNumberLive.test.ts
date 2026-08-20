@@ -92,8 +92,16 @@ describe('mergeWhatsAppNumbersWithLive', () => {
   });
 
   it('atualiza o cadastro que já tem o mesmo número', () => {
+    const hours = {
+      enabled: false,
+      timezone: 'UTC',
+      days: [] as number[],
+      start: '08:00',
+      end: '18:00',
+      closedMessage: '',
+    };
     const rows = mergeWhatsAppNumbersWithLive(
-      [catalogRow({ behavior: { replyDelayMs: 200 } })],
+      [catalogRow({ behavior: { replyDelayMs: 200 }, flowId: 'faq', businessHours: hours })],
       live
     );
     expect(rows).toHaveLength(1);
@@ -101,5 +109,7 @@ describe('mergeWhatsAppNumbersWithLive', () => {
     expect(rows[0].status).toBe('active');
     expect(rows[0].name).toBe('Atimo');
     expect(rows[0].behavior).toEqual({ replyDelayMs: 200 });
+    expect(rows[0].flowId).toBe('faq');
+    expect(rows[0].businessHours).toEqual(hours);
   });
 });

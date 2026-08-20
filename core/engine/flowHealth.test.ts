@@ -29,4 +29,30 @@ describe('flowHealthIssues', () => {
       true
     );
   });
+
+  it('aceita path e href de Storage no passo message', () => {
+    expect(
+      flowHealthIssues([
+        { id: 'a', type: 'message', content: '', mediaUrl: 'flows/inicio/welcome' },
+      ]).some((issue) => issue.message === 'URL de mídia inválida')
+    ).toBe(false);
+    expect(
+      flowHealthIssues([
+        {
+          id: 'a',
+          type: 'message',
+          content: 'oi',
+          mediaUrl: '/api/flows/inicio/steps/welcome/media',
+        },
+      ]).some((issue) => issue.message === 'URL de mídia inválida')
+    ).toBe(false);
+  });
+
+  it('valor solto continua URL de mídia inválida', () => {
+    expect(
+      flowHealthIssues([
+        { id: 'a', type: 'message', content: 'oi', mediaUrl: 'arquivo.png' },
+      ]).some((issue) => issue.message === 'URL de mídia inválida')
+    ).toBe(true);
+  });
 });

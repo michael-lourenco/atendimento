@@ -10,6 +10,10 @@ export class MockMediaStorage implements IMediaStorage {
   async get(path: string): Promise<StoredMedia | null> {
     return this.files.get(path) ?? null;
   }
+
+  async remove(path: string): Promise<void> {
+    this.files.delete(path);
+  }
 }
 
 export const mockMediaStorage = new MockMediaStorage();

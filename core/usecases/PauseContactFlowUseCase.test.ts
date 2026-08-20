@@ -110,4 +110,74 @@ describe('PauseContactFlowUseCase / ResumeContactFlowUseCase', () => {
     await pause.execute('5521982790723');
     expect((await sessions.getByContactId('5521982790723'))?.flowId).toBe('faq');
   });
+
+  it('sem sessão na linha usa o fluxo da linha', async () => {
+    const faq: Flow = { ...sampleFlow, id: 'faq', name: 'FAQ' };
+    const chatbots: IChatbotRepository = {
+      getAll: async () =>
+        [
+          {
+            id: '1',
+            name: 'Bot',
+            isActive: true,
+            flowId: 'inicio',
+            messagesCount: 0,
+            createdAt: now,
+            updatedAt: now,
+          },
+        ] satisfies Chatbot[],
+      getById: async () => null,
+      save: async () => {},
+      delete: async () => {},
+    };
+    const numbers = {
+      getAll: async () => [],
+      getById: async (id: string) =>
+        id === 'n-sup'
+          ? {
+              id: 'n-sup',
+              name: 'Suporte',
+              number: '5511',
+              status: 'active' as const,
+              provider: 'evolution',
+              flowId: 'faq',
+              createdAt: now,
+            }
+          : null,
+      save: async () => {},
+      delete: async () => {},
+    };
+    const conversations = {
+      getAll: async () => [],
+      getById: async (id: string) =>
+        id === 'thread-1'
+          ? {
+              id: 'thread-1',
+              contactId: '5521982790723',
+              contactName: 'Cliente',
+              contactPhone: '5521982790723',
+              status: 'open' as const,
+              unreadCount: 0,
+              lastActivity: now,
+              createdAt: now,
+              tags: [],
+              whatsappNumberId: 'n-sup',
+            }
+          : null,
+      getByDepartment: async () => [],
+      getByAgent: async () => [],
+      save: async () => {},
+      delete: async () => {},
+    };
+    const sessions = new InMemorySessionRepository();
+    const pause = new PauseContactFlowUseCase(
+      sessions,
+      new InMemoryFlowRepository([sampleFlow, faq]),
+      chatbots,
+      numbers,
+      conversations
+    );
+    await pause.execute('thread-1');
+    expect((await sessions.getByContactId('thread-1'))?.flowId).toBe('faq');
+  });
 });

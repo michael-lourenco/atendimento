@@ -116,6 +116,17 @@ Bodies JSON das rotas abaixo passam por schema Zod na borda. Inválido → `400 
 - DELETE: tira `mediaKind` (o `body` permanece). 200: `QuickReply`
 - Sem Zod (multipart / sem body). Não cria a resposta: o catálogo `save` no client vem antes
 
+`GET` / `PUT` / `DELETE /api/flows/{flowId}/steps/{stepId}/media`
+
+- Padrão das rotas de mídia do painel (respostas rápidas). Auth: sessão de operador (cookie) quando o Supabase está configurado
+- 401: sem sessão
+- 404: fluxo inexistente, passo inexistente, passo que não é `message` (PUT/DELETE) ou sem objeto no Storage (GET)
+- GET: stream da imagem ou áudio via `GetFlowStepMediaUseCase` (`flows/{flowId}/{stepId}`); `Cache-Control: private, no-cache`. O painel reproduz no inspetor
+- PUT: multipart `file` (imagem **ou** áudio, máx. 16 MB). Grava Storage + `mediaUrl` = path `flows/{flowId}/{stepId}` + `mediaKind` pelo MIME. 400 se não for imagem/áudio, passar de 16 MB ou faltar `file`. 200: `Flow` atualizado
+- DELETE: limpa `mediaUrl`/`mediaKind` no passo e apaga o objeto no Storage (`IMediaStorage.remove`). 200: `Flow` atualizado
+- Sem Zod (multipart / sem body). **Não** cria o fluxo nem o passo: o save do editor vem antes (igual ao catálogo de respostas rápidas)
+- O motor **não** usa este GET no browser; lê o Storage com `service_role` (`loadFlowStepMedia` / `02-domain.md`, `08-supabase.md`)
+
 `POST /api/contacts/avatars/sync` — sem body. Recalcula fotos em falta (copia `Contact.avatarUrl` para a thread; senão baixa na Evolution, lote). 401 sem sessão se o Supabase estiver configurado. 200 `{ attempted, filled }`. Sem Zod (sem JSON).
 
 ## Webhooks

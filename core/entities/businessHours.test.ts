@@ -1,7 +1,9 @@
 import {
   BusinessHours,
   businessWindows,
+  hasCustomLineHours,
   isWithinBusinessHours,
+  resolveBusinessHours,
   setWeekdayClock,
   setWeekdayOpen,
 } from './businessHours';
@@ -109,5 +111,23 @@ describe('setWeekdayOpen e setWeekdayClock', () => {
     const monday = businessWindows(next).find((item) => item.weekday === 1);
     expect(saturday).toEqual({ weekday: 6, start: '09:00', end: '18:00' });
     expect(monday?.start).toBe('08:00');
+  });
+});
+
+describe('resolveBusinessHours', () => {
+  it('linha com horário próprio sobrepõe a empresa', () => {
+    const line: BusinessHours = { ...hours, enabled: false };
+    expect(
+      resolveBusinessHours([{ isActive: true, businessHours: hours }], line)
+    ).toEqual(line);
+  });
+
+  it('sem overlay usa o chatbot ativo', () => {
+    expect(resolveBusinessHours([{ isActive: true, businessHours: hours }])).toEqual(hours);
+  });
+
+  it('objeto na linha conta como overlay, inclusive 24h', () => {
+    expect(hasCustomLineHours(undefined)).toBe(false);
+    expect(hasCustomLineHours({ ...hours, enabled: false })).toBe(true);
   });
 });

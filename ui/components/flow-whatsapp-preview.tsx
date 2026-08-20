@@ -1,5 +1,6 @@
 import { Flow, FlowStep } from '@/core/entities/Flow';
 import { previewFlowOpening } from '@/core/engine/previewFlowOpening';
+import { FlowSimBubble } from '@/ui/components/flow-sim-bubble';
 
 type FlowWhatsAppPreviewProps = {
   steps: FlowStep[];
@@ -17,13 +18,16 @@ export function FlowWhatsAppPreview({ steps, flows = [] }: FlowWhatsAppPreviewPr
         </p>
       ) : (
         <div className="space-y-2">
-          {replies.map((text, index) => (
-            <div
-              key={`${index}-${text.slice(0, 24)}`}
-              className="ml-8 whitespace-pre-wrap rounded-lg bg-bubble-out px-3 py-2 text-sm text-bubble-out-foreground shadow-sm"
-            >
-              {text}
-            </div>
+          {replies.map((reply, index) => (
+            <FlowSimBubble
+              key={`${index}-${reply.stepId}`}
+              direction="out"
+              text={reply.content}
+              flowId={reply.flowId}
+              stepId={reply.stepId}
+              mediaUrl={reply.mediaUrl}
+              mediaKind={reply.mediaKind}
+            />
           ))}
         </div>
       )}

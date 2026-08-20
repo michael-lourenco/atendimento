@@ -5,6 +5,7 @@ import { IDepartmentRepository } from '../repositories/IDepartmentRepository';
 import { IChatbotRepository } from '../repositories/IChatbotRepository';
 import { IConversationRepository } from '../repositories/IConversationRepository';
 import { IMessageRepository } from '../repositories/IMessageRepository';
+import { IMediaStorage } from '../services/IMediaStorage';
 import { planFlowTurn } from '../engine/planFlowTurn';
 import { resolveActiveFlow } from '../engine/resolveActiveFlow';
 import { SendWhatsAppMessageUseCase } from './SendWhatsAppMessageUseCase';
@@ -14,8 +15,8 @@ import { IWhatsAppNumberRepository } from '../repositories/IWhatsAppNumberReposi
 import { contactPhoneFromMessage } from './UpsertConversationFromMessageUseCase';
 import { conversationThreadId, messagesOnWhatsAppLine } from '../entities/conversationThread';
 import { matchWhatsAppNumber } from '../entities/whatsappNumberLine';
-import { activeBusinessHours, isWithinBusinessHours } from '../entities/businessHours';
-import { companyChatbotFlowId } from '../entities/chatbotActive';
+import { isWithinBusinessHours, resolveBusinessHours } from '../entities/businessHours';
+import { resolveEntryFlowId } from '../entities/chatbotActive';
 import { queuePlace, queuePlaceLine } from '../entities/queuePlace';
 import { FlowSession } from '../entities/FlowSession';
 import { FlowAudience, IncomingFlowHint } from '../entities/flowAudience';
@@ -38,6 +39,7 @@ export type ProcessIncomingFlowOptions = {
   messages?: IMessageRepository | null;
   presence?: SendWhatsAppPresenceUseCase | null;
   sleep?: (ms: number) => Promise<void>;
+  mediaStorage?: IMediaStorage | null;
 };
 
 export class ProcessIncomingFlowUseCase {
@@ -54,7 +56,7 @@ export class ProcessIncomingFlowUseCase {
     private conversations: IConversationRepository | null = null,
     private options: ProcessIncomingFlowOptions = {}
   ) {
-    this.sleep = options.sleep ?? defaultSleep;
+    this.sleep = options.sleep ?? ((ms) => new Promise((resolve) => setTimeout(resolve, ms)));
   }
 
   async executeForMessages(messages: Message[], hints: IncomingFlowHint[] = []): Promise<void> {
@@ -129,10 +131,10 @@ export class ProcessIncomingFlowUseCase {
     const behavior = resolveBotBehavior(bots, line?.behavior);
     const text = await this.textAfterDebounce(input, behavior);
 
-    const hours = activeBusinessHours(bots ?? []);
+    const hours = resolveBusinessHours(bots, line?.businessHours);
     const flow = resolveActiveFlow(flows, {
       sessionFlowId: session?.flowId,
-      entryFlowId: companyChatbotFlowId(bots),
+      entryFlowId: resolveEntryFlowId({ bots, lineFlowId: line?.flowId }),
     });
     if (!isWithinBusinessHours(hours, now)) {
       await this.notifyClosed(
@@ -199,7 +201,7 @@ export class ProcessIncomingFlowUseCase {
         sleep: this.sleep,
       });
       const media = reply.mediaUrl
-        ? await loadFlowStepMedia(reply.mediaUrl, reply.mediaKind ?? 'image')
+        ? await loadFlowStepMedia(reply.mediaUrl, reply.mediaKind ?? 'image', this.options.mediaStorage)
         : null;
       await this.sendMessage.execute({
         to: input.contactId,
@@ -294,8 +296,4 @@ export class ProcessIncomingFlowUseCase {
       departmentName: department.name,
     });
   }
-}
-
-function defaultSleep(ms: number): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, ms));
 }

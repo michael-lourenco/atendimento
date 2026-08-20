@@ -5,7 +5,7 @@
 | Entidade | Papel |
 |----------|--------|
 | `User` / `AuthUser` | Operador do painel (`admin` \| `user`) |
-| `Flow` + `FlowStep` | Automação: `message` \| `question` \| `condition` \| `action` (`setDepartment`, `goToFlow` ou `handoff`). `canvasPosition` opcional (só o quadro). `delayMs` (0–8000) e `mediaUrl`/`mediaKind` (`image` \| `audio`) na mensagem. `Flow.keywords` opcional (entrada por atalho) |
+| `Flow` + `FlowStep` | Automação: `message` \| `question` \| `condition` \| `action` (`setDepartment`, `goToFlow` ou `handoff`). `canvasPosition` opcional (só o quadro). `delayMs` (0–8000 ms; inspetor do bloco Mensagem mostra 0–8 s via `msToSeconds` / `secondsToMs`; motor inalterado). Só no tipo `message`: `mediaUrl`/`mediaKind` (`image` \| `audio`) — URL `http(s)` pública (legado) **ou** path no Storage (`flows/{flowId}/{stepId}`). Sem vídeo/documento neste recorte. `Flow.keywords` opcional (entrada por atalho; no editor: chips, Enter/vírgula/colar; duplicata case-insensitive ignorada) |
 | `FlowSession` | Passo atual do contato no fluxo. `outsideHoursNotified` evita repetir o aviso de expediente |
 | `Message` | Mensagem WhatsApp (in/out, tipo, status). `reactions` opcional: um emoji por remetente. Citação opcional: `quotedMessageId`, `quotedContent`, `quotedFrom` |
 | `Conversation` | Atendimento com contato, setor, agente, tags, status. `assignedAt` opcional (primeiro Assumir). `contactTypingAt` opcional (contato digitando no WhatsApp) |
@@ -14,7 +14,7 @@
 | `Chatbot` | Bot cadastrado no painel. `flowId` = fluxo de **entrada** no WhatsApp (contato novo / sem sessão). `businessHours` opcional (expediente: dias parametrizáveis, horário por dia, fuso; `end` antes de `start` atravessa meia-noite). `behavior` opcional (`BotBehavior`: delay, digitando, inatividade) |
 | `Agent` | Atendente (`online` \| `offline`) |
 | `Contact` | Contato WhatsApp + etiquetas; `avatarUrl` opcional (foto no Storage, via `/api/contacts/{id}/avatar`) |
-| `WhatsAppNumber` | Número/linha WhatsApp da **mesma** empresa. Na UI o rótulo é `name` (ex. Comercial); `instanceName` é identificador técnico (slug do nome se o admin não preencher). `behavior` opcional: ritmo desta linha (senão usa o do chatbot ativo) |
+| `WhatsAppNumber` | Número/linha WhatsApp da **mesma** empresa. Na UI o rótulo é `name` (ex. Comercial); `instanceName` é identificador técnico (slug do nome se o admin não preencher). `behavior` opcional: ritmo desta linha. `flowId` opcional: fluxo de entrada desta linha. `businessHours` opcional: expediente desta linha. Sem override, vale o do chatbot ativo |
 | `Tag` | Etiqueta (`color`, `contactsCount`) |
 | `QuickReply` | `id`, `title`, `body` (texto; pode ser vazio se houver áudio), `mediaKind?` (`audio`), `departmentId?` (setor opcional), `createdAt`. Catálogo da **empresa**. Sem dono por atendente |
 | `ScheduledMessage` | Envio futuro (`pending` \| `sent` \| `failed`). `contact` = telefone; `conversationId` opcional = thread (mesma linha) |
@@ -29,7 +29,7 @@ Novas entidades exigem interface de repositório em `core/repositories` e mock e
 - `IFlowRepository` — CRUD de fluxos
 - `IFlowSessionRepository` — sessão por `contactId` (upsert); `contactId` = `Conversation.id` da thread
 - `IMessageRepository` — histórico da thread (mensagens daquela linha; ver invariante 3)
-- `IMediaStorage` — cache de áudio/imagem/vídeo/documento (bucket `media`); path `messages/{id}`
+- `IMediaStorage` — cache de áudio/imagem/vídeo/documento (bucket `media`); paths `messages/{id}`, `contacts/{id}`, `quick-replies/{id}`, `flows/{flowId}/{stepId}`. `remove(path)` apaga o objeto (mídia de passo no DELETE)
 - `IConversationRepository`, `IDepartmentRepository`, `IInternalMessageRepository`
 - `IChatbotRepository`, `IAgentRepository`, `IContactRepository`, `IWhatsAppNumberRepository`, `ITagRepository`, `IScheduledMessageRepository`, `IReportRepository` — CRUD (`ICrudRepository`)
 - `IQuickReplyRepository` = `ICrudRepository<QuickReply>` (padrão `ITagRepository`)
@@ -39,7 +39,7 @@ Catálogos do painel usam `CatalogUseCase` (`list` / `save` / `delete`). Respost
 ## Use cases existentes
 
 Auth: `LoginUseCase`, `LogoutUseCase`, `GetCurrentUserUseCase` (agente `offline` encerra a sessão)  
-Fluxos: `GetAllFlowsUseCase`, `GetFlowByIdUseCase`, `SaveFlowUseCase`, `DeleteFlowUseCase` (apaga sessões daquele `flowId` e solta `chatbots.flowId` antes de remover o fluxo)  
+Fluxos: `GetAllFlowsUseCase`, `GetFlowByIdUseCase`, `SaveFlowUseCase`, `DeleteFlowUseCase` (apaga sessões daquele `flowId` e solta `chatbots.flowId` e `whatsapp_numbers.flowId` antes de remover o fluxo), `SaveFlowStepMediaUseCase` (grava bytes no Storage e `mediaUrl`/`mediaKind` no passo `message`), `GetFlowStepMediaUseCase` (lê o objeto para o GET do painel)  
 Mensagens: `GetAllMessagesUseCase`, `GetMessagesByContactUseCase`  
 WhatsApp: `SendWhatsAppMessageUseCase` (`quotedMessageId` opcional), `HandleIncomingWhatsAppMessageUseCase`, `UpsertConversationFromMessageUseCase`, `UpsertContactFromIncomingUseCase`, `SyncContactAvatarUseCase`, `SyncMissingContactAvatarsUseCase`, `SyncLiveWhatsAppNumberUseCase`, `UpdateMessageStatusUseCase`, `ApplyMessageReactionUseCase`, `SendMessageReactionUseCase`, `SendWhatsAppPresenceUseCase`, `ApplyContactTypingUseCase`  
 Agendamentos: `ScheduledMessageCatalogUseCase`, `DispatchDueScheduledMessagesUseCase` (pendente com `scheduledDate <= agora` → envia, pausa a sessão da thread, marca `sent` ou `failed`)  
@@ -90,7 +90,7 @@ Picker (só cliente): campo **Filtrar** casa `title` e `body` (sem rota nova). �
 
 ## BotBehavior (`Chatbot.behavior`)
 
-Padrão da empresa no chatbot **ativo** (a tela `/dashboard/chatbots`). Só um ativo: ao gravar `isActive: true`, os outros passam a inativos. Sem catálogo de bots no motor (testes), delays = 0. A tela mostra delays em **segundos** (grava milissegundos). Não exibe `messagesCount` (o campo existe, mas o motor não incrementa). **Por linha:** `WhatsAppNumber.behavior` opcional sobrepõe o da empresa nessa linha (Comercial vs Suporte). Sem override, vale o da empresa. Expediente continua só no chatbot.
+Padrão da empresa no chatbot **ativo** (a tela `/dashboard/chatbots`). Só um ativo: ao gravar `isActive: true`, os outros passam a inativos. Sem catálogo de bots no motor (testes), delays = 0. A tela mostra delays em **segundos** (grava milissegundos). Não exibe `messagesCount` (o campo existe, mas o motor não incrementa). **Por linha:** `WhatsAppNumber.behavior` opcional sobrepõe o ritmo da empresa. `WhatsAppNumber.flowId` opcional sobrepõe o fluxo de entrada. `WhatsAppNumber.businessHours` opcional sobrepõe o expediente (`enabled: false` nesta linha = atende fora do horário da empresa). Sem override, vale o da empresa.
 
 | Campo | Padrão | Efeito |
 |-------|--------|--------|
@@ -120,16 +120,38 @@ Inatividade **não** corre com humano (`paused`). O cron de agendamentos dispara
 
 Uma sessão por thread. O mesmo telefone em duas linhas WhatsApp = duas `FlowSession` (dois `contactId`). Pause, resume e Assumir recebem o id da conversa, não só o telefone.
 
+## Mídia no passo `message`
+
+Só `FlowStep.type === "message"`. `mediaKind`: `image` \| `audio` (já existentes). Sem vídeo/documento neste recorte. Máx. 16 MB (`MAX_OUTGOING_MEDIA_BYTES`, igual ao send e às respostas rápidas).
+
+`mediaUrl` guarda **uma** destas formas:
+
+1. URL pública `http(s)` — legado; o motor faz `fetch` como hoje.
+2. Path interno no bucket `media`: `flows/{flowId}/{stepId}` — depois de anexar arquivo no painel.
+
+Helpers na porta já existente `IMediaStorage` (sem porta nova): `flowStepMediaPath(flowId, stepId)` e `flowStepMediaApiHref(flowId, stepId)` → `/api/flows/{flowId}/steps/{stepId}/media`. O painel reproduz pelo GET autenticado (cookie). O motor **não** chama essa URL no browser: no servidor, `loadFlowStepMedia` lê o Storage com `IMediaStorage.get` (`service_role`).
+
+`loadFlowStepMedia(url, kind)` (helper usado por `ProcessIncomingFlowUseCase`):
+
+- `https?:` → `fetch` público (legado). Falha, vazio ou > 16 MB → null.
+- Path `flows/{flowId}/{stepId}` **ou** href da API `/api/flows/{flowId}/steps/{stepId}/media` → `IMediaStorage.get` no servidor. Ausente → null.
+- Outro valor → null (o passo ainda pode enviar `content`).
+
+Upload **não** cria fluxo nem passo: o `flowId` e o `stepId` precisam já existir no fluxo gravado. PUT/DELETE atualizam o passo (`mediaUrl` = path do Storage, `mediaKind` pelo MIME) via `SaveFlowUseCase` / repositório já existente. Remover mídia: limpa `mediaUrl`/`mediaKind` e apaga o objeto no Storage (`IMediaStorage.remove`). Sem entidade nova.
+
+`flowHealth`: passo `message` sem texto nem `mediaUrl` continua inválido. `mediaUrl` válido = `http(s)` **ou** path/href de Storage acima; outro valor → “URL de mídia inválida”.
+
 ## Motor de fluxos (Fase 2)
 
-Planejamento puro em `core/engine` (`planFlowTurn`, `evaluateCondition`, `resolveActiveFlow`). I/O no use case: persistir sessão e enviar via `SendWhatsAppMessageUseCase`.
+Planejamento puro em `core/engine` (`planFlowTurn`, `evaluateCondition`, `resolveActiveFlow`). I/O no use case: persistir sessão e enviar via `SendWhatsAppMessageUseCase`. `previewFlowOpening` / `previewFlowTurn` (só o painel): devolve `FlowReply[]` / o plano do primeiro turno (`oi`); `audience` `new` (sessão null) ou `known` (`sessionForKnownMenu`). Inclui `mediaUrl`/`mediaKind` quando o passo Mensagem tem mídia. Motor de envio inalterado.
 
 ### Resolver fluxo
 
 1. Se há sessão e o `flowId` ainda existe e está ativo → esse fluxo.
-2. Senão, o `flowId` do chatbot **ativo**, se esse fluxo existir e estiver ativo.
-3. Senão, entre os ativos: `id === "inicio"`, senão nome `"Atendimento Inicial"`, senão o primeiro ativo.
-4. Senão → log, sem resposta.
+2. Senão, o `flowId` da **linha** (`WhatsAppNumber.flowId`), se esse fluxo existir e estiver ativo.
+3. Senão, o `flowId` do chatbot **ativo**, se esse fluxo existir e estiver ativo.
+4. Senão, entre os ativos: `id === "inicio"`, senão nome `"Atendimento Inicial"`, senão o primeiro ativo.
+5. Senão → log, sem resposta.
 
 ### Turno (`planFlowTurn`)
 
@@ -137,20 +159,20 @@ Planejamento puro em `core/engine` (`planFlowTurn`, `evaluateCondition`, `resolv
 - **Conhecido sem pergunta à espera / reabertura:** **não** reenvia as mensagens iniciais. Começa na primeira `question`.
 - **Sessão existe e `currentStepId` null** (já houve atendimento neste fluxo): **não** reenvia as mensagens iniciais. Começa na primeira `question` (só o enunciado e as opções).
 - **`currentStepId` em `question`:** o texto é a resposta; se for só o **número** da opção (`1`, `2`, `1.`, `2)`), o motor troca pelo texto daquela linha (1 = primeira opção) e segue `nextStepId` (não reenvia a pergunta). Número inexistente ou texto livre: usa o que a pessoa digitou. Se **não** bater com uma opção (número ou texto igual) e o texto coincidir com `keywords` de outro fluxo ativo, entra nesse fluxo no primeiro passo e zera a pilha.
-- **`message`:** envia `content` se não vazio; se `mediaUrl` http(s) e `mediaKind` `image`/`audio`, tenta enviar a mídia (URL inválida = só o texto). `delayMs` (0–8000, padrão 0) pausa **antes** deste envio. Segue `nextStepId`.
-- **`action`:** `setDepartment` grava o setor da thread se o id existir e estiver ativo e **não** envia `content`. `goToFlow` para fluxo **ativo** ainda não visitado **por salto** neste turno: continua no primeiro passo do destino no mesmo turno. Se o passo de salto tiver `nextStepId` (“Ao voltar”), empilha origem e retoma esse passo quando o destino acaba. Sem “Ao voltar”, a sessão permanece no destino. Destino inativo/inexistente/ciclo A→B→A → não salta; segue `nextStepId` se o salto falhar. `goToFlow` **não** envia `content`. Novos contatos entram no `flowId` do chatbot ativo (selo WhatsApp); se vazio ou inativo, cai no `inicio`. Salvo palavra-chave. `handoff` envia `content` se houver, grava setor se `departmentId` ativo, `paused: true` e **para**. Sem esses tipos, a action se comporta como `message`.
+- **`message`:** envia `content` se não vazio; se houver `mediaUrl` e `mediaKind` `image`/`audio`, tenta enviar a mídia (`loadFlowStepMedia`; falha = só o texto). `delayMs` (0–8000, padrão 0) pausa **antes** deste envio. Segue `nextStepId`. Sem mídia em `question` / `action` / `condition`.
+- **`action`:** `setDepartment` grava o setor da thread se o id existir e estiver ativo e **não** envia `content`. `goToFlow` para fluxo **ativo** ainda não visitado **por salto** neste turno: continua no primeiro passo do destino no mesmo turno. Se o passo de salto tiver `nextStepId` (“Ao voltar”), empilha origem e retoma esse passo quando o destino acaba. Sem “Ao voltar”, a sessão permanece no destino. Destino inativo/inexistente/ciclo A→B→A → não salta; segue `nextStepId` se o salto falhar. `goToFlow` **não** envia `content`. Novos contatos entram no fluxo de entrada da **linha** (`WhatsAppNumber.flowId`) ou, se a linha herda, no `flowId` do chatbot ativo (selo WhatsApp); se vazio ou inativo, cai no `inicio`. Salvo palavra-chave. `handoff` envia `content` se houver, grava setor se `departmentId` ativo, `paused: true` e **para**. Sem esses tipos, a action se comporta como `message`.
 - **Palavra-chave (sem pergunta à espera, ou texto que não é opção):** `contains`/`equals` case-insensitive contra `Flow.keywords` de um fluxo ativo **diferente** do atual → primeiro passo desse fluxo, pilha vazia.
 - **`question`:** envia `content`; se houver `options`, concatena uma linha `N. opção` (1-based) por item; grava `currentStepId` nessa pergunta e **para**.
 - **`condition`:** `field` suportado: `content` (texto incoming do turno, **já resolvido** para o texto da opção se a pessoa digitou o número). Outro `field` → ramo `false`. Operadores: `equals` e `contains` (trim, case-insensitive); `greaterThan` / `lessThan` numéricos (`Number`); `NaN` → `false`. Segue `trueStepId` ou `falseStepId`.
 - Passo ou `nextStepId` inexistente → encerra (`currentStepId` null). A próxima mensagem **não** reenvia a abertura: só a primeira `question`. No fluxo `inicio`, o passo `miss` (“Não peguei…”) aponta para `menu` no mesmo turno, para reapresentar as opções sem a saudação. Ramos do menu usam `goToFlow` para `sistema`, `demo`, `cliente` e `comercial` (`salesIntakeFlows`). Comercial, demo e ajuda do cliente usam `handoff` (setor + bot pausa).
 - `question` não valida se a resposta está em `options`. Número da opção só mapeia quando o texto é **só** o número (com `.` ou `)` opcional).
 
-Entrada do motor: só incoming `type === "text"` com conteúdo não vazio. Mídia: persiste, não avança fluxo. Sessão `paused` em conversa **aberta**: persiste, não avança. Reabertura de `closed` (conhecido): despausa e mostra o menu. **Ritmo:** `BotBehavior` do chatbot ativo, com overlay da linha se houver (`WhatsAppNumber.behavior`). **Expediente:** o chatbot ativo com `businessHours.enabled` fora do horário envia `closedMessage` e **não** avança o fluxo; sessão `outsideHoursNotified`. Cada dia da semana pode estar fechado ou ter `start`/`end` próprios (`windows`). Se `end` for **antes** de `start` (ex. 22:00–06:00), o turno começa nesse dia e termina no seguinte; o dia seguinte não precisa estar marcado. `start` igual a `end` = o dia todo. Cadastro antigo só com `days` + `start`/`end` continua válido. Sem sessão pausada. Na volta ao horário, se só houve o aviso (`currentStepId` null), a próxima mensagem começa o fluxo do zero. **Fila:** após `handoff`, o bot acrescenta “Você é o N na fila” (`queuePlace`: mesmo setor, sem atendente, não finalizada). Áudio/imagem/vídeo/documento são reproduzíveis no painel via `GET /api/messages/{id}/media` (cache no Storage; se faltar, a Evolution entrega o base64 pelo `id` da mensagem).
+Entrada do motor: só incoming `type === "text"` com conteúdo não vazio. Mídia: persiste, não avança fluxo. Sessão `paused` em conversa **aberta**: persiste, não avança. Reabertura de `closed` (conhecido): despausa e mostra o menu. **Ritmo:** `BotBehavior` do chatbot ativo, com overlay da linha se houver (`WhatsAppNumber.behavior`). **Expediente:** `businessHours` da **linha**, se houver; senão o do chatbot ativo. Com `enabled` fora do horário envia `closedMessage` e **não** avança o fluxo; sessão `outsideHoursNotified`. Cada dia da semana pode estar fechado ou ter `start`/`end` próprios (`windows`). Se `end` for **antes** de `start` (ex. 22:00–06:00), o turno começa nesse dia e termina no seguinte; o dia seguinte não precisa estar marcado. `start` igual a `end` = o dia todo. Cadastro antigo só com `days` + `start`/`end` continua válido. Sem sessão pausada. Na volta ao horário, se só houve o aviso (`currentStepId` null), a próxima mensagem começa o fluxo do zero. **Fila:** após `handoff`, o bot acrescenta “Você é o N na fila” (`queuePlace`: mesmo setor, sem atendente, não finalizada). Áudio/imagem/vídeo/documento são reproduzíveis no painel via `GET /api/messages/{id}/media` (cache no Storage; se faltar, a Evolution entrega o base64 pelo `id` da mensagem).
 
 ## Testes obrigatórios (escrever; usuário executa)
 
 - Primeira mensagem cria sessão e envia passos até a primeira `question`.
-- Sem sessão, a entrada é o `flowId` do chatbot ativo (senão `inicio`).
+- Sem sessão, a entrada é o `flowId` da linha ou o do chatbot ativo (senão `inicio`).
 - Sessão existente com `currentStepId` null não reenvia a abertura (só a primeira `question`).
 - No fluxo `inicio`, texto fora do menu envia `miss` e o `menu` no mesmo turno (sem “Olá”).
 - Resposta avança `nextStepId`.
@@ -170,4 +192,7 @@ Entrada do motor: só incoming `type === "text"` com conteúdo não vazio. Mídi
 - `MarkWhatsAppMessagesReadUseCase` envia ids incoming ainda não `read`; no-op sem `markMessagesRead`; conversa inexistente não chama o provedor.
 - Busca da inbox casa nome **ou** conteúdo da thread.
 - `SaveQuickReplyMediaUseCase` grava só áudio; resposta inexistente retorna null.
+- `SaveFlowStepMediaUseCase` grava imagem ou áudio no path `flows/{flowId}/{stepId}`; recusa vídeo/documento e arquivo > 16 MB; fluxo ou passo inexistente (ou passo que não é `message`) retorna null; `media: null` limpa `mediaUrl`/`mediaKind` e chama `IMediaStorage.remove`.
+- `GetFlowStepMediaUseCase` lê o objeto no path; ausente → null.
+- `loadFlowStepMedia` aceita URL `http(s)` pública **e** path/href de mídia do Storage; outro valor → null (só o texto).
 - Fila “minhas”: Esperando/Finalizados com `assignedAgentId` do operador; Entrada sem filtro de dono.

@@ -69,6 +69,24 @@ describe('catalogPersistErrorMessage', () => {
     ).toContain('025_line_bot_behavior');
   });
 
+  it('explica flow_id ausente na linha WhatsApp', () => {
+    expect(
+      catalogPersistErrorMessage(
+        { code: 'PGRST204', message: "Could not find the 'flow_id' column" },
+        'whatsapp_numbers'
+      )
+    ).toContain('026_line_entry_flow');
+  });
+
+  it('explica business_hours ausente na linha WhatsApp', () => {
+    expect(
+      catalogPersistErrorMessage(
+        { code: 'PGRST204', message: "Could not find the 'business_hours' column" },
+        'whatsapp_numbers'
+      )
+    ).toContain('027_line_business_hours');
+  });
+
   it('usa a mensagem do objeto PostgREST', () => {
     expect(catalogPersistErrorMessage({ message: 'payload too large' }, 'flows')).toBe(
       'payload too large'

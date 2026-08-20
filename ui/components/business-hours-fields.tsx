@@ -62,7 +62,7 @@ export function BusinessHoursFields({ value, onChange }: BusinessHoursFieldsProp
     : [{ id: value.timezone, label: value.timezone }, ...TIMEZONES];
 
   return (
-    <details open className="rounded-md border border-border p-3">
+    <details className="rounded-md border border-border p-3">
       <summary className="cursor-pointer text-sm font-medium">Expediente no WhatsApp</summary>
       <div className="mt-3 space-y-3">
         <label className="flex items-center gap-2 text-sm">

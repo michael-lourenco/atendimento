@@ -17,7 +17,7 @@ Leia `specs/02-domain.md`. Não implementar atalhos que ignorem sessão.
    - responder com `SendWhatsAppMessageUseCase`
    - persistir o próximo `currentStepId`
 3. `condition`: `equals` | `contains` | `greaterThan` | `lessThan` nos campos da spec; ramos `trueStepId` / `falseStepId`.
-4. Sem fluxo ativo: não enviar texto inventado; logar e sair. Entrada: `flowId` do chatbot ativo, se o fluxo existir e estiver ativo; senão `id === "inicio"`, senão nome `"Atendimento Inicial"`, senão o primeiro ativo (`specs/02-domain.md`).
+4. Sem fluxo ativo: não enviar texto inventado; logar e sair. Entrada: `flowId` da linha, senão do chatbot ativo, se o fluxo existir e estiver ativo; senão `id === "inicio"`, senão nome `"Atendimento Inicial"`, senão o primeiro ativo (`specs/02-domain.md`).
 
 ## Testes a escrever (não executar)
 

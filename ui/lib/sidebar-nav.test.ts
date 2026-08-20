@@ -12,10 +12,12 @@ describe('sidebarGroupsForRole', () => {
   });
 
   it('admin vê configuração', () => {
-    const hrefs = sidebarGroupsForRole('admin').flatMap((group) => group.items.map((item) => item.href));
+    const items = sidebarGroupsForRole('admin').flatMap((group) => group.items);
+    const hrefs = items.map((item) => item.href);
     expect(hrefs).toContain('/dashboard/agents');
     expect(hrefs).toContain('/dashboard/whatsapp');
     expect(hrefs).toContain('/dashboard/chatbots');
+    expect(items.find((item) => item.href === '/dashboard/chatbots')?.title).toBe('Chatbot');
   });
 
   it('URLs de configuração são admin', () => {

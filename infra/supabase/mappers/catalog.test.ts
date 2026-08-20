@@ -137,4 +137,43 @@ describe('numberToRow', () => {
       }).behavior
     ).toEqual({ idleContactMinutes: 0 });
   });
+
+  it('manda e lê flow_id da linha', () => {
+    expect(numberToRow({ ...line, flowId: 'faq' }).flow_id).toBe('faq');
+    expect(
+      numberFromRow({
+        id: 'n1',
+        name: 'Comercial',
+        number: '5511',
+        status: 'active',
+        provider: 'evolution',
+        flow_id: 'faq',
+        created_at: '2026-08-20T12:00:00Z',
+      }).flowId
+    ).toBe('faq');
+  });
+
+  it('manda e lê business_hours da linha', () => {
+    const hours = {
+      enabled: false,
+      timezone: 'UTC',
+      days: [] as number[],
+      start: '08:00',
+      end: '18:00',
+      closedMessage: '',
+    };
+    expect(numberToRow({ ...line, businessHours: hours }).business_hours).toEqual(hours);
+    expect(numberToRow(line).business_hours).toBeNull();
+    expect(
+      numberFromRow({
+        id: 'n1',
+        name: 'Comercial',
+        number: '5511',
+        status: 'active',
+        provider: 'evolution',
+        business_hours: hours,
+        created_at: '2026-08-20T12:00:00Z',
+      }).businessHours
+    ).toEqual(hours);
+  });
 });

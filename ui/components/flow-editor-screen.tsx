@@ -11,9 +11,11 @@ import { Button } from '@/ui/components/button';
 import { Input } from '@/ui/components/input';
 import { Label } from '@/ui/components/label';
 import { Textarea } from '@/ui/components/textarea';
+import { FlowKeywordChips } from '@/ui/components/flow-keyword-chips';
 import { CatalogSavedNotice } from '@/ui/components/catalog-saved-notice';
 import { useCatalogSavedFlash } from '@/ui/lib/use-catalog-saved-flash';
 import { catalogPersistErrorMessage } from '@/ui/lib/catalog-persist-error';
+import { normalizeFlowKeywords } from '@/ui/lib/flow-keywords';
 import { useConfirm } from '@/ui/components/confirm-dialog';
 
 type FlowEditorScreenProps = {
@@ -25,7 +27,7 @@ function snapshot(value: {
   name: string;
   description: string;
   isActive: boolean;
-  keywords: string;
+  keywords: string[];
   steps: FlowStep[];
 }) {
   return JSON.stringify(value);
@@ -42,7 +44,7 @@ export function FlowEditorScreen({ flowId, fromFlowId }: FlowEditorScreenProps) 
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [isActive, setIsActive] = useState(true);
-  const [keywords, setKeywords] = useState('');
+  const [keywords, setKeywords] = useState<string[]>([]);
   const [steps, setSteps] = useState<FlowStep[]>([]);
   const [savedSnap, setSavedSnap] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -79,14 +81,14 @@ export function FlowEditorScreen({ flowId, fromFlowId }: FlowEditorScreenProps) 
           setName(found.name);
           setDescription(found.description || '');
           setIsActive(found.isActive);
-          setKeywords((found.keywords ?? []).join('\n'));
+          setKeywords(normalizeFlowKeywords(found.keywords ?? []));
           setSteps(found.steps);
           setSavedSnap(
             snapshot({
               name: found.name,
               description: found.description || '',
               isActive: found.isActive,
-              keywords: (found.keywords ?? []).join('\n'),
+              keywords: normalizeFlowKeywords(found.keywords ?? []),
               steps: found.steps,
             })
           );
@@ -95,7 +97,7 @@ export function FlowEditorScreen({ flowId, fromFlowId }: FlowEditorScreenProps) 
             name: '',
             description: '',
             isActive: true,
-            keywords: '',
+            keywords: [],
             steps: [],
           });
           setSavedSnap(empty);
@@ -109,39 +111,47 @@ export function FlowEditorScreen({ flowId, fromFlowId }: FlowEditorScreenProps) 
     })();
   }, [flowId]);
 
-  const saveFlow = useCallback(async () => {
+  const saveFlow = useCallback(
+    async (options?: { navigate?: boolean; keywordsOverride?: string[] }): Promise<Flow | null> => {
     if (!name.trim()) {
       setError('Dê um nome ao fluxo.');
-      return false;
+      return null;
     }
     try {
       const id = editing?.id || flowId || `flow-${Date.now()}`;
+      const keywordList = normalizeFlowKeywords(options?.keywordsOverride ?? keywords);
       const flow: Flow = {
         id,
         name: name.trim(),
         description,
         isActive,
-        keywords: keywords
-          .split('\n')
-          .map((item) => item.trim())
-          .filter(Boolean),
+        keywords: keywordList,
         steps,
         createdAt: editing?.createdAt || new Date(),
         updatedAt: new Date(),
       };
       await clientUseCases.saveFlow().execute(flow);
       setEditing(flow);
+      setKeywords(flow.keywords ?? []);
       setError(null);
-      setSavedSnap(snapshot({ name: flow.name, description, isActive, keywords, steps }));
+      setSavedSnap(
+        snapshot({
+          name: flow.name,
+          description,
+          isActive,
+          keywords: flow.keywords ?? [],
+          steps,
+        })
+      );
       markSaved();
-      if (!flowId) {
+      if ((options?.navigate ?? true) && !flowId) {
         router.replace(`/dashboard/flows/${id}`);
       }
-      return true;
+      return flow;
     } catch (saveError) {
       console.error('Erro ao salvar fluxo:', saveError);
       setError(catalogPersistErrorMessage(saveError, 'flows'));
-      return false;
+      return null;
     }
   }, [description, editing, flowId, isActive, keywords, markSaved, name, router, steps]);
 
@@ -228,7 +238,10 @@ export function FlowEditorScreen({ flowId, fromFlowId }: FlowEditorScreenProps) 
         </div>
       </div>
       <details className="rounded-md border border-border p-3">
-        <summary className="cursor-pointer text-sm font-medium">Descrição e palavras-chave</summary>
+        <summary className="cursor-pointer text-sm font-medium">
+          Descrição e palavras-chave
+          {keywords.length > 0 ? ` (${keywords.length})` : ''}
+        </summary>
         <div className="mt-3 space-y-3">
           <div className="space-y-2">
             <Label htmlFor="flow-desc">Descrição</Label>
@@ -238,19 +251,11 @@ export function FlowEditorScreen({ flowId, fromFlowId }: FlowEditorScreenProps) 
               onChange={(event) => setDescription(event.target.value)}
             />
           </div>
-          <div className="space-y-2">
-            <Label htmlFor="flow-keywords">Palavras-chave (uma por linha)</Label>
-            <Textarea
-              id="flow-keywords"
-              rows={2}
-              value={keywords}
-              placeholder="preço&#10;humano"
-              onChange={(event) => setKeywords(event.target.value)}
-            />
-            <p className="text-xs text-muted-foreground">
-              Se o cliente enviar isso, entra neste fluxo (precisa estar Ativo).
-            </p>
-          </div>
+          <FlowKeywordChips
+            value={keywords}
+            onChange={setKeywords}
+            onShortcutSave={(next) => void saveFlow({ keywordsOverride: next })}
+          />
         </div>
       </details>
       <FlowStepsEditor
@@ -259,8 +264,18 @@ export function FlowEditorScreen({ flowId, fromFlowId }: FlowEditorScreenProps) 
         departments={departments}
         flows={flows}
         currentFlowId={editing?.id || flowId}
+        savedStepIds={editing?.steps.map((step) => step.id) ?? []}
         onChange={setSteps}
         onOpenFlow={(id) => void openFlow(id)}
+        onEnsureSaved={async () => {
+          const saved = await saveFlow({ navigate: false });
+          return saved?.id ?? null;
+        }}
+        onPersisted={(id) => {
+          if (!flowId) {
+            router.replace(`/dashboard/flows/${id}`);
+          }
+        }}
       />
     </div>
   );

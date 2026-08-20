@@ -39,7 +39,7 @@ function SecondsInput(props: {
 export function BotBehaviorFields({ value, onChange }: BotBehaviorFieldsProps) {
   const patch = (partial: Partial<BotBehavior>) => onChange(mergeBotBehavior({ ...value, ...partial }));
   return (
-    <details open className="rounded-md border border-border p-3">
+    <details className="rounded-md border border-border p-3">
       <summary className="cursor-pointer text-sm font-medium">Comportamento no WhatsApp</summary>
       <div className="mt-3 space-y-3">
         <div className="grid gap-2 sm:grid-cols-2">

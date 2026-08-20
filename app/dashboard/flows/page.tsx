@@ -5,7 +5,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Flow } from '@/core/entities/Flow';
 import { duplicateFlow } from '@/core/entities/duplicateFlow';
-import { companyChatbotFlowId } from '@/core/entities/chatbotActive';
+import { whatsappEntryFlowIds } from '@/core/entities/chatbotActive';
 import { resolveActiveFlow } from '@/core/engine/resolveActiveFlow';
 import { EmptyState } from '@/ui/components/empty-state';
 import { CatalogListSkeleton } from '@/ui/components/catalog-list-skeleton';
@@ -21,7 +21,7 @@ import { catalogPersistErrorMessage } from '@/ui/lib/catalog-persist-error';
 export default function FlowsPage() {
   const router = useRouter();
   const [flows, setFlows] = useState<Flow[]>([]);
-  const [entryFlowId, setEntryFlowId] = useState<string | undefined>();
+  const [entryFlowIds, setEntryFlowIds] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const { confirm, dialog } = useConfirm();
   const { show, markSaved } = useCatalogSavedFlash();
@@ -32,11 +32,17 @@ export default function FlowsPage() {
       setLoading(true);
     }
     try {
-      setFlows(await clientUseCases.allFlows().execute());
+      const list = await clientUseCases.allFlows().execute();
+      setFlows(list);
+      const fallbackId = resolveActiveFlow(list)?.id;
       try {
-        setEntryFlowId(companyChatbotFlowId(await clientUseCases.chatbots().list()));
+        const [bots, lines] = await Promise.all([
+          clientUseCases.chatbots().list(),
+          clientUseCases.whatsAppNumbers().list(),
+        ]);
+        setEntryFlowIds(whatsappEntryFlowIds(bots, lines, fallbackId));
       } catch {
-        setEntryFlowId(undefined);
+        setEntryFlowIds(fallbackId ? [fallbackId] : []);
       }
     } catch (loadError) {
       console.error('Erro ao carregar fluxos:', loadError);
@@ -96,14 +102,16 @@ export default function FlowsPage() {
       ) : null}
       <div className="mb-6 flex flex-wrap items-center justify-between gap-2">
         <p className="text-muted-foreground">
-          O roteiro que o chatbot envia no WhatsApp. O selo marca o fluxo de entrada (Chatbots).
+          O roteiro que o chatbot envia no WhatsApp. O selo marca os fluxos de entrada (empresa e linhas).
         </p>
         <Button onClick={() => router.push('/dashboard/flows/new')}>Novo Fluxo</Button>
       </div>
       <Card>
         <CardHeader>
           <CardTitle>Lista de Fluxos</CardTitle>
-          <CardDescription>O selo WhatsApp indica o fluxo de entrada escolhido em Chatbots</CardDescription>
+          <CardDescription>
+            O selo WhatsApp indica os fluxos de entrada escolhidos em Chatbot
+          </CardDescription>
         </CardHeader>
         <CardContent>
           {flows.length === 0 ? (
@@ -129,7 +137,7 @@ export default function FlowsPage() {
                   <TableRow key={flow.id}>
                     <TableCell className="font-medium">
                       <span className="mr-2">{flow.name}</span>
-                      {resolveActiveFlow(flows, { entryFlowId })?.id === flow.id ? (
+                      {entryFlowIds.includes(flow.id) ? (
                         <Badge variant="success">WhatsApp</Badge>
                       ) : null}
                     </TableCell>

@@ -81,6 +81,9 @@ class MemoryStorage implements IMediaStorage {
   async get(path: string) {
     return this.files.get(path) ?? null;
   }
+  async remove(path: string) {
+    this.files.delete(path);
+  }
 }
 
 class FakeWhatsApp implements IWhatsAppService {

@@ -177,3 +177,17 @@ export function activeBusinessHours(
 ): BusinessHours | undefined {
   return chatbots.find((item) => item.isActive)?.businessHours;
 }
+
+export function hasCustomLineHours(hours?: BusinessHours | null): boolean {
+  return Boolean(hours);
+}
+
+export function resolveBusinessHours(
+  chatbots: { isActive: boolean; businessHours?: BusinessHours }[] | null | undefined,
+  lineHours?: BusinessHours | null
+): BusinessHours | undefined {
+  if (hasCustomLineHours(lineHours)) {
+    return lineHours ?? undefined;
+  }
+  return activeBusinessHours(chatbots ?? []);
+}

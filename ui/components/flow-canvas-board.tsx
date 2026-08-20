@@ -37,6 +37,8 @@ type FlowCanvasBoardProps = {
   flows: { id: string; name: string; isActive?: boolean }[];
   selectedId: string | null;
   fitSeed: string;
+  focusNodeId?: string | null;
+  focusToken?: number;
   onChange: (steps: FlowStep[]) => void;
   onSelect: (id: string | null) => void;
 };
@@ -103,6 +105,8 @@ function FlowCanvasBoardInner({
   flows,
   selectedId,
   fitSeed,
+  focusNodeId,
+  focusToken,
   onChange,
   onSelect,
 }: FlowCanvasBoardProps) {
@@ -130,6 +134,21 @@ function FlowCanvasBoardInner({
     });
     return () => cancelAnimationFrame(frame);
   }, [fitSeed, fitView, steps.length]);
+
+  useEffect(() => {
+    if (!focusNodeId || !focusToken) {
+      return;
+    }
+    const frame = requestAnimationFrame(() => {
+      void fitView({
+        nodes: [{ id: focusNodeId }],
+        padding: 0.4,
+        duration: 220,
+        maxZoom: 1.15,
+      });
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [focusNodeId, focusToken, fitView]);
 
   const onNodesChange = useCallback(
     (changes: NodeChange<FlowCanvasRfNode>[]) => {

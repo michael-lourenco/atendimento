@@ -1,14 +1,13 @@
 'use client';
 
 import { clientUseCases } from '@/infra/adapters/clientUseCases';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Chatbot } from '@/core/entities/Chatbot';
 import { Flow } from '@/core/entities/Flow';
 import { WhatsAppNumber } from '@/core/entities/WhatsAppNumber';
 import { companyChatbot, extraChatbots } from '@/core/entities/chatbotActive';
-import { hasCustomLineBehavior, resolveBotBehavior } from '@/core/entities/botBehavior';
+import { resolveBotBehavior } from '@/core/entities/botBehavior';
 import { syncBusinessHoursLegacy } from '@/core/entities/businessHours';
-import { resolveActiveFlow } from '@/core/engine/resolveActiveFlow';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/ui/components/card';
 import { Button } from '@/ui/components/button';
 import { Label } from '@/ui/components/label';
@@ -20,8 +19,15 @@ import { useCatalogSavedFlash } from '@/ui/lib/use-catalog-saved-flash';
 import { catalogPersistErrorMessage } from '@/ui/lib/catalog-persist-error';
 import { invalidateWhatsAppNumberCache } from '@/ui/lib/whatsapp-number-cache';
 import { ChatbotCompanyFields } from '@/ui/components/chatbot-company-fields';
-import { BotBehaviorFields } from '@/ui/components/bot-behavior-fields';
+import { ChatbotLineFields } from '@/ui/components/chatbot-line-fields';
 import { chatbotFormFrom, emptyChatbotForm } from '@/ui/lib/chatbot-form';
+import {
+  CHATBOT_SCOPE_SWITCH_CONFIRM,
+  ChatbotScopeDraft,
+  chatbotDraftIsDirty,
+  chatbotDraftSnapshot,
+  chatbotScopeDraft,
+} from '@/ui/lib/chatbot-draft';
 
 const botsCatalog = clientUseCases.chatbots;
 const numbersCatalog = clientUseCases.whatsAppNumbers;
@@ -32,39 +38,30 @@ export default function ChatbotsPage() {
   const [flows, setFlows] = useState<Flow[]>([]);
   const [scope, setScope] = useState('company');
   const [useCompanyRhythm, setUseCompanyRhythm] = useState(true);
+  const [useCompanyFlow, setUseCompanyFlow] = useState(true);
+  const [useCompanyHours, setUseCompanyHours] = useState(true);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [form, setForm] = useState(emptyChatbotForm);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [savedSnap, setSavedSnap] = useState('');
   const { confirm, dialog } = useConfirm();
   const { show, markSaved } = useCatalogSavedFlash();
   const extras = extraChatbots(bots);
   const line = numbers.find((item) => item.id === scope);
+  const currentDraft = useMemo(
+    () => ({ scope, form, useCompanyRhythm, useCompanyFlow, useCompanyHours }),
+    [scope, form, useCompanyRhythm, useCompanyFlow, useCompanyHours]
+  );
+  const dirty = chatbotDraftIsDirty(savedSnap, currentDraft);
 
-  const applyScope = (
-    nextScope: string,
-    list: Chatbot[],
-    lines: WhatsAppNumber[],
-    flowList: Flow[]
-  ) => {
-    setScope(nextScope);
-    const main = companyChatbot(list);
-    if (nextScope === 'company') {
-      setUseCompanyRhythm(true);
-      setForm(
-        main
-          ? chatbotFormFrom(main, flowList)
-          : { ...emptyChatbotForm, flowId: resolveActiveFlow(flowList)?.id || '' }
-      );
-      return;
-    }
-    const selected = lines.find((item) => item.id === nextScope);
-    const custom = hasCustomLineBehavior(selected?.behavior);
-    setUseCompanyRhythm(!custom);
-    setForm({
-      ...(main ? chatbotFormFrom(main, flowList) : emptyChatbotForm),
-      behavior: resolveBotBehavior(list, selected?.behavior),
-    });
+  const applyDraft = (draft: ChatbotScopeDraft) => {
+    setScope(draft.scope);
+    setForm(draft.form);
+    setUseCompanyRhythm(draft.useCompanyRhythm);
+    setUseCompanyFlow(draft.useCompanyFlow);
+    setUseCompanyHours(draft.useCompanyHours);
+    setSavedSnap(chatbotDraftSnapshot(draft));
   };
 
   const load = async (showLoading = false) => {
@@ -84,7 +81,7 @@ export default function ChatbotsPage() {
       setEditingId(main?.id ?? null);
       const nextScope =
         scope === 'company' || lines.some((item) => item.id === scope) ? scope : 'company';
-      applyScope(nextScope, list, lines, flowList);
+      applyDraft(chatbotScopeDraft(nextScope, list, lines, flowList));
       setError(null);
     } catch (cause) {
       setError(catalogPersistErrorMessage(cause, 'chatbots'));
@@ -105,6 +102,8 @@ export default function ChatbotsPage() {
         await numbersCatalog().save({
           ...line,
           behavior: useCompanyRhythm ? undefined : form.behavior,
+          flowId: useCompanyFlow ? undefined : form.flowId.trim() || undefined,
+          businessHours: useCompanyHours ? undefined : syncBusinessHoursLegacy(form.hours),
         });
         invalidateWhatsAppNumberCache();
       } else {
@@ -172,11 +171,13 @@ export default function ChatbotsPage() {
 
       <Card className="mb-6">
         <CardHeader>
-          <CardTitle>{scope === 'company' ? 'Chatbot da empresa' : `Ritmo: ${line?.name ?? 'linha'}`}</CardTitle>
+          <CardTitle>
+            {scope === 'company' ? 'Chatbot da empresa' : `Linha: ${line?.name ?? 'linha'}`}
+          </CardTitle>
           <CardDescription>
             {scope === 'company'
-              ? 'Fluxo de entrada, expediente e ritmo padrão. Cada linha pode ter um ritmo próprio.'
-              : 'Só o ritmo desta linha. Fluxo e expediente continuam os da empresa.'}
+              ? 'Fluxo de entrada, expediente e ritmo padrão. Cada linha pode ter os seus.'
+              : 'Fluxo, expediente e ritmo desta linha.'}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -188,7 +189,18 @@ export default function ChatbotsPage() {
                   id="scope"
                   className="flex h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
                   value={scope}
-                  onChange={(event) => applyScope(event.target.value, bots, numbers, flows)}
+                  onChange={(event) => {
+                    const next = event.target.value;
+                    if (next === scope) {
+                      return;
+                    }
+                    void (async () => {
+                      if (dirty && !(await confirm(CHATBOT_SCOPE_SWITCH_CONFIRM))) {
+                        return;
+                      }
+                      applyDraft(chatbotScopeDraft(next, bots, numbers, flows));
+                    })();
+                  }}
                 >
                   <option value="company">Empresa (padrão)</option>
                   {numbers.map((item) => (
@@ -202,32 +214,40 @@ export default function ChatbotsPage() {
             {scope === 'company' ? (
               <ChatbotCompanyFields form={form} flows={flows} onChange={setForm} />
             ) : (
-              <>
-                <label className="flex items-center gap-2 text-sm">
-                  <input
-                    type="checkbox"
-                    checked={useCompanyRhythm}
-                    onChange={(event) => {
-                      const checked = event.target.checked;
-                      setUseCompanyRhythm(checked);
-                      if (checked) {
-                        setForm({ ...form, behavior: resolveBotBehavior(bots) });
-                      }
-                    }}
-                  />
-                  Usar o ritmo da empresa nesta linha
-                </label>
-                {useCompanyRhythm ? (
-                  <p className="text-sm text-muted-foreground">
-                    Esta linha herda espera, digitando e silêncio da empresa.
-                  </p>
-                ) : (
-                  <BotBehaviorFields
-                    value={form.behavior}
-                    onChange={(behavior) => setForm({ ...form, behavior })}
-                  />
-                )}
-              </>
+              <ChatbotLineFields
+                form={form}
+                flows={flows}
+                useCompanyFlow={useCompanyFlow}
+                useCompanyHours={useCompanyHours}
+                useCompanyRhythm={useCompanyRhythm}
+                onChange={setForm}
+                onUseCompanyFlow={(useCompany) => {
+                  setUseCompanyFlow(useCompany);
+                  if (useCompany) {
+                    const main = companyChatbot(bots);
+                    setForm({
+                      ...form,
+                      flowId: main ? chatbotFormFrom(main, flows).flowId : form.flowId,
+                    });
+                  }
+                }}
+                onUseCompanyHours={(useCompany) => {
+                  setUseCompanyHours(useCompany);
+                  if (useCompany) {
+                    const main = companyChatbot(bots);
+                    setForm({
+                      ...form,
+                      hours: main ? chatbotFormFrom(main, flows).hours : form.hours,
+                    });
+                  }
+                }}
+                onUseCompanyRhythm={(useCompany) => {
+                  setUseCompanyRhythm(useCompany);
+                  if (useCompany) {
+                    setForm({ ...form, behavior: resolveBotBehavior(bots) });
+                  }
+                }}
+              />
             )}
             <Button type="submit">Salvar</Button>
           </form>

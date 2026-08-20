@@ -1,4 +1,11 @@
-import { companyChatbot, companyChatbotFlowId, extraChatbots, othersToDeactivate } from './chatbotActive';
+import {
+  companyChatbot,
+  companyChatbotFlowId,
+  extraChatbots,
+  othersToDeactivate,
+  resolveEntryFlowId,
+  whatsappEntryFlowIds,
+} from './chatbotActive';
 
 describe('companyChatbot', () => {
   it('escolhe o ativo; senão o primeiro', () => {
@@ -22,6 +29,38 @@ describe('companyChatbotFlowId', () => {
         { isActive: true, flowId: 'faq' },
       ])
     ).toBe('faq');
+  });
+});
+
+describe('resolveEntryFlowId', () => {
+  it('prefere o fluxo da linha', () => {
+    expect(
+      resolveEntryFlowId({
+        bots: [{ isActive: true, flowId: 'inicio' }],
+        lineFlowId: 'faq',
+      })
+    ).toBe('faq');
+  });
+
+  it('cai no da empresa sem override', () => {
+    expect(
+      resolveEntryFlowId({
+        bots: [{ isActive: true, flowId: 'inicio' }],
+        lineFlowId: '  ',
+      })
+    ).toBe('inicio');
+  });
+});
+
+describe('whatsappEntryFlowIds', () => {
+  it('inclui empresa herdada e overrides das linhas', () => {
+    expect(
+      whatsappEntryFlowIds(
+        [{ isActive: true, flowId: 'inicio' }],
+        [{ flowId: 'faq' }, {}],
+        'inicio'
+      ).sort()
+    ).toEqual(['faq', 'inicio']);
   });
 });
 

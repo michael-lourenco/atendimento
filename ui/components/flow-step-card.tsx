@@ -1,6 +1,6 @@
 'use client';
 
-import { FLOW_STEP_MAX_DELAY_MS, FlowStep } from '@/core/entities/Flow';
+import { FlowStep } from '@/core/entities/Flow';
 import { Department } from '@/core/entities/Department';
 import { Button } from '@/ui/components/button';
 import { Label } from '@/ui/components/label';
@@ -18,6 +18,11 @@ import { FlowConditionFields } from '@/ui/components/flow-condition-fields';
 import { FlowQuestionOptions } from '@/ui/components/flow-question-options';
 import { FlowStepActionFields } from '@/ui/components/flow-step-action-fields';
 import { flowStepToneBar } from '@/ui/lib/status-tone';
+import {
+  FLOW_STEP_MAX_DELAY_SECONDS,
+  flowStepDelayMsFromSeconds,
+  flowStepDelaySeconds,
+} from '@/ui/lib/flow-step-delay';
 
 const TYPES: FlowStep['type'][] = ['message', 'question', 'condition', 'action'];
 
@@ -145,14 +150,15 @@ export function FlowStepCard({
           {step.type === 'message' ? (
             <div className="grid gap-2 sm:grid-cols-2">
               <div className="space-y-1">
-                <Label className="text-xs text-muted-foreground">Pausa antes (ms)</Label>
+                <Label className="text-xs text-muted-foreground">Pausa antes (segundos)</Label>
                 <Input
                   type="number"
                   min={0}
-                  max={FLOW_STEP_MAX_DELAY_MS}
-                  value={step.delayMs ?? 0}
+                  max={FLOW_STEP_MAX_DELAY_SECONDS}
+                  step={0.1}
+                  value={flowStepDelaySeconds(step.delayMs)}
                   onChange={(event) =>
-                    onPatch({ ...step, delayMs: Number(event.target.value) || 0 })
+                    onPatch({ ...step, delayMs: flowStepDelayMsFromSeconds(event.target.value) })
                   }
                 />
               </div>

@@ -30,5 +30,15 @@ describe('schemaHealth', () => {
         (item) => item.table === 'whatsapp_numbers' && item.column === 'behavior'
       )
     ).toBe(true);
+    expect(
+      EXPECTED_SCHEMA_COLUMNS.some(
+        (item) => item.table === 'whatsapp_numbers' && item.column === 'flow_id'
+      )
+    ).toBe(true);
+    expect(
+      EXPECTED_SCHEMA_COLUMNS.some(
+        (item) => item.table === 'whatsapp_numbers' && item.column === 'business_hours'
+      )
+    ).toBe(true);
   });
 });

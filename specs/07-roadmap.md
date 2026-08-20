@@ -15,7 +15,7 @@ Ordem sugerida. Não executar uma fase sem o usuário pedir. Atualizar esta spec
 
 ## Fase 3 — Tirar vitrines do dashboard (feita)
 
-- Chatbots, agentes, contatos, números, tags, schedules, relatórios, setores, chat interno e conversas via use cases
+- Chatbot, agentes, contatos, números, tags, schedules, relatórios, setores, chat interno e conversas via use cases
 - Páginas não importam `infra/mocks`
 
 ## Fase 4 — Supabase (Postgres + Auth + Storage) (feita)
@@ -69,7 +69,17 @@ Isolamento entre empresas = cópia da stack (`00-vision.md`, `08-supabase.md`).
 - Finalizar abre a próxima da Entrada (setor/minhas/linha)
 - Clique na imagem da bolha amplia (overlay)
 - Comportamento do bot: delay/digitando; conhecido = thread desta linha + contato já no catálogo; idle só na pergunta; reabertura → menu conhecido
-- Fluxo de entrada no chatbot ativo (`Chatbot.flowId`); fallback `inicio`
+- Fluxo de entrada no chatbot ativo (`Chatbot.flowId`); overlay por linha (`WhatsAppNumber.flowId`); fallback `inicio`
+- Expediente por linha (`WhatsAppNumber.businessHours`)
+- Mídia anexada (imagem/áudio) no bloco Mensagem do editor de fluxos (bucket `media`, path `flows/{flowId}/{stepId}`, rotas `PUT`/`GET`/`DELETE /api/flows/{flowId}/steps/{stepId}/media`)
+- Avisos de roteiro clicáveis no editor (`flowHealthIssues` → seleciona bloco, abre inspetor, foca o nó)
+- Anexar mídia no bloco Mensagem grava o fluxo (se já tiver nome; mesmo save do `Ctrl`/`⌘`+S) e em seguida faz o PUT; sem nome, “Dê um nome ao fluxo” e não anexa
+- Pausa do bloco Mensagem na tela em segundos (0–8); grava `delayMs` (0–8000) com `msToSeconds` / `secondsToMs`
+- Chatbot: atalho **Editar este fluxo** no `EntryFlowSelect` (empresa e linha) → `/dashboard/flows/{flowId}`; sem fluxo escolhido, **Abrir Fluxos** na lista
+- Menu e header: rótulo **Chatbot** (singular); URL permanece `/dashboard/chatbots`
+- Simulador do fluxo: bolhas com mídia (`image`/`audio`) e seletor **Novo** / **Conhecido**
+- Chatbot: confirmar antes de trocar **Vale para** com rascunho; expediente e ritmo nascem recolhidos
+- Palavras-chave do fluxo no editor em chips (Enter/vírgula/colar; X tira)
 
 ## Não fazer
 

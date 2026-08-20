@@ -6,6 +6,7 @@ export type StoredMedia = {
 export interface IMediaStorage {
   save(path: string, media: StoredMedia): Promise<void>;
   get(path: string): Promise<StoredMedia | null>;
+  remove(path: string): Promise<void>;
 }
 
 export function messageMediaPath(messageId: string): string {
@@ -26,6 +27,38 @@ export function quickReplyMediaPath(quickReplyId: string): string {
 
 export function quickReplyMediaApiHref(quickReplyId: string): string {
   return `/api/quick-replies/${encodeURIComponent(quickReplyId)}/media`;
+}
+
+export function flowStepMediaPath(flowId: string, stepId: string): string {
+  return `flows/${flowId}/${stepId}`;
+}
+
+export function flowStepMediaApiHref(flowId: string, stepId: string): string {
+  return `/api/flows/${encodeURIComponent(flowId)}/steps/${encodeURIComponent(stepId)}/media`;
+}
+
+export function flowStepStoragePathFromRef(url: string): string | null {
+  const trimmed = url.trim();
+  const stored = trimmed.match(/^flows\/([^/]+)\/([^/]+)$/);
+  if (stored) {
+    return trimmed;
+  }
+  const href = trimmed.match(/^\/api\/flows\/([^/]+)\/steps\/([^/]+)\/media(?:\?.*)?$/);
+  if (href) {
+    return flowStepMediaPath(decodeURIComponent(href[1]), decodeURIComponent(href[2]));
+  }
+  return null;
+}
+
+export function isValidFlowStepMediaUrl(url: string): boolean {
+  const trimmed = url.trim();
+  if (!trimmed) {
+    return false;
+  }
+  if (/^https?:\/\//i.test(trimmed)) {
+    return true;
+  }
+  return flowStepStoragePathFromRef(trimmed) !== null;
 }
 
 export function isPlayableMediaType(type: string): boolean {
