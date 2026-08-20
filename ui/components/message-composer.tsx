@@ -14,7 +14,7 @@ import { PTT_MAX_MS } from '@/ui/lib/ptt-file';
 import { usePttRecorder } from '@/ui/lib/use-ptt-recorder';
 import { ComposerPresence, postComposerPresence } from '@/ui/lib/composer-presence';
 import { isQuickReplyPickerOpenKey } from '@/ui/lib/quick-reply-picker-keys';
-
+import { useComposerDraft } from '@/ui/lib/use-composer-draft';
 type MessageComposerProps = {
   disabled?: boolean;
   sending: boolean;
@@ -38,11 +38,11 @@ export function MessageComposer({
   conversationDepartmentId,
   onSend,
 }: MessageComposerProps) {
-  const [draft, setDraft] = useState('');
   const [file, setFile] = useState<File | null>(null);
   const [sizeError, setSizeError] = useState<string | null>(null);
   const [quickOpen, setQuickOpen] = useState(false);
   const [pttCancelArmed, setPttCancelArmed] = useState(false);
+  const { draft, setDraft } = useComposerDraft(conversationId);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const textRef = useRef<HTMLTextAreaElement>(null);
   const lastPresence = useRef('');

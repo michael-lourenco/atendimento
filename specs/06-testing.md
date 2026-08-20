@@ -92,7 +92,8 @@ Runner: Jest + `ts-jest` (`npm test`). Testing Library só quando houver teste d
 - `core/entities/schedulesForConversation.test.ts` — lista da thread: `conversationId` bate; sem id, mesmo telefone
 - `core/entities/scheduleOutgoingLine.test.ts` — coluna Linha: `conversationId` fixa a thread; sem id, a mais recente do telefone
 - `core/entities/atendimentoInicialFlow.test.ts` — menu no `inicio`; saltos `goToFlow`; contratar e demo pausam (`handoff`); FAQ do cliente pergunta se ainda precisa de alguém; opção inválida → miss + menu sem saudação; **número** da opção no menu
-- `core/entities/inboxFilterHint.test.ts` — quantas a aba tem vs o filtro; busca casa conteúdo da thread
+- `core/entities/inboxFilterHint.test.ts` — quantas a aba tem vs o filtro; busca casa conteúdo da thread; `nextIncomingQueueConversation` (próxima da Entrada; última; vazia)
+- `ui/lib/composer-draft.test.ts` — grava/lê/apaga rascunho por `conversationId`; vazio remove; teto de 8000 chars
 - `core/engine/previewFlowOpening.test.ts` — primeiro “oi” vira bolhas da prévia (opções numeradas); salto `goToFlow`
 - `core/entities/assignmentFromOperator.test.ts` — e-mail liga agente; senão linked false
 - `core/entities/operatorRole.test.ts` — admin; último admin não rebaixa nem exclui

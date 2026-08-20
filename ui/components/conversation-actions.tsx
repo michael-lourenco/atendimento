@@ -23,6 +23,7 @@ type ConversationActionsProps = {
   operator: User | null;
   paused?: boolean;
   onChanged: () => void;
+  onClosed?: (conversationId: string) => void;
   onSchedule: () => void;
   onResume: () => void;
 };
@@ -34,6 +35,7 @@ export function ConversationActions({
   operator,
   paused,
   onChanged,
+  onClosed,
   onSchedule,
   onResume,
 }: ConversationActionsProps) {
@@ -65,6 +67,7 @@ export function ConversationActions({
     }
     await clientUseCases.closeConversation().execute(threadId);
     setConfirmClose(false);
+    onClosed?.(threadId);
     onChanged();
   };
 

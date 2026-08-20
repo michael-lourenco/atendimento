@@ -24,9 +24,15 @@ type MessageThreadProps = {
   conversationId: string;
   onBack?: () => void;
   onConversationChanged?: () => void;
+  onClosed?: (conversationId: string) => void;
 };
 
-export function MessageThread({ conversationId, onBack, onConversationChanged }: MessageThreadProps) {
+export function MessageThread({
+  conversationId,
+  onBack,
+  onConversationChanged,
+  onClosed,
+}: MessageThreadProps) {
   const thread = useMessageThread(conversationId, onConversationChanged);
   const {
     messages,
@@ -83,6 +89,7 @@ export function MessageThread({ conversationId, onBack, onConversationChanged }:
           operator={operator}
           paused={paused}
           onChanged={refresh}
+          onClosed={onClosed}
           onSchedule={() => setScheduleOpen(true)}
           onResume={() => void resume()}
         />

@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { isPlayableMediaType } from '@/core/services/IMediaStorage';
+import { ImageLightbox } from '@/ui/components/image-lightbox';
 
 type MessageMediaProps = {
   id: string;
@@ -11,7 +12,9 @@ type MessageMediaProps = {
 
 export function MessageMedia({ id, type, content }: MessageMediaProps) {
   const [failed, setFailed] = useState(false);
+  const [open, setOpen] = useState(false);
   const src = `/api/messages/${encodeURIComponent(id)}/media`;
+  const alt = content || 'Imagem';
 
   if (!isPlayableMediaType(type) || failed) {
     return <span className="whitespace-pre-wrap">{content || '-'}</span>;
@@ -20,15 +23,26 @@ export function MessageMedia({ id, type, content }: MessageMediaProps) {
   if (type === 'image') {
     return (
       <div className="space-y-1">
-        <img
-          src={src}
-          alt={content || 'Imagem'}
-          className="max-h-48 max-w-xs rounded border border-border object-contain"
-          onError={() => setFailed(true)}
-        />
+        <button
+          type="button"
+          className="block max-w-xs text-left"
+          aria-label="Ampliar imagem"
+          onClick={(event) => {
+            event.stopPropagation();
+            setOpen(true);
+          }}
+        >
+          <img
+            src={src}
+            alt={alt}
+            className="max-h-48 max-w-xs cursor-zoom-in rounded border border-border object-contain"
+            onError={() => setFailed(true)}
+          />
+        </button>
         {content && content !== 'Imagem recebida' ? (
           <p className="text-xs text-muted-foreground">{content}</p>
         ) : null}
+        {open ? <ImageLightbox src={src} alt={alt} onClose={() => setOpen(false)} /> : null}
       </div>
     );
   }

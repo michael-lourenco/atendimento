@@ -65,6 +65,9 @@ Isolamento entre empresas = cópia da stack (`00-vision.md`, `08-supabase.md`).
 - Deslizar para cima cancela o PTT
 - Atalho `/` e `Ctrl`/`⌘`+`/` no compositor para respostas rápidas
 - Respostas rápidas opcionais por setor
+- Rascunho de texto por conversa (`sessionStorage`)
+- Finalizar abre a próxima da Entrada (setor/minhas/linha)
+- Clique na imagem da bolha amplia (overlay)
 
 ## Não fazer
 

@@ -1,5 +1,5 @@
 import { Conversation } from './Conversation';
-import { inboxHiddenCount } from './inboxFilterHint';
+import { inboxHiddenCount, nextIncomingQueueConversation } from './inboxFilterHint';
 import { Message } from './Message';
 
 const row = (overrides: Partial<Conversation> = {}): Conversation => ({
@@ -71,5 +71,47 @@ describe('inboxHiddenCount', () => {
     ];
     expect(inboxHiddenCount(withPreview, 'incoming', false, 'me', 'all', 'contrato')).toBe(1);
     expect(inboxHiddenCount(withPreview, 'incoming', false, 'me', 'all', 'bruno')).toBe(1);
+  });
+});
+
+describe('nextIncomingQueueConversation', () => {
+  const incoming = (id: string, overrides: Partial<Conversation> = {}): Conversation =>
+    row({ id, contactPhone: id, status: 'open', ...overrides });
+
+  it('abre a próxima da Entrada na ordem da lista', () => {
+    const list = [incoming('a'), incoming('b'), incoming('c')];
+    expect(nextIncomingQueueConversation(list, 'a', false, 'me', 'all')?.id).toBe('b');
+    expect(nextIncomingQueueConversation(list, 'b', false, 'me', 'all')?.id).toBe('c');
+  });
+
+  it('na última volta para a que ficou no lugar', () => {
+    const list = [incoming('a'), incoming('b'), incoming('c')];
+    expect(nextIncomingQueueConversation(list, 'c', false, 'me', 'all')?.id).toBe('b');
+  });
+
+  it('sem outras na Entrada devolve indefinido', () => {
+    expect(nextIncomingQueueConversation([incoming('a')], 'a', false, 'me', 'all')).toBeUndefined();
+  });
+
+  it('ao finalizar uma conversa assumida pega a Entrada', () => {
+    const list = [
+      incoming('a'),
+      row({
+        id: 'mine',
+        contactPhone: '9',
+        status: 'open',
+        assignedAgentId: 'me',
+      }),
+    ];
+    expect(nextIncomingQueueConversation(list, 'mine', true, 'me', 'all')?.id).toBe('a');
+  });
+
+  it('respeita setor e linha e ignora busca', () => {
+    const list = [
+      incoming('a', { departmentId: '1', whatsappNumberId: 'n1' }),
+      incoming('b', { departmentId: '2', whatsappNumberId: 'n1' }),
+      incoming('c', { departmentId: '1', whatsappNumberId: 'n1' }),
+    ];
+    expect(nextIncomingQueueConversation(list, 'a', false, 'me', '1', 'n1')?.id).toBe('c');
   });
 });

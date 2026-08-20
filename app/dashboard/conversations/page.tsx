@@ -15,7 +15,9 @@ import {
   conversationMatchesInboxFilters,
   conversationOnQueueTab,
   inboxHiddenCount,
+  nextIncomingQueueConversation,
 } from '@/core/entities/inboxFilterHint';
+import { inboxHrefForConversation } from '@/ui/lib/inbox-href';
 import { InboxConversationAside } from '@/ui/components/inbox-conversation-aside';
 import { MessageThread } from '@/ui/components/message-thread';
 import { WhatsAppDisconnectedBanner } from '@/ui/components/whatsapp-status';
@@ -185,6 +187,23 @@ export default function ConversationsPage() {
     setFilter('');
   };
 
+  const openNextAfterClose = (closedId: string) => {
+    const next = nextIncomingQueueConversation(
+      conversations,
+      closedId,
+      mineOnly,
+      operatorAgentId,
+      departmentFilter,
+      lineFilter
+    );
+    setActiveTab('incoming');
+    if (next) {
+      router.push(inboxHrefForConversation(next.id));
+      return;
+    }
+    router.push('/dashboard/conversations');
+  };
+
   if (loading) {
     return <InboxSkeleton />;
   }
@@ -237,6 +256,7 @@ export default function ConversationsPage() {
               conversationId={selectedConversation.id}
               onBack={() => router.push('/dashboard/conversations')}
               onConversationChanged={() => loadConversations()}
+              onClosed={openNextAfterClose}
             />
           ) : (
             <div className="flex h-full items-center justify-center rounded-lg border border-dashed border-border bg-chat text-sm text-muted-foreground">

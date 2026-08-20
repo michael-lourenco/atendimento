@@ -108,6 +108,36 @@ export function inboxHiddenCount(
   return Math.max(0, onTab - visible);
 }
 
+export function nextIncomingQueueConversation(
+  conversations: Conversation[],
+  closedId: string,
+  mineOnly: boolean,
+  operatorAgentId: string | undefined,
+  departmentFilter: DepartmentFilter,
+  lineFilter: LineFilter = 'all'
+): Conversation | undefined {
+  const queue = conversations.filter((item) =>
+    conversationMatchesInboxFilters(
+      item,
+      'incoming',
+      mineOnly,
+      operatorAgentId,
+      departmentFilter,
+      '',
+      lineFilter
+    )
+  );
+  const remaining = queue.filter((item) => item.id !== closedId);
+  if (remaining.length === 0) {
+    return undefined;
+  }
+  const index = queue.findIndex((item) => item.id === closedId);
+  if (index < 0) {
+    return remaining[0];
+  }
+  return remaining[Math.min(index, remaining.length - 1)];
+}
+
 export const QUEUE_TAB_LABEL: Record<QueueTab, string> = {
   incoming: 'Entrada',
   waiting: 'Esperando',
