@@ -6,6 +6,8 @@ import { PointerEvent } from 'react';
 type PttButtonProps = {
   recording: boolean;
   disabled?: boolean;
+  idleLabel?: string;
+  recordingLabel?: string;
   onHoldStart: () => void;
   onHoldEnd: () => void;
   onHoldCancel: () => void;
@@ -14,6 +16,8 @@ type PttButtonProps = {
 export function PttButton({
   recording,
   disabled,
+  idleLabel = 'Segure para gravar áudio',
+  recordingLabel = 'Solte para enviar o áudio',
   onHoldStart,
   onHoldEnd,
   onHoldCancel,
@@ -47,7 +51,7 @@ export function PttButton({
           ? 'bg-destructive text-destructive-foreground'
           : 'bg-primary text-primary-foreground hover:bg-primary/90'
       } disabled:opacity-40`}
-      aria-label={recording ? 'Solte para enviar o áudio' : 'Segure para gravar áudio'}
+      aria-label={recording ? recordingLabel : idleLabel}
       disabled={disabled}
       onPointerDown={onPointerDown}
       onPointerUp={onPointerUp}

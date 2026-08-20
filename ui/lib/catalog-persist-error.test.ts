@@ -33,6 +33,15 @@ describe('catalogPersistErrorMessage', () => {
     ).toContain('010_schedule_conversation');
   });
 
+  it('explica media_kind ausente nas respostas rápidas', () => {
+    expect(
+      catalogPersistErrorMessage(
+        { code: 'PGRST204', message: "Could not find the 'media_kind' column" },
+        'quick_replies'
+      )
+    ).toContain('022_quick_reply_audio');
+  });
+
   it('usa a mensagem do objeto PostgREST', () => {
     expect(catalogPersistErrorMessage({ message: 'payload too large' }, 'flows')).toBe(
       'payload too large'

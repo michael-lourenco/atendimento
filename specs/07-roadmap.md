@@ -58,6 +58,8 @@ Isolamento entre empresas = cópia da stack (`00-vision.md`, `08-supabase.md`).
 - PTT no compositor (áudio via send existente)
 - Recibo de leitura ao abrir a thread (`POST /api/messages/read`)
 - Busca da inbox e do histórico pelo texto das mensagens
+- Áudio pré-gravado nas respostas rápidas
+- PTT no cadastro de respostas rápidas (mesmo gravador do chat)
 
 ## Não fazer
 

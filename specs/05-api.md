@@ -43,7 +43,7 @@ Bodies JSON das rotas abaixo passam por schema Zod na borda. Inválido → `400 
 - Após envio bem-sucedido, pausa o fluxo **dessa thread** (`PauseContactFlowUseCase` com o id da conversa) e, se houver mídia, grava no Storage
 - 401: sem sessão de operador quando o Supabase está configurado
 - 500: falha no provedor
-- Emoji Unicode no `message`, **resposta rápida** (o `body` já está no compositor) e **Reenviar** de outgoing `failed` usam este mesmo POST (mesmo `to` + texto + `conversationId` da thread). Sem rota extra. Sem `/api/quick-replies`: o catálogo no painel usa `QuickReplyCatalogUseCase` no client
+- Emoji Unicode no `message`, **resposta rápida** de texto (o `body` já está no compositor) e **Reenviar** de outgoing `failed` usam este mesmo POST. Resposta rápida **com áudio**: o picker manda o arquivo no mesmo multipart. CRUD do catálogo continua no client (`QuickReplyCatalogUseCase`). Áudio do catálogo: `GET`/`PUT`/`DELETE /api/quick-replies/{id}/media`.
 
 `POST /api/messages/react`
 
@@ -105,6 +105,15 @@ Bodies JSON das rotas abaixo passam por schema Zod na borda. Inválido → `400 
 - 401: sem sessão de operador quando o Supabase está configurado
 - 404: sem arquivo (contato sem foto ou download da Evolution ainda não ocorreu)
 - 200: bytes + `Content-Type`; `Cache-Control: private, max-age=3600`
+
+`GET` / `PUT` / `DELETE /api/quick-replies/{id}/media`
+
+- 401: sem sessão de operador quando o Supabase está configurado
+- 404: resposta inexistente (GET/PUT/DELETE) ou sem áudio no Storage (GET)
+- GET: stream do áudio (`quick-replies/{id}`); `Cache-Control: private, no-cache`
+- PUT: multipart `file` (só áudio, máx. 16 MB). Grava Storage + `mediaKind: "audio"`. 400 se não for áudio ou passar de 16 MB. 200: `QuickReply`
+- DELETE: tira `mediaKind` (o `body` permanece). 200: `QuickReply`
+- Sem Zod (multipart / sem body). Não cria a resposta: o catálogo `save` no client vem antes
 
 `POST /api/contacts/avatars/sync` — sem body. Recalcula fotos em falta (copia `Contact.avatarUrl` para a thread; senão baixa na Evolution, lote). 401 sem sessão se o Supabase estiver configurado. 200 `{ attempted, filled }`. Sem Zod (sem JSON).
 

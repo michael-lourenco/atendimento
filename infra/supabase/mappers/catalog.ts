@@ -175,6 +175,7 @@ export function quickReplyFromRow(row: Record<string, unknown>): QuickReply {
     id: String(row.id),
     title: String(row.title),
     body: String(row.body ?? ''),
+    mediaKind: row.media_kind === 'audio' ? 'audio' : undefined,
     createdAt: asDate(row.created_at),
   };
 }
@@ -184,6 +185,7 @@ export function quickReplyToRow(reply: QuickReply) {
     id: reply.id,
     title: reply.title,
     body: reply.body,
+    media_kind: reply.mediaKind === 'audio' ? 'audio' : null,
     created_at: reply.createdAt.toISOString(),
   };
 }

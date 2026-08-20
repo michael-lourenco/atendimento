@@ -42,6 +42,8 @@ import { Message } from '../../core/entities/Message';
 import { FlowSession } from '../../core/entities/FlowSession';
 import { Conversation } from '../../core/entities/Conversation';
 import { InternalMessage } from '../../core/entities/InternalMessage';
+import { QuickReply } from '../../core/entities/QuickReply';
+import { IQuickReplyRepository } from '../../core/repositories/IQuickReplyRepository';
 
 function createFlowRepository(client: SupabaseClient): IFlowRepository {
   const crud = createSupabaseCrud<Flow>(client, 'flows', flowFromRow, flowToRow);
@@ -242,6 +244,17 @@ function createScheduledMessageRepository(client: SupabaseClient) {
   };
 }
 
+function createQuickReplyRepository(client: SupabaseClient): IQuickReplyRepository {
+  const crud = createSupabaseCrud(client, 'quick_replies', quickReplyFromRow, quickReplyToRow);
+  return {
+    getAll: () => crud.getAll(),
+    getById: (id: string) => crud.getById(id),
+    save: (reply: QuickReply) =>
+      upsertOmittingMissingColumns(client, 'quick_replies', quickReplyToRow(reply), ['media_kind']),
+    delete: (id: string) => crud.delete(id),
+  };
+}
+
 export function createSupabaseDataBag(
   client: SupabaseClient,
   auth: IAuthRepository
@@ -259,7 +272,7 @@ export function createSupabaseDataBag(
     contact: createSupabaseCrud(client, 'contacts', contactFromRow, contactToRow),
     whatsAppNumber: createSupabaseCrud(client, 'whatsapp_numbers', numberFromRow, numberToRow),
     tag: createSupabaseCrud(client, 'tags', tagFromRow, tagToRow),
-    quickReply: createSupabaseCrud(client, 'quick_replies', quickReplyFromRow, quickReplyToRow),
+    quickReply: createQuickReplyRepository(client),
     scheduledMessage: createScheduledMessageRepository(client),
     report: createSupabaseCrud(client, 'reports', reportFromRow, reportToRow),
   };

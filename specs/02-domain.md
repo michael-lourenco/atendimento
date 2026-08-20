@@ -16,7 +16,7 @@
 | `Contact` | Contato WhatsApp + etiquetas; `avatarUrl` opcional (foto no Storage, via `/api/contacts/{id}/avatar`) |
 | `WhatsAppNumber` | Número/linha WhatsApp da **mesma** empresa. Na UI o rótulo é `name` (ex. Comercial); `instanceName` é identificador técnico (slug do nome se o admin não preencher) |
 | `Tag` | Etiqueta (`color`, `contactsCount`) |
-| `QuickReply` | `id`, `title` (rótulo curto, ex. “Saudação”), `body` (texto enviado; Unicode, pode ter emoji), `createdAt`. Catálogo da **empresa** (esta stack). Sem atalho de teclado. Sem dono por atendente. Sem respostas por setor nesta versão |
+| `QuickReply` | `id`, `title`, `body` (texto; pode ser vazio se houver áudio), `mediaKind?` (`audio`), `createdAt`. Catálogo da **empresa**. Sem atalho de teclado. Sem dono por atendente. Sem respostas por setor nesta versão |
 | `ScheduledMessage` | Envio futuro (`pending` \| `sent` \| `failed`). `contact` = telefone; `conversationId` opcional = thread (mesma linha) |
 | `Report` | Snapshot gerado no painel |
 | `DashboardMetrics` | KPIs: totais, taxa de resposta, volume por setor, tempo médio até Assumir, tempo médio até 1ª resposta humana, conversas sem dono há `UNASSIGNED_QUEUE_MINUTES` (5) |
@@ -57,14 +57,15 @@ Catálogo **da empresa** (esta stack): um banco, sem `company_id`, sem dono por 
 {
   id: string;
   title: string; // rótulo curto na lista (ex. "Saudação")
-  body: string;  // texto inserido no compositor e enviado
+  body: string;  // texto inserido no compositor; vazio se for só áudio
+  mediaKind?: 'audio'; // áudio pré-gravado no Storage (`quick-replies/{id}`)
   createdAt: Date;
 }
 ```
 
-Porta `IQuickReplyRepository` = `ICrudRepository<QuickReply>`. Use case `QuickReplyCatalogUseCase` (`list` / `save` / `delete`), padrão `TagCatalogUseCase`. Mock em `infra/mocks` com **2–3 frases de exemplo** (dev/test); campo no bag do ServiceLocator. Prod (Supabase) começa **vazio** — sem seed SQL de frases.
+Porta `IQuickReplyRepository` = `ICrudRepository<QuickReply>`. Use case `QuickReplyCatalogUseCase` (`list` / `save` / `delete`), padrão `TagCatalogUseCase`. Áudio: `SaveQuickReplyMediaUseCase` grava bytes no `IMediaStorage` e `mediaKind: "audio"`. Mock em `infra/mocks` com **2–3 frases de exemplo** (dev/test); campo no bag do ServiceLocator. Prod (Supabase) começa **vazio** — sem seed SQL de frases.
 
-Sem atalho de teclado nesta versão. Inserir no compositor é só cliente (mesmo helper de posição do cursor que o emoji); o envio permanece `POST /api/messages/send` com o texto — sem rota HTTP nova.
+Sem atalho de teclado nesta versão. Texto: inserir no compositor é só cliente (mesmo helper de posição do cursor que o emoji); o envio permanece `POST /api/messages/send`. Áudio: o picker **envia** o arquivo pelo mesmo POST multipart (não cola no campo). Cadastro: upload **ou** o mesmo PTT do compositor (segurar o microfone; soltar anexa o áudio ao formulário, **não** manda WhatsApp nem presence). Título obrigatório; precisa de `body` **ou** áudio. Sem rota HTTP de CRUD; mídia em `GET`/`PUT`/`DELETE /api/quick-replies/{id}/media`.
 
 ## Invariantes
 
@@ -137,4 +138,5 @@ Entrada do motor: só incoming `type === "text"` com conteúdo não vazio. Mídi
 - `MarkConversationReadUseCase` zera `unreadCount`.
 - `MarkWhatsAppMessagesReadUseCase` envia ids incoming ainda não `read`; no-op sem `markMessagesRead`; conversa inexistente não chama o provedor.
 - Busca da inbox casa nome **ou** conteúdo da thread.
+- `SaveQuickReplyMediaUseCase` grava só áudio; resposta inexistente retorna null.
 - Fila “minhas”: Esperando/Finalizados com `assignedAgentId` do operador; Entrada sem filtro de dono.

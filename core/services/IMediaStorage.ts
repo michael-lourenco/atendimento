@@ -20,6 +20,14 @@ export function contactAvatarApiHref(contactId: string): string {
   return `/api/contacts/${encodeURIComponent(contactId)}/avatar`;
 }
 
+export function quickReplyMediaPath(quickReplyId: string): string {
+  return `quick-replies/${quickReplyId}`;
+}
+
+export function quickReplyMediaApiHref(quickReplyId: string): string {
+  return `/api/quick-replies/${encodeURIComponent(quickReplyId)}/media`;
+}
+
 export function isPlayableMediaType(type: string): boolean {
   return type === 'image' || type === 'audio' || type === 'video' || type === 'document';
 }

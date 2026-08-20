@@ -29,6 +29,7 @@ Runner: Jest + `ts-jest` (`npm test`). Testing Library só quando houver teste d
 - `core/usecases/MarkWhatsAppMessagesReadUseCase.test.ts` — envia ids incoming; no-op sem `markMessagesRead`; conversa inexistente
 - `infra/whatsapp/evolutionMarkMessagesRead.test.ts` — payload `readMessages`
 - `ui/lib/ptt-file.test.ts` — arquivo a partir dos blobs; sem MediaRecorder o PTT não quebra
+- `ui/lib/quick-reply-audio.test.ts` — cadastro recusa arquivo que não é áudio
 - `core/usecases/LoginUseCase.test.ts` — porta de auth (senha obrigatória); agente `offline` recusa
 - `core/usecases/GetCurrentUserUseCase.test.ts` — agente `offline` faz logout
 - `core/usecases/GetAllConversationsUseCase.test.ts` — lista o catálogo; com snapshot não relê mensagens; `execute(true)` preenche e grava a prévia; se gravar falhar ainda devolve a prévia; padrão / `execute(false)` hidrata e não grava
@@ -63,7 +64,7 @@ Runner: Jest + `ts-jest` (`npm test`). Testing Library só quando houver teste d
 - `infra/whatsapp/mapEvolutionIncoming.test.ts` — pushName; MESSAGES_UPSERT; ignora grupo/fromMe; tipo imagem
 - `infra/whatsapp/evolutionMedia.test.ts` — parse base64; hydrate grava no storage fake
 - `core/usecases/SendWhatsAppMessageUseCase.test.ts` — persiste outgoing; mídia vai ao storage fake; `quotedMessageId` quando o alvo existe
-- `core/services/IMediaStorage.test.ts` — tipo pelo MIME; Meta/Twilio recusam mídia
+- `core/services/IMediaStorage.test.ts` — tipo pelo MIME; Meta/Twilio recusam mídia; path de áudio de resposta rápida
 - `infra/whatsapp/evolutionSendMedia.test.ts` — sendMedia vs sendWhatsAppAudio
 - `app/api/messages/send/parseSendRequest.test.ts` — JSON e multipart; máx. 16 MB; `conversationId` opcional
 - `ui/lib/flow-step-graph.test.ts` — ligar próximo passo ao adicionar; limpar refs ao remover; opções da pergunta na condição
@@ -102,8 +103,9 @@ Runner: Jest + `ts-jest` (`npm test`). Testing Library só quando houver teste d
 - `core/usecases/SetOperatorRoleUseCase.test.ts` — promove; bloqueia último admin
 - `core/usecases/SetOperatorPasswordUseCase.test.ts` — só admin; senha curta falha; id inexistente 404
 - `ui/lib/emoji.test.ts` — insere emoji na posição do cursor e substitui a seleção; o mesmo helper insere `body` de resposta rápida (texto Unicode, inclusive com emoji)
-- `core/entities/QuickReply.test.ts` — lista ordenada pelo título
-- `ui/lib/catalog-persist-error.test.ts` — PGRST205 vira aviso de migration; PGRST204 em flows cita 017; 23503 ao excluir fluxo
+- `core/entities/QuickReply.test.ts` — lista ordenada pelo título; prévia Áudio; válido com texto ou áudio
+- `core/usecases/SaveQuickReplyMediaUseCase.test.ts` — grava áudio; recusa não-áudio; id inexistente
+- `ui/lib/catalog-persist-error.test.ts` — PGRST205 vira aviso de migration; PGRST204 em flows cita 017; `quick_replies` cita 022; 23503 ao excluir fluxo
 - `ui/lib/catalog-load-phase.test.ts` — enquanto carrega não é empty state
 - `ui/lib/sidebar-nav.test.ts` — atendente vê Conversas, Contatos, `/dashboard/quick-replies` **e** `/dashboard/schedules`; `isAdminPath` dessas duas é false; admin vê Configuração. Sem Testing Library obrigatório para esta feature
 - `ui/lib/inbox-href.test.ts` — Contatos: uma thread → `?conversation=`; nenhuma → `?contact=`; várias → `?contact=` (o menu escolhe o id)
@@ -111,7 +113,7 @@ Runner: Jest + `ts-jest` (`npm test`). Testing Library só quando houver teste d
 - `infra/schedules/cronAuth.test.ts` — Bearer `CRON_SECRET`
 - `infra/schedules/shouldStartInProcessScheduleCron.test.ts` — não sobe em test / build / Vercel
 - `infra/supabase/missingColumn.test.ts` — PGRST204 de `last_message` é coluna ausente; `conversation_id` de agendamento também
-- `infra/supabase/mappers/catalog.test.ts` — `scheduleToRow` só manda `conversation_id` se houver thread
+- `infra/supabase/mappers/catalog.test.ts` — `scheduleToRow` só manda `conversation_id` se houver thread; `quickReplyToRow` manda `media_kind`
 - `infra/supabase/mappers/messaging.test.ts` — `conversationToRow` só manda `last_message` se houver snapshot
 - `infra/supabase/mappers/messaging.test.ts` — `messageToRow` grava `reactions` (vazio se ainda não houver)
 - `infra/http/apiLog.test.ts` — formato `[requestId] mensagem: detalhe`; não inclui token, apikey, service_role, JWT, Authorization, base64, nem `error.response.data` completo

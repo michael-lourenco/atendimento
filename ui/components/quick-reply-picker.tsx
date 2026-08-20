@@ -3,19 +3,28 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { Zap } from 'lucide-react';
-import { QuickReply, sortQuickReplies } from '@/core/entities/QuickReply';
+import {
+  QuickReply,
+  quickReplyHasAudio,
+  quickReplyListPreview,
+  sortQuickReplies,
+} from '@/core/entities/QuickReply';
 import { QuickReplyCatalogUseCase } from '@/core/usecases/QuickReplyCatalogUseCase';
+import { fetchQuickReplyAudioFile } from '@/ui/lib/quick-reply-audio';
 import { cn } from '@/ui/lib/utils';
+
+export type QuickReplyPick = { text: string; file?: File };
 
 type QuickReplyPickerProps = {
   disabled?: boolean;
   compact?: boolean;
-  onPick: (body: string) => void;
+  onPick: (input: QuickReplyPick) => void | Promise<void>;
 };
 
 export function QuickReplyPicker({ disabled, compact, onPick }: QuickReplyPickerProps) {
   const [open, setOpen] = useState(false);
   const [replies, setReplies] = useState<QuickReply[]>([]);
+  const [picking, setPicking] = useState(false);
 
   useEffect(() => {
     if (!open) {
@@ -23,6 +32,27 @@ export function QuickReplyPicker({ disabled, compact, onPick }: QuickReplyPicker
     }
     void new QuickReplyCatalogUseCase().list().then((rows) => setReplies(sortQuickReplies(rows)));
   }, [open]);
+
+  const choose = async (item: QuickReply) => {
+    if (picking) {
+      return;
+    }
+    setPicking(true);
+    try {
+      if (quickReplyHasAudio(item)) {
+        const file = await fetchQuickReplyAudioFile(item.id);
+        if (!file) {
+          return;
+        }
+        await onPick({ text: item.body, file });
+      } else {
+        await onPick({ text: item.body });
+      }
+      setOpen(false);
+    } finally {
+      setPicking(false);
+    }
+  };
 
   return (
     <div className="relative">
@@ -35,7 +65,7 @@ export function QuickReplyPicker({ disabled, compact, onPick }: QuickReplyPicker
         )}
         aria-label="Resposta rápida"
         aria-expanded={open}
-        disabled={disabled}
+        disabled={disabled || picking}
         onClick={() => setOpen((value) => !value)}
       >
         {compact ? <Zap className="h-5 w-5" /> : 'Resposta'}
@@ -58,14 +88,14 @@ export function QuickReplyPicker({ disabled, compact, onPick }: QuickReplyPicker
                 <li key={item.id}>
                   <button
                     type="button"
-                    className="w-full rounded px-2 py-1.5 text-left hover:bg-muted"
-                    onClick={() => {
-                      onPick(item.body);
-                      setOpen(false);
-                    }}
+                    className="w-full rounded px-2 py-1.5 text-left hover:bg-muted disabled:opacity-50"
+                    disabled={picking}
+                    onClick={() => void choose(item)}
                   >
                     <span className="block text-sm font-medium text-foreground">{item.title}</span>
-                    <span className="block truncate text-xs text-muted-foreground">{item.body}</span>
+                    <span className="block truncate text-xs text-muted-foreground">
+                      {quickReplyListPreview(item)}
+                    </span>
                   </button>
                 </li>
               ))}

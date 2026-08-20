@@ -1,5 +1,5 @@
 import { assertNoOutgoingMedia } from './IWhatsAppService';
-import { contactAvatarApiHref, contactAvatarPath, mediaKindFromMime } from './IMediaStorage';
+import { contactAvatarApiHref, contactAvatarPath, mediaKindFromMime, quickReplyMediaApiHref, quickReplyMediaPath } from './IMediaStorage';
 
 describe('mediaKindFromMime', () => {
   it('classifica image/audio/video/document', () => {
@@ -14,6 +14,13 @@ describe('contactAvatarPath', () => {
   it('href da foto no painel', () => {
     expect(contactAvatarPath('5511999')).toBe('contacts/5511999');
     expect(contactAvatarApiHref('5511999')).toBe('/api/contacts/5511999/avatar');
+  });
+});
+
+describe('quickReplyMediaPath', () => {
+  it('href do áudio no painel', () => {
+    expect(quickReplyMediaPath('qr-1')).toBe('quick-replies/qr-1');
+    expect(quickReplyMediaApiHref('qr-1')).toBe('/api/quick-replies/qr-1/media');
   });
 });
 
