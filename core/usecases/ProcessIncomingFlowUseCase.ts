@@ -15,6 +15,7 @@ import { contactPhoneFromMessage } from './UpsertConversationFromMessageUseCase'
 import { conversationThreadId, messagesOnWhatsAppLine } from '../entities/conversationThread';
 import { matchWhatsAppNumber } from '../entities/whatsappNumberLine';
 import { activeBusinessHours, isWithinBusinessHours } from '../entities/businessHours';
+import { companyChatbotFlowId } from '../entities/chatbotActive';
 import { queuePlace, queuePlaceLine } from '../entities/queuePlace';
 import { FlowSession } from '../entities/FlowSession';
 import { FlowAudience, IncomingFlowHint } from '../entities/flowAudience';
@@ -121,29 +122,43 @@ export class ProcessIncomingFlowUseCase {
       session = null;
       turnAudience = 'new';
     }
+
+    const bots = this.chatbots ? await this.chatbots.getAll() : null;
+    const lineCatalog = this.numbers ? await this.numbers.getAll() : [];
+    const line = matchWhatsAppNumber(lineCatalog, input.instanceName);
+    const behavior = resolveBotBehavior(bots, line?.behavior);
+    const text = await this.textAfterDebounce(input, behavior);
+
+    const hours = activeBusinessHours(bots ?? []);
+    const flow = resolveActiveFlow(flows, {
+      sessionFlowId: session?.flowId,
+      entryFlowId: companyChatbotFlowId(bots),
+    });
+    if (!isWithinBusinessHours(hours, now)) {
+      await this.notifyClosed(
+        input.contactId,
+        sessionKey,
+        session,
+        hours?.closedMessage ?? '',
+        now,
+        flow?.id
+      );
+      return;
+    }
+
     const planned = planSessionForTurn({
       session,
       audience: turnAudience,
       reopened,
       contactId: sessionKey,
       now,
+      entryFlowId: flow?.id,
     });
     if (planned.skip) {
       return;
     }
     session = planned.session;
 
-    const bots = this.chatbots ? await this.chatbots.getAll() : null;
-    const behavior = resolveBotBehavior(bots);
-    const text = await this.textAfterDebounce(input, behavior);
-
-    const hours = activeBusinessHours(bots ?? []);
-    if (!isWithinBusinessHours(hours, now)) {
-      await this.notifyClosed(input.contactId, sessionKey, session, hours?.closedMessage ?? '', now);
-      return;
-    }
-
-    const flow = resolveActiveFlow(flows, session?.flowId);
     if (!flow) {
       console.warn('[ProcessIncomingFlow] Nenhum fluxo ativo; sem resposta automática.');
       return;
@@ -222,7 +237,8 @@ export class ProcessIncomingFlowUseCase {
     sessionKey: string,
     session: FlowSession | null,
     closedMessage: string,
-    now: Date
+    now: Date,
+    entryFlowId?: string
   ): Promise<void> {
     if (session?.outsideHoursNotified) {
       return;
@@ -237,7 +253,7 @@ export class ProcessIncomingFlowUseCase {
     }
     await this.sessionRepository.save({
       contactId: sessionKey,
-      flowId: session?.flowId ?? 'inicio',
+      flowId: session?.flowId ?? entryFlowId ?? 'inicio',
       currentStepId: null,
       paused: false,
       outsideHoursNotified: true,

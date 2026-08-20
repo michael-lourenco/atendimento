@@ -111,7 +111,8 @@ export const clientUseCases = {
   pauseContactFlow: () =>
     new PauseContactFlowUseCase(
       serviceLocator.getFlowSessionRepository(),
-      serviceLocator.getFlowRepository()
+      serviceLocator.getFlowRepository(),
+      serviceLocator.getChatbotRepository()
     ),
   resumeContactFlow: () => new ResumeContactFlowUseCase(serviceLocator.getFlowSessionRepository()),
   setConversationDepartment: () =>

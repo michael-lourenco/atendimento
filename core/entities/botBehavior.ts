@@ -63,7 +63,8 @@ export function mergeBotBehavior(partial?: Partial<BotBehavior> | null): BotBeha
 }
 
 export function resolveBotBehavior(
-  bots: { isActive: boolean; behavior?: Partial<BotBehavior> }[] | null
+  bots: { isActive: boolean; behavior?: Partial<BotBehavior> }[] | null,
+  lineBehavior?: Partial<BotBehavior> | null
 ): BotBehavior {
   if (!bots) {
     return { ...ZERO_BOT_BEHAVIOR };
@@ -72,7 +73,15 @@ export function resolveBotBehavior(
   if (!active) {
     return { ...ZERO_BOT_BEHAVIOR };
   }
-  return mergeBotBehavior(active.behavior);
+  const company = mergeBotBehavior(active.behavior);
+  if (!hasCustomLineBehavior(lineBehavior)) {
+    return company;
+  }
+  return mergeBotBehavior({ ...company, ...lineBehavior });
+}
+
+export function hasCustomLineBehavior(behavior?: Partial<BotBehavior> | null): boolean {
+  return Boolean(behavior && Object.keys(behavior).length > 0);
 }
 
 export function contactStillTyping(
@@ -89,4 +98,16 @@ export function contactStillTyping(
 
 export function typingWaitCapMs(): number {
   return TYPING_WAIT_CAP_MS;
+}
+
+export function msToSeconds(ms: number): number {
+  return Math.round(ms) / 1000;
+}
+
+export function secondsToMs(seconds: unknown, fallbackMs: number): number {
+  const n = typeof seconds === 'number' ? seconds : Number(seconds);
+  if (!Number.isFinite(n)) {
+    return fallbackMs;
+  }
+  return Math.round(n * 1000);
 }

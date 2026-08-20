@@ -1,12 +1,27 @@
 import { Flow } from '../entities/Flow';
 
-export function resolveActiveFlow(flows: Flow[], sessionFlowId?: string): Flow | null {
+export type ResolveActiveFlowHint = {
+  sessionFlowId?: string;
+  entryFlowId?: string;
+};
+
+export function resolveActiveFlow(
+  flows: Flow[],
+  hint: ResolveActiveFlowHint = {}
+): Flow | null {
   const active = flows.filter((flow) => flow.isActive);
 
-  if (sessionFlowId) {
-    const current = active.find((flow) => flow.id === sessionFlowId);
+  if (hint.sessionFlowId) {
+    const current = active.find((flow) => flow.id === hint.sessionFlowId);
     if (current) {
       return current;
+    }
+  }
+
+  if (hint.entryFlowId) {
+    const preferred = active.find((flow) => flow.id === hint.entryFlowId);
+    if (preferred) {
+      return preferred;
     }
   }
 

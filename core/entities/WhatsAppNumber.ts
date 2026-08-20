@@ -1,3 +1,5 @@
+import { BotBehavior } from './botBehavior';
+
 export type WhatsAppNumberStatus = 'active' | 'inactive';
 
 export interface WhatsAppNumber {
@@ -7,5 +9,6 @@ export interface WhatsAppNumber {
   status: WhatsAppNumberStatus;
   provider: string;
   instanceName?: string;
+  behavior?: Partial<BotBehavior>;
   createdAt: Date;
 }

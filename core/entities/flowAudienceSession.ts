@@ -8,11 +8,12 @@ export function shouldSkipPausedSession(session: FlowSession | null, reopened: b
 export function sessionForKnownMenu(
   session: FlowSession | null,
   contactId: string,
-  now: Date
+  now: Date,
+  entryFlowId?: string
 ): FlowSession {
   return {
     contactId,
-    flowId: session?.flowId ?? 'inicio',
+    flowId: session?.flowId ?? entryFlowId ?? 'inicio',
     currentStepId: null,
     paused: false,
     updatedAt: now,
@@ -25,15 +26,22 @@ export function planSessionForTurn(input: {
   reopened: boolean;
   contactId: string;
   now: Date;
+  entryFlowId?: string;
 }): { session: FlowSession | null; skip: boolean } {
   if (shouldSkipPausedSession(input.session, input.reopened)) {
     return { session: input.session, skip: true };
   }
   if (input.reopened && input.audience === 'known') {
-    return { session: sessionForKnownMenu(input.session, input.contactId, input.now), skip: false };
+    return {
+      session: sessionForKnownMenu(input.session, input.contactId, input.now, input.entryFlowId),
+      skip: false,
+    };
   }
   if (input.audience === 'known' && !input.session?.currentStepId) {
-    return { session: sessionForKnownMenu(input.session, input.contactId, input.now), skip: false };
+    return {
+      session: sessionForKnownMenu(input.session, input.contactId, input.now, input.entryFlowId),
+      skip: false,
+    };
   }
   if (input.reopened) {
     return { session: null, skip: false };

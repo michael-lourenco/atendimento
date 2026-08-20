@@ -92,10 +92,14 @@ describe('mergeWhatsAppNumbersWithLive', () => {
   });
 
   it('atualiza o cadastro que já tem o mesmo número', () => {
-    const rows = mergeWhatsAppNumbersWithLive([catalogRow()], live);
+    const rows = mergeWhatsAppNumbersWithLive(
+      [catalogRow({ behavior: { replyDelayMs: 200 } })],
+      live
+    );
     expect(rows).toHaveLength(1);
     expect(rows[0].id).toBe('n-1');
     expect(rows[0].status).toBe('active');
     expect(rows[0].name).toBe('Atimo');
+    expect(rows[0].behavior).toEqual({ replyDelayMs: 200 });
   });
 });

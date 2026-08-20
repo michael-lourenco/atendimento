@@ -11,10 +11,10 @@
 | `Conversation` | Atendimento com contato, setor, agente, tags, status. `assignedAt` opcional (primeiro Assumir). `contactTypingAt` opcional (contato digitando no WhatsApp) |
 | `Department` | Setor (cor, ativos, contagens) |
 | `InternalMessage` | Nota da equipe na conversa |
-| `Chatbot` | Bot cadastrado no painel (pode apontar `flowId`). `businessHours` opcional (expediente). `behavior` opcional (`BotBehavior`: delay, digitando, inatividade) |
+| `Chatbot` | Bot cadastrado no painel. `flowId` = fluxo de **entrada** no WhatsApp (contato novo / sem sessão). `businessHours` opcional (expediente: dias parametrizáveis, horário por dia, fuso; `end` antes de `start` atravessa meia-noite). `behavior` opcional (`BotBehavior`: delay, digitando, inatividade) |
 | `Agent` | Atendente (`online` \| `offline`) |
 | `Contact` | Contato WhatsApp + etiquetas; `avatarUrl` opcional (foto no Storage, via `/api/contacts/{id}/avatar`) |
-| `WhatsAppNumber` | Número/linha WhatsApp da **mesma** empresa. Na UI o rótulo é `name` (ex. Comercial); `instanceName` é identificador técnico (slug do nome se o admin não preencher) |
+| `WhatsAppNumber` | Número/linha WhatsApp da **mesma** empresa. Na UI o rótulo é `name` (ex. Comercial); `instanceName` é identificador técnico (slug do nome se o admin não preencher). `behavior` opcional: ritmo desta linha (senão usa o do chatbot ativo) |
 | `Tag` | Etiqueta (`color`, `contactsCount`) |
 | `QuickReply` | `id`, `title`, `body` (texto; pode ser vazio se houver áudio), `mediaKind?` (`audio`), `departmentId?` (setor opcional), `createdAt`. Catálogo da **empresa**. Sem dono por atendente |
 | `ScheduledMessage` | Envio futuro (`pending` \| `sent` \| `failed`). `contact` = telefone; `conversationId` opcional = thread (mesma linha) |
@@ -90,12 +90,12 @@ Picker (só cliente): campo **Filtrar** casa `title` e `body` (sem rota nova). �
 
 ## BotBehavior (`Chatbot.behavior`)
 
-Padrão da empresa no chatbot **ativo** (a tela `/dashboard/chatbots`). Sem catálogo de bots no use case (testes), delays = 0.
+Padrão da empresa no chatbot **ativo** (a tela `/dashboard/chatbots`). Só um ativo: ao gravar `isActive: true`, os outros passam a inativos. Sem catálogo de bots no motor (testes), delays = 0. A tela mostra delays em **segundos** (grava milissegundos). Não exibe `messagesCount` (o campo existe, mas o motor não incrementa). **Por linha:** `WhatsAppNumber.behavior` opcional sobrepõe o da empresa nessa linha (Comercial vs Suporte). Sem override, vale o da empresa. Expediente continua só no chatbot.
 
 | Campo | Padrão | Efeito |
 |-------|--------|--------|
-| `replyDelayMs` | 1000 (0–5000) | Espera depois do incoming antes da 1ª mensagem |
-| `bubbleDelayMs` | 500 (0–8000) | Entre mensagens se o passo não tiver `delayMs` |
+| `replyDelayMs` | 1000 (0–5000) | Espera depois do incoming antes da 1ª mensagem (tela: segundos) |
+| `bubbleDelayMs` | 500 (0–8000) | Entre mensagens se o passo não tiver `delayMs` (tela: segundos) |
 | `sendComposing` | true | Presence `composing` no delay (Evolution) |
 | `waitWhileTyping` | true | Não envia enquanto `contactTypingAt` estiver fresco (`typingIdleMs`) |
 | `typingIdleMs` | 1500 (0–5000) | Margem depois que o composing parou; teto extra 8s |
@@ -127,8 +127,9 @@ Planejamento puro em `core/engine` (`planFlowTurn`, `evaluateCondition`, `resolv
 ### Resolver fluxo
 
 1. Se há sessão e o `flowId` ainda existe e está ativo → esse fluxo.
-2. Senão, entre os ativos: `id === "inicio"`, senão nome `"Atendimento Inicial"`, senão o primeiro ativo.
-3. Senão → log, sem resposta.
+2. Senão, o `flowId` do chatbot **ativo**, se esse fluxo existir e estiver ativo.
+3. Senão, entre os ativos: `id === "inicio"`, senão nome `"Atendimento Inicial"`, senão o primeiro ativo.
+4. Senão → log, sem resposta.
 
 ### Turno (`planFlowTurn`)
 
@@ -137,18 +138,19 @@ Planejamento puro em `core/engine` (`planFlowTurn`, `evaluateCondition`, `resolv
 - **Sessão existe e `currentStepId` null** (já houve atendimento neste fluxo): **não** reenvia as mensagens iniciais. Começa na primeira `question` (só o enunciado e as opções).
 - **`currentStepId` em `question`:** o texto é a resposta; se for só o **número** da opção (`1`, `2`, `1.`, `2)`), o motor troca pelo texto daquela linha (1 = primeira opção) e segue `nextStepId` (não reenvia a pergunta). Número inexistente ou texto livre: usa o que a pessoa digitou. Se **não** bater com uma opção (número ou texto igual) e o texto coincidir com `keywords` de outro fluxo ativo, entra nesse fluxo no primeiro passo e zera a pilha.
 - **`message`:** envia `content` se não vazio; se `mediaUrl` http(s) e `mediaKind` `image`/`audio`, tenta enviar a mídia (URL inválida = só o texto). `delayMs` (0–8000, padrão 0) pausa **antes** deste envio. Segue `nextStepId`.
-- **`action`:** `setDepartment` grava o setor da thread se o id existir e estiver ativo e **não** envia `content`. `goToFlow` para fluxo **ativo** ainda não visitado **por salto** neste turno: continua no primeiro passo do destino no mesmo turno. Se o passo de salto tiver `nextStepId` (“Ao voltar”), empilha origem e retoma esse passo quando o destino acaba. Sem “Ao voltar”, a sessão permanece no destino. Destino inativo/inexistente/ciclo A→B→A → não salta; segue `nextStepId` se o salto falhar. `goToFlow` **não** envia `content`. Novos contatos entram em `inicio` (selo WhatsApp), salvo palavra-chave. `handoff` envia `content` se houver, grava setor se `departmentId` ativo, `paused: true` e **para**. Sem esses tipos, a action se comporta como `message`.
+- **`action`:** `setDepartment` grava o setor da thread se o id existir e estiver ativo e **não** envia `content`. `goToFlow` para fluxo **ativo** ainda não visitado **por salto** neste turno: continua no primeiro passo do destino no mesmo turno. Se o passo de salto tiver `nextStepId` (“Ao voltar”), empilha origem e retoma esse passo quando o destino acaba. Sem “Ao voltar”, a sessão permanece no destino. Destino inativo/inexistente/ciclo A→B→A → não salta; segue `nextStepId` se o salto falhar. `goToFlow` **não** envia `content`. Novos contatos entram no `flowId` do chatbot ativo (selo WhatsApp); se vazio ou inativo, cai no `inicio`. Salvo palavra-chave. `handoff` envia `content` se houver, grava setor se `departmentId` ativo, `paused: true` e **para**. Sem esses tipos, a action se comporta como `message`.
 - **Palavra-chave (sem pergunta à espera, ou texto que não é opção):** `contains`/`equals` case-insensitive contra `Flow.keywords` de um fluxo ativo **diferente** do atual → primeiro passo desse fluxo, pilha vazia.
 - **`question`:** envia `content`; se houver `options`, concatena uma linha `N. opção` (1-based) por item; grava `currentStepId` nessa pergunta e **para**.
 - **`condition`:** `field` suportado: `content` (texto incoming do turno, **já resolvido** para o texto da opção se a pessoa digitou o número). Outro `field` → ramo `false`. Operadores: `equals` e `contains` (trim, case-insensitive); `greaterThan` / `lessThan` numéricos (`Number`); `NaN` → `false`. Segue `trueStepId` ou `falseStepId`.
 - Passo ou `nextStepId` inexistente → encerra (`currentStepId` null). A próxima mensagem **não** reenvia a abertura: só a primeira `question`. No fluxo `inicio`, o passo `miss` (“Não peguei…”) aponta para `menu` no mesmo turno, para reapresentar as opções sem a saudação. Ramos do menu usam `goToFlow` para `sistema`, `demo`, `cliente` e `comercial` (`salesIntakeFlows`). Comercial, demo e ajuda do cliente usam `handoff` (setor + bot pausa).
 - `question` não valida se a resposta está em `options`. Número da opção só mapeia quando o texto é **só** o número (com `.` ou `)` opcional).
 
-Entrada do motor: só incoming `type === "text"` com conteúdo não vazio. Mídia: persiste, não avança fluxo. Sessão `paused` em conversa **aberta**: persiste, não avança. Reabertura de `closed` (conhecido): despausa e mostra o menu. **Ritmo:** `BotBehavior` do chatbot ativo (delay, composing, espera digitando, debounce). **Expediente:** o chatbot ativo com `businessHours.enabled` fora do horário (fuso e dias) envia `closedMessage` e **não** avança o fluxo; sessão `outsideHoursNotified`. Sem sessão pausada. Na volta ao horário, se só houve o aviso (`currentStepId` null), a próxima mensagem começa o fluxo do zero. **Fila:** após `handoff`, o bot acrescenta “Você é o N na fila” (`queuePlace`: mesmo setor, sem atendente, não finalizada). Áudio/imagem/vídeo/documento são reproduzíveis no painel via `GET /api/messages/{id}/media` (cache no Storage; se faltar, a Evolution entrega o base64 pelo `id` da mensagem).
+Entrada do motor: só incoming `type === "text"` com conteúdo não vazio. Mídia: persiste, não avança fluxo. Sessão `paused` em conversa **aberta**: persiste, não avança. Reabertura de `closed` (conhecido): despausa e mostra o menu. **Ritmo:** `BotBehavior` do chatbot ativo, com overlay da linha se houver (`WhatsAppNumber.behavior`). **Expediente:** o chatbot ativo com `businessHours.enabled` fora do horário envia `closedMessage` e **não** avança o fluxo; sessão `outsideHoursNotified`. Cada dia da semana pode estar fechado ou ter `start`/`end` próprios (`windows`). Se `end` for **antes** de `start` (ex. 22:00–06:00), o turno começa nesse dia e termina no seguinte; o dia seguinte não precisa estar marcado. `start` igual a `end` = o dia todo. Cadastro antigo só com `days` + `start`/`end` continua válido. Sem sessão pausada. Na volta ao horário, se só houve o aviso (`currentStepId` null), a próxima mensagem começa o fluxo do zero. **Fila:** após `handoff`, o bot acrescenta “Você é o N na fila” (`queuePlace`: mesmo setor, sem atendente, não finalizada). Áudio/imagem/vídeo/documento são reproduzíveis no painel via `GET /api/messages/{id}/media` (cache no Storage; se faltar, a Evolution entrega o base64 pelo `id` da mensagem).
 
 ## Testes obrigatórios (escrever; usuário executa)
 
 - Primeira mensagem cria sessão e envia passos até a primeira `question`.
+- Sem sessão, a entrada é o `flowId` do chatbot ativo (senão `inicio`).
 - Sessão existente com `currentStepId` null não reenvia a abertura (só a primeira `question`).
 - No fluxo `inicio`, texto fora do menu envia `miss` e o `menu` no mesmo turno (sem “Olá”).
 - Resposta avança `nextStepId`.

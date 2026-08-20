@@ -30,7 +30,7 @@ export function runDispatchDueScheduledMessages() {
     repos.conversation,
     repos.whatsAppNumber
   );
-  const pause = new PauseContactFlowUseCase(repos.flowSession, repos.flow);
+  const pause = new PauseContactFlowUseCase(repos.flowSession, repos.flow, repos.chatbot);
   const idle = new DispatchIdleBotSessionsUseCase(
     repos.chatbot,
     repos.conversation,

@@ -37,6 +37,7 @@ import {
 } from './mappers';
 import { Flow } from '../../core/entities/Flow';
 import { Chatbot } from '../../core/entities/Chatbot';
+import { WhatsAppNumber } from '../../core/entities/WhatsAppNumber';
 import { ScheduledMessage } from '../../core/entities/ScheduledMessage';
 import { Message } from '../../core/entities/Message';
 import { FlowSession } from '../../core/entities/FlowSession';
@@ -228,6 +229,23 @@ function createChatbotRepository(client: SupabaseClient) {
   };
 }
 
+function createWhatsAppNumberRepository(client: SupabaseClient) {
+  const crud = createSupabaseCrud<WhatsAppNumber>(
+    client,
+    'whatsapp_numbers',
+    numberFromRow,
+    numberToRow
+  );
+  const save = (number: WhatsAppNumber) =>
+    upsertOmittingMissingColumns(client, 'whatsapp_numbers', numberToRow(number), ['behavior']);
+  return {
+    getAll: () => crud.getAll(),
+    getById: (id: string) => crud.getById(id),
+    save,
+    delete: (id: string) => crud.delete(id),
+  };
+}
+
 function createScheduledMessageRepository(client: SupabaseClient) {
   const crud = createSupabaseCrud<ScheduledMessage>(
     client,
@@ -276,7 +294,7 @@ export function createSupabaseDataBag(
     chatbot: createChatbotRepository(client),
     agent: createSupabaseCrud(client, 'agents', agentFromRow, agentToRow),
     contact: createSupabaseCrud(client, 'contacts', contactFromRow, contactToRow),
-    whatsAppNumber: createSupabaseCrud(client, 'whatsapp_numbers', numberFromRow, numberToRow),
+    whatsAppNumber: createWhatsAppNumberRepository(client),
     tag: createSupabaseCrud(client, 'tags', tagFromRow, tagToRow),
     quickReply: createQuickReplyRepository(client),
     scheduledMessage: createScheduledMessageRepository(client),

@@ -47,6 +47,7 @@ export function liveWhatsAppNumberForCatalog(
     provider: live.platform || match?.provider || 'evolution',
     createdAt: match?.createdAt ?? now,
     ...(instanceName ? { instanceName } : {}),
+    ...(match?.behavior ? { behavior: match.behavior } : {}),
   };
 }
 

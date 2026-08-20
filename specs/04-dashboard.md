@@ -12,7 +12,7 @@
 - Atendente (`role: user`) que abre URL de admin é redirecionado para Conversas
 - Header mostra selo Admin quando `role === admin`
 - Sem **Chat interno** no menu: notas da equipe ficam **na conversa**. `/dashboard/internal-chat` redireciona para Conversas
-**Chatbots** (URL `/dashboard/chatbots`): item em **Configuração** (só admin). Catálogo + **expediente** + **comportamento do bot** (`BotBehavior`: delay, digitando, debounce, minutos de silêncio na pergunta). O roteiro das mensagens continua em Fluxos.
+**Chatbots** (URL `/dashboard/chatbots`): item em **Configuração** (só admin). **Um cadastro da empresa** (fluxo de entrada + expediente + ritmo). Só o bot **ativo** vale no WhatsApp; gravar um ativo desativa os outros. Seletor de **fluxo de entrada** (fluxos ativos; o motor usa esse `flowId` quando não há sessão). Delays na tela em **segundos**. Sem coluna de contagem de mensagens (não é atualizada). Seletor **por linha**: “Empresa” ou cada número; a linha pode usar o ritmo da empresa ou um próprio. **Expediente:** dias da semana ligados/desligados; cada dia aberto tem horário próprio; se o fim for antes do início, o turno segue até o dia seguinte (ex. 22h–6h); fuso em lista (Brasília, Manaus, etc.). O desenho do roteiro continua em Fluxos. Sem “Novo Chatbot” se já existir um. Cadastros extras (legado) só para excluir.
 - WhatsApp (QR/conexão) fica junto de Conversas, não no fim do menu
 - Exclusão no catálogo: diálogo na UI (Confirmar/Cancelar), sem `confirm()` nativo do browser
 
@@ -30,7 +30,7 @@ Todas as rotas abaixo são **funcionais** (use case + mock). Nenhuma é vitrine.
 | `/dashboard/whatsapp` | QR + status **por linha** (`?instance=`); atalho para Conversas | BFF `/api/chat-whatsapp/qr` e `/status` |
 | `/dashboard/departments` | catálogo setor | `IDepartmentRepository` |
 | `/dashboard/internal-chat` | redireciona para Conversas | — |
-| `/dashboard/chatbots` | catálogo | `IChatbotRepository` |
+| `/dashboard/chatbots` | um bot da empresa (fluxo de entrada + expediente + ritmo) + extras só para excluir | `IChatbotRepository` / `ChatbotCatalogUseCase` |
 | `/dashboard/agents` | operadores + agentes (só admin) | `CreateOperatorUseCase` + `IAgentRepository` |
 | `/dashboard/contacts` | catálogo | `IContactRepository` |
 | `/dashboard/numbers` | catálogo de **linhas** (nome visível; `instanceName` gerado) + status por linha | `IWhatsAppNumberRepository` + `/api/chat-whatsapp/status` |
@@ -41,7 +41,7 @@ Todas as rotas abaixo são **funcionais** (use case + mock). Nenhuma é vitrine.
 
 Catálogo = `list` / `save` / `delete` via `CatalogUseCase` (subclasses no locator). Páginas **não** importam `infra/mocks`.
 
-**Fluxos:** `/dashboard/flows` é a **lista**. Criar/editar abre **tela cheia** (`/dashboard/flows/new` ou `/dashboard/flows/[flowId]`). O **quadro** (`@xyflow/react`) é a área principal (arrastar, zoom, ligar bolinhas). O formulário do passo fica num **painel sobre o quadro**, só com os campos daquele tipo (inspetor curto). Paleta de blocos em destaque (mesma borda colorida dos nós do quadro; arrastar ou clicar). Paleta: Mensagem, Pergunta, Definir setor, Ir para fluxo, **Passar para atendente**. Simulador recolhido no painel. Avisos de roteiro quebrado. Alterações não salvas: banner + `Ctrl`/`⌘`+S. Duplicar fluxo na lista e bloco no quadro. **Ir para fluxo:** botão abre o destino (`?from=`). `goToFlow` com “Ao voltar” empilha retorno. `handoff` pausa para o time. Lista: selo WhatsApp; **Excluir** apaga sessões.
+**Fluxos:** `/dashboard/flows` é a **lista**. Criar/editar abre **tela cheia** (`/dashboard/flows/new` ou `/dashboard/flows/[flowId]`). O **quadro** (`@xyflow/react`) é a área principal (arrastar, zoom, ligar bolinhas). O formulário do passo fica num **painel sobre o quadro**, só com os campos daquele tipo (inspetor curto). Paleta de blocos em destaque (mesma borda colorida dos nós do quadro; arrastar ou clicar). Paleta: Mensagem, Pergunta, Definir setor, Ir para fluxo, **Passar para atendente**. Simulador recolhido no painel. Avisos de roteiro quebrado. Alterações não salvas: banner + `Ctrl`/`⌘`+S. Duplicar fluxo na lista e bloco no quadro. **Ir para fluxo:** botão abre o destino (`?from=`). `goToFlow` com “Ao voltar” empilha retorno. `handoff` pausa para o time. Lista: selo WhatsApp = fluxo de entrada do chatbot ativo (senão `inicio`); **Excluir** apaga sessões.
 
 **Caso de sucesso (seed):** o fluxo `inicio` / Atendimento Inicial é o **menu de entrada**. **Novo** nesta linha (ainda não havia thread **e/ou** o contato não estava no catálogo) recebe a saudação. **Conhecido** (já houve conversa nesta linha **e** o contato já estava salvo) e **reabertura** de `closed` recebem só o menu (primeira `question`), sem Olá. Com humano (`paused` em conversa aberta) o bot não fala; finalizar é manual.
 

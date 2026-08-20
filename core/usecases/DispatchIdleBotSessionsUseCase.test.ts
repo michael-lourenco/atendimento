@@ -6,6 +6,7 @@ import { IChatbotRepository } from '../repositories/IChatbotRepository';
 import { IConversationRepository } from '../repositories/IConversationRepository';
 import { IFlowSessionRepository } from '../repositories/IFlowSessionRepository';
 import { IMessageRepository } from '../repositories/IMessageRepository';
+import { IWhatsAppNumberRepository } from '../repositories/IWhatsAppNumberRepository';
 import {
   IWhatsAppService,
   SendMessageParams,
@@ -186,6 +187,40 @@ describe('DispatchIdleBotSessionsUseCase', () => {
       session: waiting,
       idleMinutes: 0,
     });
+    expect((await useCase.execute(now)).closed).toEqual([]);
+    expect(list[0].status).toBe('open');
+  });
+
+  it('idle 0 na linha não fecha', async () => {
+    const list = [{ ...conversation, whatsappNumberId: 'n1' }];
+    const store = conversationStore(list);
+    const sessions = new InMemorySessionRepository(waiting);
+    const messages = new InMemoryMessageRepository([{ ...incoming }]);
+    const numbers: IWhatsAppNumberRepository = {
+      getAll: async () => [
+        {
+          id: 'n1',
+          name: 'Comercial',
+          number: '5511000000001',
+          status: 'active',
+          provider: 'evolution',
+          behavior: { idleContactMinutes: 0 },
+          createdAt: now,
+        },
+      ],
+      getById: async () => null,
+      save: async () => {},
+      delete: async () => {},
+    };
+    const useCase = new DispatchIdleBotSessionsUseCase(
+      bots({ idleContactMinutes: 30 }),
+      store,
+      sessions,
+      messages,
+      new SendWhatsAppMessageUseCase(new FakeWhatsAppService(), messages),
+      new CloseConversationUseCase(store),
+      numbers
+    );
     expect((await useCase.execute(now)).closed).toEqual([]);
     expect(list[0].status).toBe('open');
   });

@@ -25,11 +25,7 @@ export class DispatchIdleBotSessionsUseCase {
   ) {}
 
   async execute(now = new Date()): Promise<{ closed: string[] }> {
-    const behavior = resolveBotBehavior(await this.chatbots.getAll());
-    if (behavior.idleContactMinutes <= 0) {
-      return { closed: [] };
-    }
-    const thresholdMs = behavior.idleContactMinutes * 60 * 1000;
+    const bots = await this.chatbots.getAll();
     const [allConversations, allMessages, catalog] = await Promise.all([
       this.conversations.getAll(),
       this.messages.getAll(),
@@ -45,6 +41,11 @@ export class DispatchIdleBotSessionsUseCase {
         continue;
       }
       const line = catalog.find((item) => item.id === conversation.whatsappNumberId) ?? null;
+      const behavior = resolveBotBehavior(bots, line?.behavior);
+      if (behavior.idleContactMinutes <= 0) {
+        continue;
+      }
+      const thresholdMs = behavior.idleContactMinutes * 60 * 1000;
       const lastIncoming = lastIncomingTimestamp(
         conversation,
         messagesForThread(allMessages, conversation, line)

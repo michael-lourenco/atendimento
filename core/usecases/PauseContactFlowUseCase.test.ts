@@ -4,6 +4,8 @@ import { IFlowRepository } from '../repositories/IFlowRepository';
 import { IFlowSessionRepository } from '../repositories/IFlowSessionRepository';
 import { PauseContactFlowUseCase } from './PauseContactFlowUseCase';
 import { ResumeContactFlowUseCase } from './ResumeContactFlowUseCase';
+import { IChatbotRepository } from '../repositories/IChatbotRepository';
+import { Chatbot } from '../entities/Chatbot';
 
 const now = new Date('2026-08-18T15:00:00Z');
 
@@ -78,5 +80,34 @@ describe('PauseContactFlowUseCase / ResumeContactFlowUseCase', () => {
     const session = await sessions.getByContactId('5521982790723');
     expect(session?.paused).toBe(true);
     expect(session?.flowId).toBe('inicio');
+  });
+
+  it('sem sessão cria no fluxo de entrada do chatbot', async () => {
+    const faq: Flow = { ...sampleFlow, id: 'faq', name: 'FAQ' };
+    const chatbots: IChatbotRepository = {
+      getAll: async () =>
+        [
+          {
+            id: '1',
+            name: 'Bot',
+            isActive: true,
+            flowId: 'faq',
+            messagesCount: 0,
+            createdAt: now,
+            updatedAt: now,
+          },
+        ] satisfies Chatbot[],
+      getById: async () => null,
+      save: async () => {},
+      delete: async () => {},
+    };
+    const sessions = new InMemorySessionRepository();
+    const pause = new PauseContactFlowUseCase(
+      sessions,
+      new InMemoryFlowRepository([sampleFlow, faq]),
+      chatbots
+    );
+    await pause.execute('5521982790723');
+    expect((await sessions.getByContactId('5521982790723'))?.flowId).toBe('faq');
   });
 });

@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Flow } from '@/core/entities/Flow';
 import { duplicateFlow } from '@/core/entities/duplicateFlow';
+import { companyChatbotFlowId } from '@/core/entities/chatbotActive';
 import { resolveActiveFlow } from '@/core/engine/resolveActiveFlow';
 import { EmptyState } from '@/ui/components/empty-state';
 import { CatalogListSkeleton } from '@/ui/components/catalog-list-skeleton';
@@ -20,6 +21,7 @@ import { catalogPersistErrorMessage } from '@/ui/lib/catalog-persist-error';
 export default function FlowsPage() {
   const router = useRouter();
   const [flows, setFlows] = useState<Flow[]>([]);
+  const [entryFlowId, setEntryFlowId] = useState<string | undefined>();
   const [loading, setLoading] = useState(true);
   const { confirm, dialog } = useConfirm();
   const { show, markSaved } = useCatalogSavedFlash();
@@ -31,6 +33,11 @@ export default function FlowsPage() {
     }
     try {
       setFlows(await clientUseCases.allFlows().execute());
+      try {
+        setEntryFlowId(companyChatbotFlowId(await clientUseCases.chatbots().list()));
+      } catch {
+        setEntryFlowId(undefined);
+      }
     } catch (loadError) {
       console.error('Erro ao carregar fluxos:', loadError);
     } finally {
@@ -89,14 +96,14 @@ export default function FlowsPage() {
       ) : null}
       <div className="mb-6 flex flex-wrap items-center justify-between gap-2">
         <p className="text-muted-foreground">
-          O roteiro que o chatbot envia no WhatsApp. Só um fluxo ativo entra no ar, salvo palavra-chave.
+          O roteiro que o chatbot envia no WhatsApp. O selo marca o fluxo de entrada (Chatbots).
         </p>
         <Button onClick={() => router.push('/dashboard/flows/new')}>Novo Fluxo</Button>
       </div>
       <Card>
         <CardHeader>
           <CardTitle>Lista de Fluxos</CardTitle>
-          <CardDescription>O selo WhatsApp indica qual fluxo está no ar</CardDescription>
+          <CardDescription>O selo WhatsApp indica o fluxo de entrada escolhido em Chatbots</CardDescription>
         </CardHeader>
         <CardContent>
           {flows.length === 0 ? (
@@ -122,7 +129,7 @@ export default function FlowsPage() {
                   <TableRow key={flow.id}>
                     <TableCell className="font-medium">
                       <span className="mr-2">{flow.name}</span>
-                      {resolveActiveFlow(flows)?.id === flow.id ? (
+                      {resolveActiveFlow(flows, { entryFlowId })?.id === flow.id ? (
                         <Badge variant="success">WhatsApp</Badge>
                       ) : null}
                     </TableCell>

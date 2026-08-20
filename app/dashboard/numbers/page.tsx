@@ -104,6 +104,7 @@ export default function NumbersPage() {
       provider: form.provider,
       status: form.status,
       instanceName,
+      behavior: editing?.behavior,
       createdAt: editing?.createdAt || new Date(),
     });
     await fetch('/api/chat-whatsapp/instance', {

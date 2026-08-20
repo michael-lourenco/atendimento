@@ -18,10 +18,11 @@ Runner: Jest + `ts-jest` (`npm test`). Testing Library só quando houver teste d
 ## Cobertura atual
 
 - `core/engine/planFlowTurn.test.ts` — primeira sessão, `nextStepId`, `condition` true/false (texto ou **número** da opção), `setDepartment`, `goToFlow`; sessão encerrada não reenvia a abertura
+- `core/engine/resolveActiveFlow.test.ts` — `flowId` do chatbot ativo na entrada; sessão em andamento não troca; inativo cai no `inicio`
 - `core/engine/resolveQuestionChoice.test.ts` — `1` / `1.` viram a primeira opção; texto livre permanece
-- `core/usecases/ProcessIncomingFlowUseCase.test.ts` — envio via fake + persistência de sessão; pausado não responde; action grava setor da thread; duas linhas = duas sessões
+- `core/usecases/ProcessIncomingFlowUseCase.test.ts` — envio via fake + persistência de sessão; pausado não responde; action grava setor da thread; duas linhas = duas sessões; entrada pelo `flowId` do chatbot
 - `core/usecases/ProcessIncomingFlowUseCase.hours.test.ts` — fora do expediente só avisa; `handoff` acrescenta posição na fila
-- `core/usecases/PauseContactFlowUseCase.test.ts` — pausa e retoma sessão da thread (`contactId` = `Conversation.id`)
+- `core/usecases/PauseContactFlowUseCase.test.ts` — pausa e retoma sessão da thread (`contactId` = `Conversation.id`); sem sessão cria no fluxo de entrada do chatbot
 - `core/usecases/DeleteFlowUseCase.test.ts` — excluir fluxo remove sessões daquele roteiro e solta chatbot
 - `core/usecases/TransferConversationUseCase.test.ts` — status transferred
 - `core/usecases/AssignConversationUseCase.test.ts` — assumir (waiting) e finalizar (closed)
@@ -53,7 +54,7 @@ Runner: Jest + `ts-jest` (`npm test`). Testing Library só quando houver teste d
 - `core/entities/conversationDepartment.test.ts` — filtro de setor; agentes do mesmo setor; transferência só online
 - `core/usecases/SetConversationDepartmentUseCase.test.ts` — grava e remove setor na conversa da thread (`id`); não grava numa conversa “só telefone” se já existir thread composta
 - `core/usecases/SetConversationTagsUseCase.test.ts` — grava tags da thread
-- `core/entities/businessHours.test.ts` — fora do expediente; dentro no fuso
+- `core/entities/businessHours.test.ts` — fora do expediente; dentro no fuso; sábado com horário próprio; legado `days`+`start`/`end`; turno 22h–6h atravessa meia-noite
 - `core/entities/queuePlace.test.ts` — posição na fila do mesmo setor
 - `core/usecases/GetDashboardMetricsUseCase.test.ts` — totais; volume por setor; média até Assumir; 1ª resposta humana; fila sem dono ≥ 5 min
 - `core/entities/slaMetrics.test.ts` — fila sem dono ≥ 5 min
@@ -80,7 +81,7 @@ Runner: Jest + `ts-jest` (`npm test`). Testing Library só quando houver teste d
 - `core/engine/flowHealth.test.ts` — bloco solto; pergunta sem opção; goToFlow vazio
 - `core/engine/matchFlowByKeyword.test.ts` — atalho de outro fluxo ativo
 - `core/engine/planFlowTurn.test.ts` — também `returnStack`, `handoff`, keyword
-- `core/entities/whatsappNumberLive.test.ts` — lista de Números inclui a sessão ao vivo (wid)
+- `core/entities/whatsappNumberLive.test.ts` — lista de Números inclui a sessão ao vivo (wid); sync preserva `behavior` da linha
 - `core/usecases/SyncLiveWhatsAppNumberUseCase.test.ts` — primeira conexão grava; poll igual não regrava
 - `ui/lib/status-tone.test.ts` — fila entrada/esperando/finalizado; ligado/desligado
 - `ui/lib/contact-picker.test.ts` — busca nome/telefone; número novo; prefixo 55
@@ -108,10 +109,13 @@ Runner: Jest + `ts-jest` (`npm test`). Testing Library só quando houver teste d
 - `ui/lib/emoji.test.ts` — insere emoji na posição do cursor e substitui a seleção; o mesmo helper insere `body` de resposta rápida (texto Unicode, inclusive com emoji)
 - `core/entities/QuickReply.test.ts` — lista ordenada pelo título; prévia Áudio; válido com texto ou áudio; picker “Envia áudio”; filtro por título/texto; visível no setor da conversa
 - `core/entities/flowAudience.test.ts` — conhecido exige thread + contato prévios; cadastro sem thread é novo
-- `core/entities/botBehavior.test.ts` — tetos de delay; merge com padrão
-- `core/usecases/DispatchIdleBotSessionsUseCase.test.ts` — fecha na pergunta parada; não fecha se `paused`
+- `core/entities/flowAudienceSession.test.ts` — menu conhecido usa o `flowId` de entrada do chatbot
+- `core/entities/botBehavior.test.ts` — tetos de delay; merge com padrão; segundos ↔ ms; overlay da linha
+- `core/entities/chatbotActive.test.ts` — um ativo; cadastro da empresa = o ativo (senão o primeiro)
+- `core/usecases/ChatbotCatalogUseCase.test.ts` — gravar ativo desativa os outros
+- `core/usecases/DispatchIdleBotSessionsUseCase.test.ts` — fecha na pergunta parada; não fecha se `paused`; idle 0 na linha não fecha
 - `core/usecases/ProcessIncomingFlowUseCase.test.ts` — conhecido/reabertura pulam o Olá
-- `ui/lib/catalog-persist-error.test.ts` — PGRST205 vira aviso de migration; PGRST204 em flows cita 017; `quick_replies` cita 022 (`media_kind`) e 023 (`department_id`); `chatbots` cita 024 (`behavior`); 23503 ao excluir fluxo
+- `ui/lib/catalog-persist-error.test.ts` — PGRST205 vira aviso de migration; PGRST204 em flows cita 017; `quick_replies` cita 022 (`media_kind`) e 023 (`department_id`); `chatbots` cita 024 (`behavior`); `whatsapp_numbers` cita 025 (`behavior`); 23503 ao excluir fluxo
 - `ui/lib/catalog-load-phase.test.ts` — enquanto carrega não é empty state
 - `ui/lib/sidebar-nav.test.ts` — atendente vê Conversas, Contatos, `/dashboard/quick-replies` **e** `/dashboard/schedules`; `isAdminPath` dessas duas é false; admin vê Configuração incluindo `/dashboard/chatbots`. Sem Testing Library obrigatório para esta feature
 - `ui/lib/inbox-href.test.ts` — Contatos: uma thread → `?conversation=`; nenhuma → `?contact=`; várias → `?contact=` (o menu escolhe o id)

@@ -25,5 +25,10 @@ describe('schemaHealth', () => {
     expect(
       EXPECTED_SCHEMA_COLUMNS.some((item) => item.table === 'chatbots' && item.column === 'behavior')
     ).toBe(true);
+    expect(
+      EXPECTED_SCHEMA_COLUMNS.some(
+        (item) => item.table === 'whatsapp_numbers' && item.column === 'behavior'
+      )
+    ).toBe(true);
   });
 });

@@ -1,7 +1,16 @@
 import { Chatbot } from '../../../core/entities/Chatbot';
 import { QuickReply } from '../../../core/entities/QuickReply';
 import { ScheduledMessage } from '../../../core/entities/ScheduledMessage';
-import { chatbotFromRow, chatbotToRow, quickReplyFromRow, quickReplyToRow, scheduleToRow } from './catalog';
+import { WhatsAppNumber } from '../../../core/entities/WhatsAppNumber';
+import {
+  chatbotFromRow,
+  chatbotToRow,
+  numberFromRow,
+  numberToRow,
+  quickReplyFromRow,
+  quickReplyToRow,
+  scheduleToRow,
+} from './catalog';
 
 const base: ScheduledMessage = {
   id: 's1',
@@ -98,5 +107,34 @@ describe('chatbotToRow', () => {
         updated_at: '2026-08-20T12:00:00Z',
       }).behavior
     ).toEqual({ replyDelayMs: 200 });
+  });
+});
+
+describe('numberToRow', () => {
+  const line: WhatsAppNumber = {
+    id: 'n1',
+    name: 'Comercial',
+    number: '5511',
+    status: 'active',
+    provider: 'evolution',
+    createdAt: new Date('2026-08-20T12:00:00Z'),
+  };
+
+  it('manda behavior null para voltar ao ritmo da empresa', () => {
+    expect(numberToRow(line).behavior).toBeNull();
+  });
+
+  it('lê behavior da linha', () => {
+    expect(
+      numberFromRow({
+        id: 'n1',
+        name: 'Comercial',
+        number: '5511',
+        status: 'active',
+        provider: 'evolution',
+        behavior: { idleContactMinutes: 0 },
+        created_at: '2026-08-20T12:00:00Z',
+      }).behavior
+    ).toEqual({ idleContactMinutes: 0 });
   });
 });

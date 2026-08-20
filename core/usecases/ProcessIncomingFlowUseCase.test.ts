@@ -11,6 +11,8 @@ import { FlowSession } from '../entities/FlowSession';
 import { SendWhatsAppMessageUseCase } from './SendWhatsAppMessageUseCase';
 import { SetConversationDepartmentUseCase } from './SetConversationDepartmentUseCase';
 import { ProcessIncomingFlowUseCase } from './ProcessIncomingFlowUseCase';
+import { IChatbotRepository } from '../repositories/IChatbotRepository';
+import { ZERO_BOT_BEHAVIOR } from '../entities/botBehavior';
 
 const now = new Date('2026-08-18T15:00:00Z');
 
@@ -368,5 +370,51 @@ describe('ProcessIncomingFlowUseCase', () => {
       audience: 'known',
     });
     expect(whatsApp.sent.map((item) => item.message)).toEqual(['Obrigado']);
+  });
+
+  it('entrada usa o flowId do chatbot ativo', async () => {
+    const faq: Flow = {
+      id: 'faq',
+      name: 'FAQ',
+      isActive: true,
+      createdAt: now,
+      updatedAt: now,
+      steps: [
+        { id: 'hi', type: 'message', content: 'FAQ olá', nextStepId: 'ask' },
+        { id: 'ask', type: 'question', content: 'Dúvida?' },
+      ],
+    };
+    const chatbots: IChatbotRepository = {
+      getAll: async () => [
+        {
+          id: '1',
+          name: 'Bot',
+          isActive: true,
+          flowId: 'faq',
+          messagesCount: 0,
+          createdAt: now,
+          updatedAt: now,
+          behavior: ZERO_BOT_BEHAVIOR,
+        },
+      ],
+      getById: async () => null,
+      save: async () => {},
+      delete: async () => {},
+    };
+    const whatsApp = new FakeWhatsAppService();
+    const sessions = new InMemorySessionRepository();
+    const send = new SendWhatsAppMessageUseCase(whatsApp, new InMemoryMessageRepository());
+    const useCase = new ProcessIncomingFlowUseCase(
+      new InMemoryFlowRepository([sampleFlow, faq]),
+      sessions,
+      send,
+      null,
+      null,
+      null,
+      chatbots
+    );
+    await useCase.execute({ contactId: '5511999999999', text: 'oi' });
+    expect(whatsApp.sent.map((item) => item.message)).toEqual(['FAQ olá', 'Dúvida?']);
+    expect((await sessions.getByContactId('5511999999999'))?.flowId).toBe('faq');
   });
 });

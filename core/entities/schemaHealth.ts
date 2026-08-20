@@ -33,6 +33,7 @@ export const EXPECTED_SCHEMA_COLUMNS: SchemaHealthIssue[] = [
   { table: 'quick_replies', column: 'media_kind', sqlType: 'text' },
   { table: 'quick_replies', column: 'department_id', sqlType: 'text' },
   { table: 'chatbots', column: 'behavior', sqlType: 'jsonb' },
+  { table: 'whatsapp_numbers', column: 'behavior', sqlType: 'jsonb' },
 ];
 
 export function schemaHealthSql(issues: SchemaHealthIssue[]): string {

@@ -3,49 +3,91 @@
 import { clientUseCases } from '@/infra/adapters/clientUseCases';
 import { useEffect, useState } from 'react';
 import { Chatbot } from '@/core/entities/Chatbot';
+import { Flow } from '@/core/entities/Flow';
+import { WhatsAppNumber } from '@/core/entities/WhatsAppNumber';
+import { companyChatbot, extraChatbots } from '@/core/entities/chatbotActive';
+import { hasCustomLineBehavior, resolveBotBehavior } from '@/core/entities/botBehavior';
+import { syncBusinessHoursLegacy } from '@/core/entities/businessHours';
+import { resolveActiveFlow } from '@/core/engine/resolveActiveFlow';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/ui/components/card';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/ui/components/table';
 import { Button } from '@/ui/components/button';
-import { Badge } from '@/ui/components/badge';
-import { Input } from '@/ui/components/input';
 import { Label } from '@/ui/components/label';
-import { Textarea } from '@/ui/components/textarea';
-import { Plus } from 'lucide-react';
 import Link from 'next/link';
 import { useConfirm } from '@/ui/components/confirm-dialog';
 import { CatalogListSkeleton } from '@/ui/components/catalog-list-skeleton';
 import { CatalogSavedNotice } from '@/ui/components/catalog-saved-notice';
 import { useCatalogSavedFlash } from '@/ui/lib/use-catalog-saved-flash';
-import {
-  BusinessHoursFields,
-  DEFAULT_BUSINESS_HOURS,
-} from '@/ui/components/business-hours-fields';
-import { BotBehaviorFields, DEFAULT_BOT_BEHAVIOR } from '@/ui/components/bot-behavior-fields';
-import { mergeBotBehavior } from '@/core/entities/botBehavior';
+import { catalogPersistErrorMessage } from '@/ui/lib/catalog-persist-error';
+import { invalidateWhatsAppNumberCache } from '@/ui/lib/whatsapp-number-cache';
+import { ChatbotCompanyFields } from '@/ui/components/chatbot-company-fields';
+import { BotBehaviorFields } from '@/ui/components/bot-behavior-fields';
+import { chatbotFormFrom, emptyChatbotForm } from '@/ui/lib/chatbot-form';
 
-const catalog = clientUseCases.chatbots;
+const botsCatalog = clientUseCases.chatbots;
+const numbersCatalog = clientUseCases.whatsAppNumbers;
 
 export default function ChatbotsPage() {
-  const [chatbots, setChatbots] = useState<Chatbot[]>([]);
+  const [bots, setBots] = useState<Chatbot[]>([]);
+  const [numbers, setNumbers] = useState<WhatsAppNumber[]>([]);
+  const [flows, setFlows] = useState<Flow[]>([]);
+  const [scope, setScope] = useState('company');
+  const [useCompanyRhythm, setUseCompanyRhythm] = useState(true);
   const [loading, setLoading] = useState(true);
-  const [showForm, setShowForm] = useState(false);
-  const [editing, setEditing] = useState<Chatbot | null>(null);
-  const [form, setForm] = useState({
-    name: '',
-    description: '',
-    isActive: true,
-    hours: DEFAULT_BUSINESS_HOURS,
-    behavior: DEFAULT_BOT_BEHAVIOR,
-  });
+  const [error, setError] = useState<string | null>(null);
+  const [form, setForm] = useState(emptyChatbotForm);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const { confirm, dialog } = useConfirm();
   const { show, markSaved } = useCatalogSavedFlash();
+  const extras = extraChatbots(bots);
+  const line = numbers.find((item) => item.id === scope);
+
+  const applyScope = (
+    nextScope: string,
+    list: Chatbot[],
+    lines: WhatsAppNumber[],
+    flowList: Flow[]
+  ) => {
+    setScope(nextScope);
+    const main = companyChatbot(list);
+    if (nextScope === 'company') {
+      setUseCompanyRhythm(true);
+      setForm(
+        main
+          ? chatbotFormFrom(main, flowList)
+          : { ...emptyChatbotForm, flowId: resolveActiveFlow(flowList)?.id || '' }
+      );
+      return;
+    }
+    const selected = lines.find((item) => item.id === nextScope);
+    const custom = hasCustomLineBehavior(selected?.behavior);
+    setUseCompanyRhythm(!custom);
+    setForm({
+      ...(main ? chatbotFormFrom(main, flowList) : emptyChatbotForm),
+      behavior: resolveBotBehavior(list, selected?.behavior),
+    });
+  };
 
   const load = async (showLoading = false) => {
     if (showLoading) {
       setLoading(true);
     }
     try {
-      setChatbots(await catalog().list());
+      const [list, lines, flowList] = await Promise.all([
+        botsCatalog().list(),
+        numbersCatalog().list(),
+        clientUseCases.allFlows().execute(),
+      ]);
+      setBots(list);
+      setNumbers(lines);
+      setFlows(flowList);
+      const main = companyChatbot(list);
+      setEditingId(main?.id ?? null);
+      const nextScope =
+        scope === 'company' || lines.some((item) => item.id === scope) ? scope : 'company';
+      applyScope(nextScope, list, lines, flowList);
+      setError(null);
+    } catch (cause) {
+      setError(catalogPersistErrorMessage(cause, 'chatbots'));
     } finally {
       setLoading(false);
     }
@@ -55,49 +97,57 @@ export default function ChatbotsPage() {
     void load(true);
   }, []);
 
-  const reset = () => {
-    setShowForm(false);
-    setEditing(null);
-    setForm({
-      name: '',
-      description: '',
-      isActive: true,
-      hours: DEFAULT_BUSINESS_HOURS,
-      behavior: DEFAULT_BOT_BEHAVIOR,
-    });
-  };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const now = new Date();
-    await catalog().save({
-      id: editing?.id || `bot-${Date.now()}`,
-      name: form.name,
-      description: form.description,
-      isActive: form.isActive,
-      flowId: editing?.flowId,
-      messagesCount: editing?.messagesCount || 0,
-      businessHours: form.hours,
-      behavior: form.behavior,
-      createdAt: editing?.createdAt || now,
-      updatedAt: now,
-    });
-    reset();
-    markSaved();
-    load();
+    try {
+      if (scope !== 'company' && line) {
+        await numbersCatalog().save({
+          ...line,
+          behavior: useCompanyRhythm ? undefined : form.behavior,
+        });
+        invalidateWhatsAppNumberCache();
+      } else {
+        const current = editingId ? bots.find((item) => item.id === editingId) : undefined;
+        await botsCatalog().save({
+          id: editingId || `bot-${Date.now()}`,
+          name: form.name,
+          description: form.description,
+          isActive: form.isActive,
+          flowId: form.flowId.trim() || undefined,
+          messagesCount: current?.messagesCount || 0,
+          businessHours: syncBusinessHoursLegacy(form.hours),
+          behavior: form.behavior,
+          createdAt: current?.createdAt || now,
+          updatedAt: now,
+        });
+      }
+      markSaved();
+      await load();
+    } catch (cause) {
+      setError(
+        catalogPersistErrorMessage(cause, scope === 'company' ? 'chatbots' : 'whatsapp_numbers')
+      );
+    }
   };
 
   const handleDelete = async (id: string) => {
-    if (!(await confirm('Excluir este chatbot?'))) return;
-    await catalog().delete(id);
-    load();
+    if (!(await confirm('Excluir este cadastro extra?'))) {
+      return;
+    }
+    try {
+      await botsCatalog().delete(id);
+      await load();
+    } catch (cause) {
+      setError(catalogPersistErrorMessage(cause, 'chatbots'));
+    }
   };
 
   if (loading) {
     return (
       <div>
         <div className="mb-6">
-          <p className="text-muted-foreground">O roteiro do atendimento é o fluxo.</p>
+          <p className="text-muted-foreground">Fluxo de entrada, expediente e ritmo do WhatsApp.</p>
         </div>
         <CatalogListSkeleton />
       </div>
@@ -108,135 +158,102 @@ export default function ChatbotsPage() {
     <div>
       {dialog}
       <CatalogSavedNotice show={show} />
-      <div className="mb-6 flex flex-wrap items-center justify-between gap-2">
-        <p className="text-muted-foreground">
-          O roteiro do atendimento é o fluxo.{' '}
-          <Link href="/dashboard/flows" className="underline">
-            Abrir Fluxos
-          </Link>
+      {error ? (
+        <p className="mb-4 rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+          {error}
         </p>
-        <Button onClick={() => setShowForm(true)}>
-          <Plus className="h-4 w-4 mr-2" />
-          Novo Chatbot
-        </Button>
-      </div>
+      ) : null}
+      <p className="mb-6 text-muted-foreground">
+        Só o bot <strong>ativo</strong> vale no WhatsApp.{' '}
+        <Link href="/dashboard/flows" className="underline">
+          Abrir Fluxos
+        </Link>
+      </p>
 
-      {showForm && (
-        <Card className="mb-6">
-          <CardHeader>
-            <CardTitle>{editing ? 'Editar Chatbot' : 'Novo Chatbot'}</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="name">Nome</Label>
-                <Input
-                  id="name"
-                  value={form.name}
-                  onChange={(e) => setForm({ ...form, name: e.target.value })}
-                  required
-                  className="bg-background"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="description">Descrição</Label>
-                <Textarea
-                  id="description"
-                  value={form.description}
-                  onChange={(e) => setForm({ ...form, description: e.target.value })}
-                  className="bg-background"
-                />
-              </div>
-              <label className="flex items-center gap-2 text-sm">
-                <input
-                  type="checkbox"
-                  checked={form.isActive}
-                  onChange={(e) => setForm({ ...form, isActive: e.target.checked })}
-                />
-                Ativo
-              </label>
-              <BusinessHoursFields
-                value={form.hours}
-                onChange={(hours) => setForm({ ...form, hours })}
-              />
-              <BotBehaviorFields
-                value={form.behavior}
-                onChange={(behavior) => setForm({ ...form, behavior })}
-              />
-              <div className="flex gap-2">
-                <Button type="submit">Salvar</Button>
-                <Button type="button" variant="outline" onClick={reset}>
-                  Cancelar
-                </Button>
-              </div>
-            </form>
-          </CardContent>
-        </Card>
-      )}
-
-      <Card>
+      <Card className="mb-6">
         <CardHeader>
-          <CardTitle>Lista de Chatbots</CardTitle>
-          <CardDescription>Visualize e gerencie seus chatbots</CardDescription>
+          <CardTitle>{scope === 'company' ? 'Chatbot da empresa' : `Ritmo: ${line?.name ?? 'linha'}`}</CardTitle>
+          <CardDescription>
+            {scope === 'company'
+              ? 'Fluxo de entrada, expediente e ritmo padrão. Cada linha pode ter um ritmo próprio.'
+              : 'Só o ritmo desta linha. Fluxo e expediente continuam os da empresa.'}
+          </CardDescription>
         </CardHeader>
         <CardContent>
-          {chatbots.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">Nenhum chatbot encontrado</div>
-          ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Nome</TableHead>
-                  <TableHead>Descrição</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Mensagens</TableHead>
-                  <TableHead>Criação</TableHead>
-                  <TableHead>Ações</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {chatbots.map((bot) => (
-                  <TableRow key={bot.id}>
-                    <TableCell className="font-medium">{bot.name}</TableCell>
-                    <TableCell>{bot.description}</TableCell>
-                    <TableCell>
-                      <Badge variant={bot.isActive ? 'success' : 'muted'}>
-                        {bot.isActive ? 'Ativo' : 'Inativo'}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>{bot.messagesCount}</TableCell>
-                    <TableCell>{new Date(bot.createdAt).toLocaleDateString('pt-BR')}</TableCell>
-                    <TableCell>
-                      <div className="flex gap-2">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => {
-                            setEditing(bot);
-                            setForm({
-                              name: bot.name,
-                              description: bot.description || '',
-                              isActive: bot.isActive,
-                              hours: bot.businessHours ?? DEFAULT_BUSINESS_HOURS,
-                              behavior: mergeBotBehavior(bot.behavior),
-                            });
-                            setShowForm(true);
-                          }}
-                        >
-                          Editar
-                        </Button>
-                        <Button variant="destructive" size="sm" onClick={() => handleDelete(bot.id)}>
-                          Excluir
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          )}
+          <form onSubmit={handleSubmit} className="space-y-4">
+            {numbers.length > 0 ? (
+              <div className="space-y-1">
+                <Label htmlFor="scope">Vale para</Label>
+                <select
+                  id="scope"
+                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
+                  value={scope}
+                  onChange={(event) => applyScope(event.target.value, bots, numbers, flows)}
+                >
+                  <option value="company">Empresa (padrão)</option>
+                  {numbers.map((item) => (
+                    <option key={item.id} value={item.id}>
+                      {item.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            ) : null}
+            {scope === 'company' ? (
+              <ChatbotCompanyFields form={form} flows={flows} onChange={setForm} />
+            ) : (
+              <>
+                <label className="flex items-center gap-2 text-sm">
+                  <input
+                    type="checkbox"
+                    checked={useCompanyRhythm}
+                    onChange={(event) => {
+                      const checked = event.target.checked;
+                      setUseCompanyRhythm(checked);
+                      if (checked) {
+                        setForm({ ...form, behavior: resolveBotBehavior(bots) });
+                      }
+                    }}
+                  />
+                  Usar o ritmo da empresa nesta linha
+                </label>
+                {useCompanyRhythm ? (
+                  <p className="text-sm text-muted-foreground">
+                    Esta linha herda espera, digitando e silêncio da empresa.
+                  </p>
+                ) : (
+                  <BotBehaviorFields
+                    value={form.behavior}
+                    onChange={(behavior) => setForm({ ...form, behavior })}
+                  />
+                )}
+              </>
+            )}
+            <Button type="submit">Salvar</Button>
+          </form>
         </CardContent>
       </Card>
+
+      {extras.length > 0 ? (
+        <Card>
+          <CardHeader>
+            <CardTitle>Cadastros extras</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            {extras.map((bot) => (
+              <div
+                key={bot.id}
+                className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-border px-3 py-2"
+              >
+                <span className="text-sm">{bot.name}</span>
+                <Button variant="destructive" size="sm" onClick={() => handleDelete(bot.id)}>
+                  Excluir
+                </Button>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+      ) : null}
     </div>
   );
 }
