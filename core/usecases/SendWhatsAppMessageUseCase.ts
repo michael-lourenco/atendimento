@@ -20,7 +20,8 @@ import { UpsertContactFromIncomingUseCase } from './UpsertContactFromIncomingUse
 import { IConversationRepository } from '../repositories/IConversationRepository';
 import { IWhatsAppNumberRepository } from '../repositories/IWhatsAppNumberRepository';
 import { outgoingWhatsAppLine } from '../entities/whatsappNumberLine';
-import { conversationFromInboxQuery } from '../entities/conversationThread';
+import { quotedPreview } from '../entities/quotedPreview';
+import { QuotedMessageRef } from '../services/IWhatsAppService';
 
 export interface SendWhatsAppMessageInput {
   to: string;
@@ -33,6 +34,7 @@ export interface SendWhatsAppMessageInput {
   media?: OutgoingMedia;
   instanceName?: string;
   conversationId?: string;
+  quotedMessageId?: string;
 }
 
 export class SendWhatsAppMessageUseCase {
@@ -52,6 +54,7 @@ export class SendWhatsAppMessageUseCase {
     const content = caption || (kind ? defaultOutgoingCaption(kind) : '');
     const line = await this.resolveLine(input);
 
+    const quoted = await this.resolveQuoted(input);
     const response: WhatsAppMessageResponse = await this.whatsAppService.sendMessage({
       to: input.to,
       message: caption,
@@ -60,6 +63,7 @@ export class SendWhatsAppMessageUseCase {
       templateParams: input.templateParams,
       media: input.media,
       instanceName: line.instanceName,
+      quoted,
     });
 
     const message: Message = {
@@ -73,6 +77,13 @@ export class SendWhatsAppMessageUseCase {
       status: 'sent',
       flowId: input.flowId,
       stepId: input.stepId,
+      quotedMessageId: quoted?.messageId,
+      quotedContent: quoted?.preview,
+      quotedFrom: quoted
+        ? quoted.fromMe
+          ? line.from
+          : input.to.replace(/\D/g, '') || input.to
+        : undefined,
     };
 
     await this.messageRepository.save(message);
@@ -116,6 +127,24 @@ export class SendWhatsAppMessageUseCase {
     return {
       instanceName: line.instanceName,
       from: line.number?.number || line.instanceName,
+    };
+  }
+
+  private async resolveQuoted(input: SendWhatsAppMessageInput): Promise<QuotedMessageRef | undefined> {
+    const id = input.quotedMessageId?.trim();
+    if (!id) {
+      return undefined;
+    }
+    const target = await this.messageRepository.getById(id);
+    if (!target) {
+      return undefined;
+    }
+    const phone = input.to.replace(/\D/g, '') || input.to;
+    return {
+      messageId: target.id,
+      fromMe: target.direction === 'outgoing',
+      preview: quotedPreview(target.content),
+      remoteJid: `${phone}@s.whatsapp.net`,
     };
   }
 }

@@ -28,6 +28,20 @@ describe('parseSendRequest', () => {
     expect(parsed.conversationId).toBe('5521982790723:n1');
   });
 
+  it('lê quotedMessageId no JSON', async () => {
+    const request = new Request('http://localhost/api/messages/send', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        to: '5521982790723',
+        message: 'beleza',
+        quotedMessageId: 'alvo',
+      }),
+    });
+    const parsed = await parseSendRequest(request);
+    expect(parsed.quotedMessageId).toBe('alvo');
+  });
+
   it('rejeita JSON sem mensagem', async () => {
     const request = new Request('http://localhost/api/messages/send', {
       method: 'POST',

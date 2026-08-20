@@ -4,7 +4,9 @@ import { EvolutionWhatsAppService } from '@/infra/whatsapp/EvolutionWhatsAppServ
 import { hydrateEvolutionMedia } from '@/infra/whatsapp/evolutionMedia';
 import { mapEvolutionReactions } from '@/infra/whatsapp/mapEvolutionIncoming';
 import { isEvolutionInboxEvent, mapEvolutionStatusUpdates } from '@/infra/whatsapp/mapEvolutionStatus';
+import { isEvolutionPresenceEvent, mapEvolutionPresence } from '@/infra/whatsapp/mapEvolutionPresence';
 import { ApplyMessageReactionUseCase } from '@/core/usecases/ApplyMessageReactionUseCase';
+import { ApplyContactTypingUseCase } from '@/core/usecases/ApplyContactTypingUseCase';
 import { UpdateMessageStatusUseCase } from '@/core/usecases/UpdateMessageStatusUseCase';
 import { apiJson } from '@/infra/http/apiJson';
 import { logApiError } from '@/infra/http/apiLog';
@@ -16,15 +18,29 @@ export async function POST(request: NextRequest) {
   try {
     const body = await parseJsonBody(request, evolutionWebhookSchema);
     const { event, data, instance } = evolutionWebhookData(body);
-    if (!isEvolutionInboxEvent(event)) {
-      return apiJson(request, { status: 'ok' }, { status: 200 });
-    }
     const instanceName =
       (typeof instance === 'string' && instance.trim()) ||
       (typeof body.instance === 'string' && body.instance.trim()) ||
       undefined;
-
     const whatsAppService = serverLocator.getWhatsAppService();
+
+    if (isEvolutionPresenceEvent(event) && whatsAppService instanceof EvolutionWhatsAppService) {
+      const repos = serverLocator.getRepos();
+      const lineName = instanceName || process.env.EVOLUTION_INSTANCE_NAME || 'default';
+      const applyTyping = new ApplyContactTypingUseCase(repos.conversation, repos.whatsAppNumber);
+      for (const presence of mapEvolutionPresence({ event, data })) {
+        await applyTyping.execute({
+          phone: presence.phone,
+          instanceName: lineName,
+          composing: presence.composing,
+        });
+      }
+      return apiJson(request, { status: 'ok' }, { status: 200 });
+    }
+
+    if (!isEvolutionInboxEvent(event)) {
+      return apiJson(request, { status: 'ok' }, { status: 200 });
+    }
 
     if (whatsAppService instanceof EvolutionWhatsAppService) {
       const repos = serverLocator.getRepos();

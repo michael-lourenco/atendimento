@@ -92,6 +92,33 @@ describe('mapEvolutionIncomingMessages', () => {
     expect(messages[0].content).toBe('foto da loja');
   });
 
+  it('lê citação do contextInfo', () => {
+    const messages = mapEvolutionIncomingMessages(
+      {
+        event: 'messages.upsert',
+        data: {
+          messageTimestamp: 1700000000,
+          key: { id: 'r1', remoteJid: '5511988887777@s.whatsapp.net', fromMe: false },
+          message: {
+            extendedTextMessage: {
+              text: 'beleza',
+              contextInfo: {
+                stanzaId: 'orig1',
+                participant: '5511988887777@s.whatsapp.net',
+                quotedMessage: { conversation: 'oi' },
+              },
+            },
+          },
+        },
+      },
+      instance
+    );
+    expect(messages[0].content).toBe('beleza');
+    expect(messages[0].quotedMessageId).toBe('orig1');
+    expect(messages[0].quotedContent).toBe('oi');
+    expect(messages[0].quotedFrom).toBe('5511988887777');
+  });
+
   it('reactionMessage não vira bolha e mapeia o alvo', () => {
     const payload = {
       event: 'messages.upsert',

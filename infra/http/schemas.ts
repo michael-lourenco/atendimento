@@ -33,6 +33,7 @@ export const sendMessageJsonSchema = z
     templateName: z.string().optional(),
     templateParams: z.array(z.string()).optional(),
     conversationId: z.string().trim().min(1).optional(),
+    quotedMessageId: z.string().trim().min(1).optional(),
   })
   .superRefine((value, ctx) => {
     if (!value.message.trim()) {
@@ -49,6 +50,14 @@ export const sendMessageJsonSchema = z
 export const reactMessageBodySchema = z.object({
   messageId: z.string().trim().min(1, 'Campo obrigatório: messageId'),
   emoji: z.string().max(16),
+});
+
+export const presenceBodySchema = z.object({
+  to: z.string().trim().min(1, 'Campo obrigatório: to'),
+  presence: z.enum(['composing', 'recording', 'paused'], {
+    errorMap: () => ({ message: 'presence inválido' }),
+  }),
+  conversationId: z.string().trim().min(1).optional(),
 });
 
 export const evolutionWebhookSchema = z

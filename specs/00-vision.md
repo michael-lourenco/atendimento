@@ -46,7 +46,7 @@ Atender muitos contatos no WhatsApp com triagem, automação e histórico, sem d
 
 ## Estado atual
 
-Fases 1–5 feitas. Atendimento humano: inbox (lista + chat), pausa do bot, Assumir/Transferir/Finalizar, setor na conversa, triagem pelo fluxo, lidas ao abrir, filtro minhas conversas, envio de mídia.
+Fases 1–5 feitas. Inbox: citação, digitando, SLA nos relatórios, aviso de schema para admin.
 
 **Fase 5 (produção):** validação Zod na borda HTTP, `x-request-id`, logs sanitizados, dica de login só com URL + anon. Uma empresa = uma stack (`08-supabase.md`).
 

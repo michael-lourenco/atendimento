@@ -12,6 +12,7 @@ type ConversationThreadHeaderProps = {
   phone: string;
   lineName?: string;
   photoUrl?: string;
+  typing?: boolean;
   queueTone: ReturnType<typeof queueToneOf> | null;
   onBack?: () => void;
   children?: ReactNode;
@@ -22,6 +23,7 @@ export function ConversationThreadHeader({
   phone,
   lineName,
   photoUrl,
+  typing,
   queueTone,
   onBack,
   children,
@@ -47,7 +49,11 @@ export function ConversationThreadHeader({
         <div className="min-w-0 flex-1">
           <p className="truncate text-base font-medium leading-tight text-foreground">{title}</p>
           <p className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-            <span className="truncate">{subtitle}</span>
+            {typing ? (
+              <span className="italic text-primary">digitando…</span>
+            ) : (
+              <span className="truncate">{subtitle}</span>
+            )}
             {queueTone ? (
               <Badge
                 variant={

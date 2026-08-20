@@ -32,6 +32,7 @@ async function parseMultipart(form: FormData): Promise<SendWhatsAppMessageInput>
   const to = String(form.get('to') ?? '').trim();
   const message = String(form.get('message') ?? '');
   const conversationId = String(form.get('conversationId') ?? '').trim() || undefined;
+  const quotedMessageId = String(form.get('quotedMessageId') ?? '').trim() || undefined;
   const file = form.get('file');
   const media =
     file instanceof File && file.size > 0 ? await toOutgoingMedia(file) : undefined;
@@ -43,7 +44,7 @@ async function parseMultipart(form: FormData): Promise<SendWhatsAppMessageInput>
     throw new SendRequestError('Envie uma mensagem ou um arquivo');
   }
 
-  return { to, message, media, conversationId };
+  return { to, message, media, conversationId, quotedMessageId };
 }
 
 export function assertOutgoingMediaSize(size: number): void {

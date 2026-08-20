@@ -14,4 +14,6 @@ export interface DashboardMetrics {
   responseRatePercent: number;
   conversationsByDepartment: { name: string; count: number }[];
   avgAssumeMinutes: number | null;
+  avgFirstHumanReplyMinutes: number | null;
+  unassignedOlderThanMinutes: number;
 }

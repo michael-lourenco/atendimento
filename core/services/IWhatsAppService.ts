@@ -26,6 +26,23 @@ export interface SendMessageParams {
   templateParams?: string[];
   media?: OutgoingMedia;
   instanceName?: string;
+  quoted?: QuotedMessageRef;
+}
+
+export type QuotedMessageRef = {
+  messageId: string;
+  fromMe: boolean;
+  preview?: string;
+  remoteJid?: string;
+};
+
+export type PresenceKind = 'composing' | 'recording' | 'paused';
+
+export interface SendPresenceParams {
+  to: string;
+  presence: PresenceKind;
+  delayMs?: number;
+  instanceName?: string;
 }
 
 export function assertNoOutgoingMedia(params: SendMessageParams): void {
@@ -117,6 +134,8 @@ export interface IWhatsAppService {
   sendMessage(params: SendMessageParams): Promise<WhatsAppMessageResponse>;
 
   sendReaction?(params: SendReactionParams): Promise<void>;
+
+  sendPresence?(params: SendPresenceParams): Promise<void>;
 
   fetchProfilePicture(phone: string, instanceName?: string): Promise<StoredMedia | null>;
 

@@ -55,6 +55,10 @@ export class WhatsAppService implements IWhatsAppService {
       };
     }
 
+    if (params.quoted?.messageId) {
+      payload.context = { message_id: params.quoted.messageId };
+    }
+
     try {
       const response = await fetch(this.baseUrl, {
         method: 'POST',
@@ -135,6 +139,8 @@ export class WhatsAppService implements IWhatsAppService {
             timestamp: new Date(parseInt(msg.timestamp) * 1000),
             direction: 'incoming',
             status: 'delivered',
+            quotedMessageId: msg.context?.id,
+            quotedFrom: msg.context?.from,
           };
 
           messages.push(message);

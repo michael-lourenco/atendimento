@@ -22,8 +22,9 @@ Bodies JSON das rotas abaixo passam por schema Zod na borda. Inválido → `400 
 | `POST /api/auth/login` | `{ email, password }` |
 | `POST /api/operators` | `{ email, password, name, role?, departmentId? }` |
 | `PATCH /api/operators/{id}` | `{ role?, password? }` (pelo menos um) |
-| `POST /api/messages/send` (JSON) | `{ to, message, conversationId?, type?, templateName?, templateParams? }` (Zod no JSON; hoje `parseSendRequest`) |
+| `POST /api/messages/send` (JSON) | `{ to, message, conversationId?, quotedMessageId?, type?, templateName?, templateParams? }` (Zod no JSON; hoje `parseSendRequest`) |
 | `POST /api/messages/react` | `{ messageId, emoji }` (`emoji` vazio ou o mesmo da linha remove) |
+| `POST /api/messages/presence` | `{ to, presence: composing\|recording\|paused, conversationId? }` |
 | `POST /api/webhook/evolution` | `{ event, data?, instance? }` — compat: se não houver `data` mas houver `key`, o **body inteiro** vale como `data` |
 | `POST /api/webhook/chat-whatsapp` | `{ event, data }` |
 | `POST /api/webhook/whatsapp` | body Meta com `object` + `entry` (schema frouxo / passthrough) |
@@ -32,9 +33,10 @@ Bodies JSON das rotas abaixo passam por schema Zod na borda. Inválido → `400 
 
 `POST /api/messages/send`
 
-- JSON: `{ to: string, message: string, conversationId?: string, type?: "text"|"template", templateName?: string, templateParams?: string[] }`
-- Multipart: `to`, `message` (legenda, opcional se houver arquivo), `file`, `conversationId` (opcional)
+- JSON: `{ to: string, message: string, conversationId?: string, quotedMessageId?: string, type?: "text"|"template", templateName?: string, templateParams?: string[] }`
+- Multipart: `to`, `message` (legenda, opcional se houver arquivo), `file`, `conversationId` (opcional), `quotedMessageId` (opcional)
 - `conversationId` escolhe a thread/linha; sem ele, resolve pela conversa do `to` (a mais recente se houver várias)
+- `quotedMessageId`: cita essa bolha no WhatsApp se ela existir; senão envia sem citar
 - 400 se faltar `to`; 400 se não houver `message` nem arquivo; 400 se `type=template` sem `templateName`; 400 se arquivo > 16 MB
 - 200: entidade `Message` persistida (`type` image/audio/video/document quando houver arquivo)
 - Após envio bem-sucedido, pausa o fluxo **dessa thread** (`PauseContactFlowUseCase` com o id da conversa) e, se houver mídia, grava no Storage
@@ -51,6 +53,21 @@ Bodies JSON das rotas abaixo passam por schema Zod na borda. Inválido → `400 
 - 200: `Message` com `reactions` atualizado
 - 500: falha no provedor (Twilio não envia reação nesta versão)
 - Não pausa o fluxo. Não incrementa não lidas
+
+`POST /api/messages/presence`
+
+- JSON: `{ to: string, presence: "composing"|"recording"|"paused", conversationId?: string }`
+- 400 se faltar `to` ou `presence` inválido
+- 401: sem sessão de operador quando o Supabase está configurado
+- 204: enviado (ou no-op se o provedor não implementar `sendPresence`)
+- Não persiste mensagem. Não pausa o fluxo
+
+`GET /api/admin/schema-health`
+
+- Só admin. 401/403
+- 200 `{ ok: boolean, issues: { table, column, sqlType }[], sql: string }`
+- Sem Supabase: `{ ok: true, issues: [], sql: "" }`
+- `sql` = `ALTER TABLE … ADD COLUMN IF NOT EXISTS` das faltantes + `notify pgrst, 'reload schema'`
 
 `GET` / `POST /api/schedules/dispatch`
 

@@ -18,5 +18,8 @@ export interface Message {
   direction: 'incoming' | 'outgoing';
   status: MessageStatus;
   reactions?: MessageReaction[];
+  quotedMessageId?: string;
+  quotedContent?: string;
+  quotedFrom?: string;
 }
 

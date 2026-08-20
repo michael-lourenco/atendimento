@@ -108,6 +108,30 @@ export default function ReportsPage() {
         </Card>
         <Card>
           <CardHeader>
+            <CardTitle className="text-lg">1ª resposta humana</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-3xl font-bold text-foreground">
+              {metrics?.avgFirstHumanReplyMinutes == null
+                ? '—'
+                : `${metrics.avgFirstHumanReplyMinutes} min`}
+            </div>
+            <p className="text-sm text-muted-foreground mt-2">Média após o primeiro oi (sem o bot)</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg">Fila sem dono</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-3xl font-bold text-foreground">
+              {metrics?.unassignedOlderThanMinutes ?? '—'}
+            </div>
+            <p className="text-sm text-muted-foreground mt-2">Abertas há 5 min ou mais, sem atendente</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader>
             <CardTitle className="text-lg">Volume por setor</CardTitle>
           </CardHeader>
           <CardContent>

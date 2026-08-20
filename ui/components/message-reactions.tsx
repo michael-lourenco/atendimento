@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { Plus, Smile } from 'lucide-react';
+import { Plus, Smile, Reply } from 'lucide-react';
 import { Message } from '@/core/entities/Message';
 import { QUICK_MESSAGE_REACTIONS, groupMessageReactions } from '@/core/entities/messageReaction';
 import { EmojiCatalog } from '@/ui/components/emoji-catalog';
@@ -54,6 +54,7 @@ type MessageReactPickerProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onReact: (emoji: string) => void;
+  onReply?: () => void;
 };
 
 export function MessageReactPicker({
@@ -61,6 +62,7 @@ export function MessageReactPicker({
   open,
   onOpenChange,
   onReact,
+  onReply,
 }: MessageReactPickerProps) {
   const rootRef = useRef<HTMLDivElement>(null);
   const [catalogOpen, setCatalogOpen] = useState(false);
@@ -127,6 +129,17 @@ export function MessageReactPicker({
                 {emoji}
               </button>
             ))}
+            <button
+              type="button"
+              className="inline-flex h-7 w-7 items-center justify-center rounded-full text-muted-foreground hover:bg-muted"
+              aria-label="Responder"
+              onClick={() => {
+                onReply?.();
+                onOpenChange(false);
+              }}
+            >
+              <Reply className="h-4 w-4" />
+            </button>
             <button
               type="button"
               className={cn(

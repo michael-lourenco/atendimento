@@ -49,6 +49,13 @@ Spec: `08-supabase.md`.
 
 Isolamento entre empresas = cópia da stack (`00-vision.md`, `08-supabase.md`).
 
+## Pós-Fase 5 (esta entrega)
+
+- Health de schema (admin)
+- Citação de mensagem
+- Presence / digitando (Evolution)
+- SLA na inbox de relatórios (1ª resposta humana + fila sem dono)
+
 ## Não fazer
 
 - Criar `step-by-step/` como documentação de avanço

@@ -1,6 +1,7 @@
 import { AxiosInstance } from 'axios';
 import { SendMessageParams, WhatsAppMessageResponse } from '../../core/services/IWhatsAppService';
 import { mediaKindFromMime, PlayableMediaType } from '../../core/services/IMediaStorage';
+import { evolutionQuotedBody } from './evolutionQuoted';
 
 export type EvolutionMediaPost = {
   path: string;
@@ -41,6 +42,7 @@ export function buildEvolutionMediaPost(
         number: toNumber,
         audio: base64,
         encoding: true,
+        ...evolutionQuotedBody(params.quoted, toNumber),
       },
     };
   }
@@ -54,6 +56,7 @@ export function buildEvolutionMediaPost(
       media: base64,
       fileName: params.media.fileName || defaultFileName(kind),
       ...(caption ? { caption } : {}),
+      ...evolutionQuotedBody(params.quoted, toNumber),
     },
   };
 }

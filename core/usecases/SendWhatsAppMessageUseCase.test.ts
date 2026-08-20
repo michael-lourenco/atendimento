@@ -123,4 +123,29 @@ describe('SendWhatsAppMessageUseCase', () => {
     expect(result.content).toBe('Áudio enviado');
     expect(whatsApp.sent[0].message).toBe('');
   });
+
+  it('cita a mensagem alvo quando quotedMessageId existe', async () => {
+    const whatsApp = new FakeWhatsAppService();
+    const messages = new InMemoryMessageRepository();
+    await messages.save({
+      id: 'alvo',
+      from: '5521982790723',
+      to: 'comercial',
+      content: 'oi',
+      type: 'text',
+      timestamp: new Date(),
+      direction: 'incoming',
+      status: 'delivered',
+    });
+    const useCase = new SendWhatsAppMessageUseCase(whatsApp, messages);
+    const result = await useCase.execute({
+      to: '5521982790723',
+      message: 'beleza',
+      quotedMessageId: 'alvo',
+    });
+    expect(result.quotedMessageId).toBe('alvo');
+    expect(result.quotedContent).toBe('oi');
+    expect(whatsApp.sent[0].quoted?.messageId).toBe('alvo');
+    expect(whatsApp.sent[0].quoted?.fromMe).toBe(false);
+  });
 });

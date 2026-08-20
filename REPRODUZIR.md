@@ -154,6 +154,7 @@ Rode **um arquivo por vez**, nesta ordem, copiando o conteúdo de `infra/supabas
 18. `018_intake_sales_copy.sql`
 19. `019_inbox_hours_queue.sql` — expediente, fila, Realtime
 20. `020_message_reactions.sql`
+21. `021_quote_typing.sql`
 
 Se pular alguma, o painel quebra (erros `PGRST204` = coluna que a API espera e o banco não tem).
 
@@ -303,7 +304,7 @@ Cada empresa nova = **novo** projeto Supabase + **nova** cópia do app + **nova*
 | Sintoma | Causa típica |
 |---------|----------------|
 | Login não entra / dica de env na tela | Faltou `NEXT_PUBLIC_SUPABASE_URL` ou anon key no `.env.local`; reinicie o `npm run dev` |
-| `PGRST204` / coluna não existe | Migration pulada (em especial 010, 011, 017, 019, 020) |
+| `PGRST204` / coluna não existe | Migration pulada (em especial 010, 011, 017, 019, 020, 021) |
 | Painel com dados “de mentira” | Env Supabase vazia → mocks |
 | QR não aparece | Docker Evolution fora; `EVOLUTION_API_KEY` diferente da do compose; linha sem `instanceName` |
 | Mensagem no celular, nada no painel | Webhook: Evolution precisa alcançar `host.docker.internal:3000`; Next tem que estar no ar |
@@ -316,7 +317,7 @@ Cada empresa nova = **novo** projeto Supabase + **nova** cópia do app + **nova*
 
 1. E-mail → GitHub → repositório com o código  
 2. Projeto **novo** no Supabase → copiar URL + anon + service_role  
-3. SQL Editor: migrations **001 → 020**  
+3. SQL Editor: migrations **001 → 021**  
 4. Auth: criar o primeiro usuário (auto confirm)  
 5. Clonar, `npm install`, `.env.local`  
 6. `docker compose up -d` + `npm run dev`  

@@ -48,7 +48,27 @@ function previewBody(message: Message): string {
   return text;
 }
 
-export function conversationPreview(conversation: Pick<Conversation, 'lastMessage'>): string {
+export const CONTACT_TYPING_TTL_MS = 12_000;
+
+export function conversationIsTyping(
+  conversation: Pick<Conversation, 'contactTypingAt'>,
+  now = new Date()
+): boolean {
+  const at = conversation.contactTypingAt;
+  if (!at) {
+    return false;
+  }
+  const stamp = at instanceof Date ? at : new Date(at);
+  return now.getTime() - stamp.getTime() <= CONTACT_TYPING_TTL_MS;
+}
+
+export function conversationPreview(
+  conversation: Pick<Conversation, 'lastMessage' | 'contactTypingAt'>,
+  now = new Date()
+): string {
+  if (conversationIsTyping(conversation, now)) {
+    return 'digitando…';
+  }
   const message = conversation.lastMessage;
   if (!message) {
     return 'Sem mensagens';
@@ -61,8 +81,12 @@ export function conversationPreview(conversation: Pick<Conversation, 'lastMessag
 }
 
 export function conversationPreviewIsOutgoing(
-  conversation: Pick<Conversation, 'lastMessage'>
+  conversation: Pick<Conversation, 'lastMessage' | 'contactTypingAt'>,
+  now = new Date()
 ): boolean {
+  if (conversationIsTyping(conversation, now)) {
+    return false;
+  }
   return conversation.lastMessage?.direction === 'outgoing';
 }
 

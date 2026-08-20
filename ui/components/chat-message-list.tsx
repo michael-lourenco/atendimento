@@ -13,6 +13,7 @@ type ChatMessageListProps = {
   mineFrom: string;
   onResend: (text: string) => void;
   onReact: (messageId: string, emoji: string) => void;
+  onReply: (message: Message) => void;
   bottomRef: RefObject<HTMLDivElement | null>;
 };
 
@@ -22,6 +23,7 @@ export function ChatMessageList({
   mineFrom,
   onResend,
   onReact,
+  onReply,
   bottomRef,
 }: ChatMessageListProps) {
   return (
@@ -33,6 +35,7 @@ export function ChatMessageList({
           mineFrom={mineFrom}
           onResend={onResend}
           onReact={(emoji) => onReact(message.id, emoji)}
+          onReply={() => onReply(message)}
         />
       ))}
       {pendingSend ? (
@@ -56,11 +59,13 @@ function ChatBubble({
   mineFrom,
   onResend,
   onReact,
+  onReply,
 }: {
   message: Message;
   mineFrom: string;
   onResend: (text: string) => void;
   onReact: (emoji: string) => void;
+  onReply: () => void;
 }) {
   const incoming = message.direction === 'incoming';
   const [pickerOpen, setPickerOpen] = useState(false);
@@ -81,6 +86,7 @@ function ChatBubble({
       open={pickerOpen}
       onOpenChange={setPickerOpen}
       onReact={onReact}
+      onReply={onReply}
     />
   );
 
@@ -107,6 +113,13 @@ function ChatBubble({
               : 'bg-bubble-out text-bubble-out-foreground'
           }`}
         >
+          {message.quotedMessageId || message.quotedContent ? (
+            <div className="mb-1 rounded-md border-l-2 border-primary/70 bg-black/5 px-2 py-1 dark:bg-white/10">
+              <p className="truncate text-[11px] opacity-80">
+                {message.quotedContent || 'Mensagem'}
+              </p>
+            </div>
+          ) : null}
           <MessageMedia id={message.id} type={message.type} content={message.content} />
           <p className="mt-1 flex items-center justify-end gap-1 text-[11px] opacity-70">
             <span>{formatInboxTime(message.timestamp)}</span>

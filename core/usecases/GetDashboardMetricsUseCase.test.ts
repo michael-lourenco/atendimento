@@ -2,6 +2,7 @@ import { Conversation } from '../entities/Conversation';
 import { Message } from '../entities/Message';
 import { IConversationRepository } from '../repositories/IConversationRepository';
 import { IMessageRepository } from '../repositories/IMessageRepository';
+import { IWhatsAppNumberRepository } from '../repositories/IWhatsAppNumberRepository';
 import { GetDashboardMetricsUseCase } from './GetDashboardMetricsUseCase';
 
 const now = new Date('2026-08-18T15:00:00Z');
@@ -28,6 +29,17 @@ class FakeMessages implements IMessageRepository {
   }
   async getByContact() {
     return [];
+  }
+  async save() {}
+  async delete() {}
+}
+
+class FakeNumbers implements IWhatsAppNumberRepository {
+  async getAll() {
+    return [];
+  }
+  async getById() {
+    return null;
   }
   async save() {}
   async delete() {}
@@ -82,7 +94,8 @@ describe('GetDashboardMetricsUseCase', () => {
           createdAt: now,
           tags: [],
         },
-      ])
+      ]),
+      new FakeNumbers()
     ).execute();
 
     expect(metrics).toEqual({
@@ -91,6 +104,8 @@ describe('GetDashboardMetricsUseCase', () => {
       responseRatePercent: 50,
       conversationsByDepartment: [{ name: 'Sem setor', count: 2 }],
       avgAssumeMinutes: null,
+      avgFirstHumanReplyMinutes: null,
+      unassignedOlderThanMinutes: 1,
     });
   });
 
@@ -113,9 +128,58 @@ describe('GetDashboardMetricsUseCase', () => {
           tags: [],
           departmentName: 'Comercial',
         },
-      ])
+      ]),
+      new FakeNumbers()
     ).execute();
     expect(metrics.avgAssumeMinutes).toBe(5);
     expect(metrics.conversationsByDepartment).toEqual([{ name: 'Comercial', count: 1 }]);
+  });
+
+  it('média até 1ª resposta humana ignora o bot', async () => {
+    const t0 = new Date('2026-08-19T12:00:00Z');
+    const t1 = new Date('2026-08-19T12:01:00Z');
+    const t2 = new Date('2026-08-19T12:04:00Z');
+    const metrics = await new GetDashboardMetricsUseCase(
+      new FakeMessages([
+        msg({
+          id: 'in',
+          direction: 'incoming',
+          from: '5511',
+          to: 'bot',
+          timestamp: t0,
+        }),
+        msg({
+          id: 'bot',
+          direction: 'outgoing',
+          from: 'bot',
+          to: '5511',
+          timestamp: t1,
+          flowId: 'inicio',
+          stepId: 'welcome',
+        }),
+        msg({
+          id: 'human',
+          direction: 'outgoing',
+          from: 'bot',
+          to: '5511',
+          timestamp: t2,
+        }),
+      ]),
+      new FakeConversations([
+        {
+          id: '5511',
+          contactId: '5511',
+          contactName: 'A',
+          contactPhone: '5511',
+          status: 'waiting',
+          unreadCount: 0,
+          lastActivity: t2,
+          createdAt: t0,
+          tags: [],
+        },
+      ]),
+      new FakeNumbers()
+    ).execute();
+    expect(metrics.avgFirstHumanReplyMinutes).toBe(4);
   });
 });

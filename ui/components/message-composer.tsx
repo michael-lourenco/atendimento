@@ -1,7 +1,8 @@
 'use client';
 
-import { ChangeEvent, FormEvent, KeyboardEvent, useRef, useState } from 'react';
-import { Paperclip, Send } from 'lucide-react';
+import { ChangeEvent, FormEvent, KeyboardEvent, useEffect, useRef, useState } from 'react';
+import { Paperclip, Send, X } from 'lucide-react';
+import { Message } from '@/core/entities/Message';
 import { Button } from '@/ui/components/button';
 import { Textarea } from '@/ui/components/textarea';
 import { EmojiPicker } from '@/ui/components/emoji-picker';
@@ -13,17 +14,72 @@ type MessageComposerProps = {
   disabled?: boolean;
   sending: boolean;
   error: string | null;
-  onSend: (input: { text: string; file: File | null }) => Promise<void>;
+  replyTo?: Message | null;
+  onCancelReply?: () => void;
+  presenceTo?: string;
+  conversationId?: string;
+  onSend: (input: { text: string; file: File | null; quotedMessageId?: string }) => Promise<void>;
 };
 
-export function MessageComposer({ disabled, sending, error, onSend }: MessageComposerProps) {
+export function MessageComposer({
+  disabled,
+  sending,
+  error,
+  replyTo,
+  onCancelReply,
+  presenceTo,
+  conversationId,
+  onSend,
+}: MessageComposerProps) {
   const [draft, setDraft] = useState('');
   const [file, setFile] = useState<File | null>(null);
   const [sizeError, setSizeError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const textRef = useRef<HTMLTextAreaElement>(null);
+  const lastPresence = useRef<string>('');
   const busy = sending || disabled;
   const canSend = Boolean(draft.trim() || file) && !busy;
+
+  const sendPresence = (presence: 'composing' | 'paused') => {
+    if (!presenceTo || busy) {
+      return;
+    }
+    if (lastPresence.current === presence) {
+      return;
+    }
+    lastPresence.current = presence;
+    void fetch('/api/messages/presence', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ to: presenceTo, presence, conversationId }),
+    });
+  };
+
+  useEffect(() => {
+    if (!presenceTo || busy) {
+      return;
+    }
+    if (!draft.trim()) {
+      sendPresence('paused');
+      return;
+    }
+    const timer = setTimeout(() => sendPresence('composing'), 400);
+    return () => clearTimeout(timer);
+  }, [draft, presenceTo, busy, conversationId]);
+
+  useEffect(
+    () => () => {
+      if (presenceTo) {
+        lastPresence.current = '';
+        void fetch('/api/messages/presence', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ to: presenceTo, presence: 'paused', conversationId }),
+        });
+      }
+    },
+    [presenceTo, conversationId]
+  );
 
   const clearFile = () => {
     setFile(null);
@@ -60,10 +116,11 @@ export function MessageComposer({ disabled, sending, error, onSend }: MessageCom
       return;
     }
     try {
-      await onSend({ text, file });
+      await onSend({ text, file, quotedMessageId: replyTo?.id });
       setDraft('');
       clearFile();
       setSizeError(null);
+      sendPresence('paused');
     } catch {
       return;
     }
@@ -79,10 +136,25 @@ export function MessageComposer({ disabled, sending, error, onSend }: MessageCom
       event.preventDefault();
       void submit();
     }
+    if (event.key === 'Escape' && replyTo) {
+      event.preventDefault();
+      onCancelReply?.();
+    }
   };
 
   return (
     <form onSubmit={onSubmit} className="bg-muted">
+      {replyTo ? (
+        <div className="flex items-start justify-between gap-2 border-b border-border px-3 py-2">
+          <div className="min-w-0 border-l-2 border-primary pl-2">
+            <p className="text-[11px] font-medium text-primary">Respondendo a</p>
+            <p className="truncate text-xs text-muted-foreground">{replyTo.content}</p>
+          </div>
+          <Button type="button" variant="ghost" size="icon" onClick={onCancelReply} aria-label="Cancelar resposta">
+            <X className="h-4 w-4" />
+          </Button>
+        </div>
+      ) : null}
       {file ? (
         <div className="flex items-center justify-between border-b border-border px-3 py-2 text-sm">
           <span className="truncate">{file.name}</span>

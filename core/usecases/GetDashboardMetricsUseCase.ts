@@ -1,7 +1,9 @@
 import { DashboardMetrics } from '../entities/Report';
 import { IConversationRepository } from '../repositories/IConversationRepository';
 import { IMessageRepository } from '../repositories/IMessageRepository';
+import { IWhatsAppNumberRepository } from '../repositories/IWhatsAppNumberRepository';
 import { serviceLocator } from '../../infra/adapters/ServiceLocator';
+import { avgFirstHumanReplyMinutes, unassignedOlderThanMinutes } from '../entities/slaMetrics';
 
 export function conversationsByDepartment(
   conversations: { departmentName?: string }[]
@@ -33,13 +35,16 @@ export function avgAssumeMinutes(
 export class GetDashboardMetricsUseCase {
   constructor(
     private messages: IMessageRepository = serviceLocator.getMessageRepository(),
-    private conversations: IConversationRepository = serviceLocator.getConversationRepository()
+    private conversations: IConversationRepository = serviceLocator.getConversationRepository(),
+    private numbers: IWhatsAppNumberRepository | null = null
   ) {}
 
   async execute(): Promise<DashboardMetrics> {
-    const [allMessages, allConversations] = await Promise.all([
+    const numbers = this.numbers ?? serviceLocator.getWhatsAppNumberRepository();
+    const [allMessages, allConversations, numberList] = await Promise.all([
       this.messages.getAll(),
       this.conversations.getAll(),
+      numbers.getAll(),
     ]);
 
     const incoming = allMessages.filter((message) => message.direction === 'incoming').length;
@@ -54,6 +59,12 @@ export class GetDashboardMetricsUseCase {
       responseRatePercent: incoming === 0 ? 0 : Math.round((outgoing / incoming) * 100),
       conversationsByDepartment: conversationsByDepartment(allConversations),
       avgAssumeMinutes: avgAssumeMinutes(allConversations),
+      avgFirstHumanReplyMinutes: avgFirstHumanReplyMinutes(
+        allConversations,
+        allMessages,
+        numberList
+      ),
+      unassignedOlderThanMinutes: unassignedOlderThanMinutes(allConversations),
     };
   }
 }

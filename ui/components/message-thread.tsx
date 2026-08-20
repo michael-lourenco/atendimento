@@ -8,7 +8,7 @@ import { Department } from '@/core/entities/Department';
 import { Tag } from '@/core/entities/Tag';
 import { User } from '@/core/entities/User';
 import { WhatsAppNumber } from '@/core/entities/WhatsAppNumber';
-import { conversationDisplayName, conversationPhotoUrl } from '@/core/entities/conversationInbox';
+import { conversationDisplayName, conversationPhotoUrl, conversationIsTyping } from '@/core/entities/conversationInbox';
 import { GetMessagesByContactUseCase } from '@/core/usecases/GetMessagesByContactUseCase';
 import { GetFlowSessionUseCase } from '@/core/usecases/GetFlowSessionUseCase';
 import { GetConversationByIdUseCase } from '@/core/usecases/GetConversationByIdUseCase';
@@ -35,6 +35,7 @@ import { coalesceMessageList, nextMessageReactions } from '@/core/entities/messa
 import { DASHBOARD_POLL_MS } from '@/ui/lib/dashboard-poll';
 import { useInboxRealtime } from '@/ui/lib/use-inbox-realtime';
 import { queueToneOf } from '@/ui/lib/status-tone';
+import { postThreadMessage } from '@/ui/lib/post-thread-message';
 
 type MessageThreadProps = {
   conversationId: string;
@@ -57,6 +58,7 @@ export function MessageThread({ conversationId, onBack, onConversationChanged }:
   const [lineName, setLineName] = useState('');
   const [scheduleOpen, setScheduleOpen] = useState(false);
   const [search, setSearch] = useState('');
+  const [replyTo, setReplyTo] = useState<Message | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
 
   const lineRef = useRef<WhatsAppNumber | null>(null);
@@ -146,34 +148,21 @@ export function MessageThread({ conversationId, onBack, onConversationChanged }:
 
   const phone = conversation?.contactPhone ?? conversationId;
 
-  const send = async (input: { text: string; file: File | null }) => {
+  const send = async (input: { text: string; file: File | null; quotedMessageId?: string }) => {
     setSending(true);
     setError(null);
     setPendingSend(input.text.trim() || (input.file ? input.file.name : '…'));
     try {
-      const response = input.file
-        ? await fetch('/api/messages/send', {
-            method: 'POST',
-            body: (() => {
-              const form = new FormData();
-              form.append('to', phone);
-              form.append('conversationId', conversationId);
-              form.append('message', input.text);
-              form.append('file', input.file);
-              return form;
-            })(),
-          })
-        : await fetch('/api/messages/send', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ to: phone, message: input.text, conversationId }),
-          });
-      const body = await response.json().catch(() => ({}));
-      if (!response.ok) {
-        throw new Error(body.message || body.error || 'Falha ao enviar');
-      }
+      await postThreadMessage({
+        to: phone,
+        conversationId,
+        text: input.text,
+        file: input.file,
+        quotedMessageId: input.quotedMessageId,
+      });
       setPaused(true);
       setPendingSend(null);
+      setReplyTo(null);
       refresh();
     } catch (err) {
       setPendingSend(null);
@@ -239,6 +228,7 @@ export function MessageThread({ conversationId, onBack, onConversationChanged }:
         phone={phone}
         lineName={lineName || undefined}
         photoUrl={conversation ? conversationPhotoUrl(conversation) : undefined}
+        typing={conversation ? conversationIsTyping(conversation) : false}
         queueTone={queueTone}
         onBack={onBack}
       >
@@ -299,6 +289,7 @@ export function MessageThread({ conversationId, onBack, onConversationChanged }:
               mineFrom={lineRef.current?.instanceName || lineRef.current?.number || ''}
               onResend={(text) => void send({ text, file: null })}
               onReact={(messageId, emoji) => void react(messageId, emoji)}
+              onReply={setReplyTo}
               bottomRef={bottomRef}
             />
           )}
@@ -312,6 +303,10 @@ export function MessageThread({ conversationId, onBack, onConversationChanged }:
           sending={sending}
           error={error}
           disabled={conversation?.status === 'closed'}
+          replyTo={replyTo}
+          onCancelReply={() => setReplyTo(null)}
+          presenceTo={phone}
+          conversationId={conversationId}
           onSend={send}
         />
       </CardContent>

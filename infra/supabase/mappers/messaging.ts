@@ -45,6 +45,9 @@ export function messageFromRow(row: Record<string, unknown>): Message {
     direction: row.direction as Message['direction'],
     status: row.status as Message['status'],
     reactions: reactionsFromUnknown(row.reactions),
+    quotedMessageId: row.quoted_message_id ? String(row.quoted_message_id) : undefined,
+    quotedContent: row.quoted_content ? String(row.quoted_content) : undefined,
+    quotedFrom: row.quoted_from ? String(row.quoted_from) : undefined,
   };
 }
 
@@ -62,6 +65,11 @@ export function messageToRow(message: Message) {
     status: message.status,
     reactions: message.reactions ?? [],
   };
+  if (message.quotedMessageId) {
+    row.quoted_message_id = message.quotedMessageId;
+    row.quoted_content = message.quotedContent ?? null;
+    row.quoted_from = message.quotedFrom ?? null;
+  }
   return row;
 }
 
@@ -116,6 +124,7 @@ export function conversationFromRow(row: Record<string, unknown>): Conversation 
     tags: asStringArray(row.tags),
     contactAvatarUrl: row.contact_avatar_url ? String(row.contact_avatar_url) : undefined,
     assignedAt: row.assigned_at ? asDate(row.assigned_at) : undefined,
+    contactTypingAt: row.contact_typing_at ? asDate(row.contact_typing_at) : undefined,
   };
 }
 
@@ -147,6 +156,9 @@ export function conversationToRow(conversation: Conversation) {
   if (conversation.assignedAt) {
     row.assigned_at = conversation.assignedAt.toISOString();
   }
+  row.contact_typing_at = conversation.contactTypingAt
+    ? conversation.contactTypingAt.toISOString()
+    : null;
   return row;
 }
 

@@ -55,6 +55,37 @@ describe('conversationInbox', () => {
     expect(conversationPreviewIsOutgoing({})).toBe(false);
   });
 
+  it('digitando cobre a prévia', () => {
+    const now = new Date('2026-08-20T12:00:10Z');
+    expect(
+      conversationPreview(
+        {
+          lastMessage: text({ content: 'oi' }),
+          contactTypingAt: new Date('2026-08-20T12:00:00Z'),
+        },
+        now
+      )
+    ).toBe('digitando…');
+    expect(
+      conversationPreviewIsOutgoing(
+        {
+          lastMessage: text({ direction: 'outgoing' }),
+          contactTypingAt: new Date('2026-08-20T12:00:00Z'),
+        },
+        now
+      )
+    ).toBe(false);
+    expect(
+      conversationPreview(
+        {
+          lastMessage: text({ content: 'oi' }),
+          contactTypingAt: new Date('2026-08-20T11:59:00Z'),
+        },
+        now
+      )
+    ).toBe('oi');
+  });
+
   it('hoje mostra hora, outro dia mostra data', () => {
     const now = new Date('2026-08-18T15:00:00');
     const today = formatInboxTime(new Date('2026-08-18T09:05:00'), now);

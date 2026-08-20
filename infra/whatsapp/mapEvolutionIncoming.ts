@@ -33,6 +33,58 @@ function readPushName(item: Record<string, unknown>): string | undefined {
   return undefined;
 }
 
+function readQuoted(message: Record<string, unknown>): {
+  quotedMessageId?: string;
+  quotedContent?: string;
+  quotedFrom?: string;
+} {
+  const bags: Record<string, unknown>[] = [message];
+  for (const key of [
+    'extendedTextMessage',
+    'imageMessage',
+    'videoMessage',
+    'documentMessage',
+    'audioMessage',
+  ]) {
+    const nested = message[key];
+    if (nested && typeof nested === 'object') {
+      bags.push(nested as Record<string, unknown>);
+    }
+  }
+  for (const bag of bags) {
+    const info = bag.contextInfo;
+    if (!info || typeof info !== 'object') {
+      continue;
+    }
+    const context = info as Record<string, unknown>;
+    const stanza =
+      (typeof context.stanzaId === 'string' && context.stanzaId) ||
+      (typeof context.stanzaID === 'string' && context.stanzaID) ||
+      '';
+    if (!stanza) {
+      continue;
+    }
+    const quotedMessage =
+      context.quotedMessage && typeof context.quotedMessage === 'object'
+        ? (context.quotedMessage as Record<string, unknown>)
+        : {};
+    const extended = quotedMessage.extendedTextMessage as { text?: string } | undefined;
+    const image = quotedMessage.imageMessage as { caption?: string } | undefined;
+    const preview =
+      (typeof quotedMessage.conversation === 'string' && quotedMessage.conversation) ||
+      extended?.text ||
+      image?.caption ||
+      '';
+    const participant = typeof context.participant === 'string' ? context.participant : '';
+    return {
+      quotedMessageId: stanza,
+      quotedContent: preview.trim() ? preview.trim().slice(0, 200) : undefined,
+      quotedFrom: participant.split('@')[0] || undefined,
+    };
+  }
+  return {};
+}
+
 function readContent(message: Record<string, unknown>): {
   content: string;
   type: Message['type'];
@@ -95,6 +147,7 @@ export function mapEvolutionIncomingMessages(
       continue;
     }
     const { content, type } = readContent(message);
+    const quoted = readQuoted(message);
     const timestampValue = item.messageTimestamp;
     const timestamp =
       typeof timestampValue === 'number'
@@ -113,6 +166,7 @@ export function mapEvolutionIncomingMessages(
         ? evolutionAckToStatus(item.status ?? item.ack) ?? 'sent'
         : 'delivered',
       contactName: fromMe ? undefined : readPushName(item),
+      ...quoted,
     });
   }
   return mapped;

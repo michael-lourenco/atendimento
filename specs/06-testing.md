@@ -35,12 +35,12 @@ Runner: Jest + `ts-jest` (`npm test`). Testing Library só quando houver teste d
 - `core/entities/contactAvatarBackfill.test.ts` — threads sem foto; um alvo por telefone; lote
 - `core/usecases/SyncMissingContactAvatarsUseCase.test.ts` — copia href já existente; busca só quem ainda não tem; respeita o lote
 - `core/entities/conversationTabs.test.ts` — transferida em Esperando; filtro minhas
-- `core/entities/conversationInbox.test.ts` — nome de exibição; inicial do avatar; href da foto; prévia texto / Você: / Foto / Áudio; Sem mensagens só sem lastMessage; outgoing da lista tem tiques à esquerda
+- `core/entities/conversationInbox.test.ts` — nome de exibição; inicial do avatar; href da foto; prévia texto / Você: / Foto / Áudio; Sem mensagens só sem lastMessage; outgoing da lista tem tiques à esquerda; digitando cobre a prévia
 - `core/usecases/UpdateMessageStatusUseCase.test.ts` — avança sent→delivered; se o id é o lastMessage da conversa, atualiza o snapshot
 - `core/entities/messageReaction.test.ts` — um emoji por remetente; vazio remove; agrupa chips; reload sem `reactions` não apaga o chip da tela
 - `core/usecases/ApplyMessageReactionUseCase.test.ts` — grava no alvo; alvo inexistente retorna null
 - `core/usecases/SendMessageReactionUseCase.test.ts` — envia e persiste; mesmo emoji da linha remove
-- `infra/whatsapp/mapEvolutionIncoming.test.ts` — `reactionMessage` não vira bolha; mapeia alvo + emoji
+- `infra/whatsapp/mapEvolutionIncoming.test.ts` — `reactionMessage` não vira bolha; mapeia alvo + emoji; `contextInfo` vira citação
 - `core/entities/lastMessageForConversation.test.ts` — última mensagem da thread (telefone + linha); ack atualiza o snapshot da prévia
 - `core/entities/conversationThread.test.ts` — `conversationThreadId`; legado vs outra linha; `?contact=` abre a mais recente; `threadsForContactPhone` ordena pela atividade; mensagens filtradas por linha
 - `core/entities/whatsappNumberLine.test.ts` — liga instância/dígitos ao cadastro; linha de envio da conversa; `lineNameOf` usa o `name` do catálogo
@@ -49,11 +49,17 @@ Runner: Jest + `ts-jest` (`npm test`). Testing Library só quando houver teste d
 - `core/usecases/SetConversationTagsUseCase.test.ts` — grava tags da thread
 - `core/entities/businessHours.test.ts` — fora do expediente; dentro no fuso
 - `core/entities/queuePlace.test.ts` — posição na fila do mesmo setor
-- `core/usecases/GetDashboardMetricsUseCase.test.ts` — totais; volume por setor; média até Assumir só com `assignedAt`
+- `core/usecases/GetDashboardMetricsUseCase.test.ts` — totais; volume por setor; média até Assumir; 1ª resposta humana; fila sem dono ≥ 5 min
+- `core/entities/slaMetrics.test.ts` — fila sem dono ≥ 5 min
+- `core/entities/quotedPreview.test.ts` — corta em 200 chars
+- `core/usecases/GetSchemaHealthUseCase.test.ts` — probe marca coluna ausente
+- `infra/whatsapp/mapEvolutionPresence.test.ts` — composing/paused; ignora grupo
+- `core/usecases/ApplyContactTypingUseCase.test.ts` — grava `contactTypingAt`; paused zera
+- `core/usecases/SendWhatsAppPresenceUseCase.test.ts` — no-op se o serviço não tiver `sendPresence`
 - `ui/lib/messages-matching-query.test.ts` — busca na conversa filtra pelo texto
 - `infra/whatsapp/mapEvolutionIncoming.test.ts` — pushName; MESSAGES_UPSERT; ignora grupo/fromMe; tipo imagem
 - `infra/whatsapp/evolutionMedia.test.ts` — parse base64; hydrate grava no storage fake
-- `core/usecases/SendWhatsAppMessageUseCase.test.ts` — persiste outgoing; mídia vai ao storage fake
+- `core/usecases/SendWhatsAppMessageUseCase.test.ts` — persiste outgoing; mídia vai ao storage fake; `quotedMessageId` quando o alvo existe
 - `core/services/IMediaStorage.test.ts` — tipo pelo MIME; Meta/Twilio recusam mídia
 - `infra/whatsapp/evolutionSendMedia.test.ts` — sendMedia vs sendWhatsAppAudio
 - `app/api/messages/send/parseSendRequest.test.ts` — JSON e multipart; máx. 16 MB; `conversationId` opcional

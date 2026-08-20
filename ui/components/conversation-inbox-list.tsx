@@ -8,6 +8,7 @@ import {
   conversationPhotoUrl,
   conversationPreview,
   conversationPreviewIsOutgoing,
+  conversationIsTyping,
   departmentColorOf,
   formatInboxTime,
 } from '@/core/entities/conversationInbox';
@@ -76,7 +77,14 @@ export function ConversationInboxList({
                   {conversationPreviewIsOutgoing(conversation) && conversation.lastMessage ? (
                     <MessageStatusTicks message={conversation.lastMessage} />
                   ) : null}
-                  <span className="truncate">{conversationPreview(conversation)}</span>
+                  <span
+                    className={cn(
+                      'truncate',
+                      conversationIsTyping(conversation) && 'italic text-primary'
+                    )}
+                  >
+                    {conversationPreview(conversation)}
+                  </span>
                 </p>
                 <div className="flex items-center justify-between gap-2">
                   {conversation.departmentName ? (

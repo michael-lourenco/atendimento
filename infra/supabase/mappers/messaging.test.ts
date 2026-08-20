@@ -57,4 +57,21 @@ describe('messageToRow', () => {
       { emoji: '👍', from: '5511' },
     ]);
   });
+
+  it('só manda quoted_* quando há citação', () => {
+    const base = {
+      id: 'm1',
+      from: '5511',
+      to: 'bot',
+      content: 'beleza',
+      type: 'text' as const,
+      timestamp: new Date('2026-08-20T12:00:00Z'),
+      direction: 'incoming' as const,
+      status: 'delivered' as const,
+    };
+    expect(messageToRow(base)).not.toHaveProperty('quoted_message_id');
+    expect(messageToRow({ ...base, quotedMessageId: 'alvo', quotedContent: 'oi' }).quoted_message_id).toBe(
+      'alvo'
+    );
+  });
 });

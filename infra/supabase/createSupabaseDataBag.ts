@@ -85,7 +85,12 @@ function createMessageRepository(client: SupabaseClient): IMessageRepository {
       );
     },
     async save(message: Message) {
-      await upsertOmittingMissingColumns(client, 'messages', messageToRow(message), ['reactions']);
+      await upsertOmittingMissingColumns(client, 'messages', messageToRow(message), [
+        'reactions',
+        'quoted_message_id',
+        'quoted_content',
+        'quoted_from',
+      ]);
     },
     async delete(id: string) {
       const { error } = await client.from('messages').delete().eq('id', id);
@@ -167,7 +172,7 @@ function createConversationRepository(client: SupabaseClient): IConversationRepo
         client,
         'conversations',
         conversationToRow(conversation),
-        ['last_message', 'contact_avatar_url', 'assigned_at', 'whatsapp_number_id']
+        ['last_message', 'contact_avatar_url', 'assigned_at', 'whatsapp_number_id', 'contact_typing_at']
       );
     },
     async delete(id: string) {

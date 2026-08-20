@@ -17,6 +17,7 @@ import { Badge } from '@/ui/components/badge';
 import { isAdminPath, pageTitleFromPath, SIDEBAR_EXPANDED_STORAGE_KEY } from '@/ui/lib/sidebar-nav';
 import { DASHBOARD_POLL_MS } from '@/ui/lib/dashboard-poll';
 import { cn } from '@/ui/lib/utils';
+import { SchemaHealthBanner } from '@/ui/components/schema-health-banner';
 
 export default function DashboardLayout({
   children,
@@ -151,6 +152,7 @@ export default function DashboardLayout({
             </div>
           </div>
         </nav>
+        {isAdmin(user) ? <SchemaHealthBanner /> : null}
         <main className="p-4 sm:p-6 lg:p-8">
           {children}
         </main>
