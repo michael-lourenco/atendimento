@@ -1,7 +1,7 @@
 'use client';
 
+import { clientUseCases } from '@/infra/adapters/clientUseCases';
 import { Tag } from '@/core/entities/Tag';
-import { SetConversationTagsUseCase } from '@/core/usecases/SetConversationTagsUseCase';
 
 type ConversationTagsControlProps = {
   conversationId: string;
@@ -24,7 +24,7 @@ export function ConversationTagsControl({
     const next = selected.includes(name)
       ? selected.filter((item) => item !== name)
       : [...selected, name];
-    await new SetConversationTagsUseCase().execute(conversationId, next);
+    await clientUseCases.setConversationTags().execute(conversationId, next);
     onChanged();
   };
 

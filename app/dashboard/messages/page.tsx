@@ -1,9 +1,9 @@
 'use client';
 
+import { clientUseCases } from '@/infra/adapters/clientUseCases';
 import { useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Search } from 'lucide-react';
-import { GetAllMessagesUseCase } from '@/core/usecases/GetAllMessagesUseCase';
 import { Message } from '@/core/entities/Message';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/ui/components/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/ui/components/table';
@@ -27,7 +27,7 @@ export default function MessagesPage() {
       setLoading(true);
     }
     try {
-      const allMessages = await new GetAllMessagesUseCase().execute();
+      const allMessages = await clientUseCases.allMessages().execute();
       setMessages(allMessages);
     } catch (error) {
       console.error('Erro ao carregar mensagens:', error);

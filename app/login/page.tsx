@@ -1,9 +1,9 @@
 'use client';
 
+import { clientUseCases } from '@/infra/adapters/clientUseCases';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { LOGIN_DENIED_OFFLINE, LOGIN_DENIED_QUERY, LoginDeniedError } from '@/core/entities/loginDenied';
-import { LoginUseCase } from '@/core/usecases/LoginUseCase';
 import { Button } from '@/ui/components/button';
 import { Input } from '@/ui/components/input';
 import { Label } from '@/ui/components/label';
@@ -34,7 +34,7 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
-      const loginUseCase = new LoginUseCase();
+      const loginUseCase = clientUseCases.login();
       const user = await loginUseCase.execute(email, password);
 
       if (user) {

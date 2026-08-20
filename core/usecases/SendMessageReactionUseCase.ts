@@ -2,7 +2,6 @@ import { Message } from '../entities/Message';
 import { reactionPeerOf, reactionSenderOf, reactionTogglesOff } from '../entities/messageReaction';
 import { IMessageRepository } from '../repositories/IMessageRepository';
 import { IWhatsAppService } from '../services/IWhatsAppService';
-import { serviceLocator } from '../../infra/adapters/ServiceLocator';
 import { ApplyMessageReactionUseCase } from './ApplyMessageReactionUseCase';
 
 export type SendMessageReactionInput = {
@@ -11,11 +10,14 @@ export type SendMessageReactionInput = {
 };
 
 export class SendMessageReactionUseCase {
+  private applyReaction: ApplyMessageReactionUseCase;
+
   constructor(
-    private whatsApp: IWhatsAppService = serviceLocator.getWhatsAppService(),
-    private messages: IMessageRepository = serviceLocator.getMessageRepository(),
-    private applyReaction: ApplyMessageReactionUseCase = new ApplyMessageReactionUseCase(messages)
-  ) {}
+    private whatsApp: IWhatsAppService,
+    private messages: IMessageRepository
+  ) {
+    this.applyReaction = new ApplyMessageReactionUseCase(messages);
+  }
 
   async execute(input: SendMessageReactionInput): Promise<Message | null> {
     if (!this.whatsApp.sendReaction) {

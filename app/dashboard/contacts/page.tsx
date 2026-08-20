@@ -1,11 +1,10 @@
 'use client';
 
+import { clientUseCases } from '@/infra/adapters/clientUseCases';
 import { useEffect, useState } from 'react';
 import { Contact } from '@/core/entities/Contact';
 import { Conversation } from '@/core/entities/Conversation';
 import { WhatsAppNumber } from '@/core/entities/WhatsAppNumber';
-import { ContactCatalogUseCase } from '@/core/usecases/ContactCatalogUseCase';
-import { GetAllConversationsUseCase } from '@/core/usecases/GetAllConversationsUseCase';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/ui/components/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/ui/components/table';
 import { Button } from '@/ui/components/button';
@@ -21,7 +20,7 @@ import { ContactTalkLink } from '@/ui/components/contact-talk-link';
 import { useCatalogSavedFlash } from '@/ui/lib/use-catalog-saved-flash';
 import { listWhatsAppNumbersCached } from '@/ui/lib/whatsapp-number-cache';
 
-const catalog = () => new ContactCatalogUseCase();
+const catalog = clientUseCases.contacts;
 
 export default function ContactsPage() {
   const [contacts, setContacts] = useState<Contact[]>([]);
@@ -42,7 +41,7 @@ export default function ContactsPage() {
     try {
       const [contactList, conversationList, numberList] = await Promise.all([
         catalog().list(),
-        new GetAllConversationsUseCase().execute(false),
+        clientUseCases.conversations().execute(false),
         listWhatsAppNumbersCached(),
       ]);
       setContacts(contactList);

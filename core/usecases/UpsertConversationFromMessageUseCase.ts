@@ -4,7 +4,6 @@ import { WhatsAppNumber } from '../entities/WhatsAppNumber';
 import { IConversationRepository } from '../repositories/IConversationRepository';
 import { IContactRepository } from '../repositories/IContactRepository';
 import { IWhatsAppNumberRepository } from '../repositories/IWhatsAppNumberRepository';
-import { serviceLocator } from '../../infra/adapters/ServiceLocator';
 import { lineHintFromMessage, matchWhatsAppNumber } from '../entities/whatsappNumberLine';
 import { pickWhatsAppDisplayName } from '../entities/pickWhatsAppDisplayName';
 import {
@@ -23,9 +22,9 @@ function asDate(value: Date): Date {
 
 export class UpsertConversationFromMessageUseCase {
   constructor(
-    private conversations: IConversationRepository = serviceLocator.getConversationRepository(),
-    private contacts: IContactRepository = serviceLocator.getContactRepository(),
-    private numbers: IWhatsAppNumberRepository | null = serviceLocator.getWhatsAppNumberRepository()
+    private conversations: IConversationRepository,
+    private contacts: IContactRepository,
+    private numbers: IWhatsAppNumberRepository
   ) {}
 
   private async contactSnapshot(
@@ -40,7 +39,7 @@ export class UpsertConversationFromMessageUseCase {
   }
 
   async execute(message: Message): Promise<Conversation | null> {
-    const catalog = this.numbers ? await this.numbers.getAll() : [];
+    const catalog = await this.numbers.getAll();
     return this.upsertOne(message, catalog);
   }
 
@@ -100,7 +99,7 @@ export class UpsertConversationFromMessageUseCase {
 
   async ensureFromMessages(messages: Message[]): Promise<void> {
     const existing = await this.conversations.getAll();
-    const catalog = this.numbers ? await this.numbers.getAll() : [];
+    const catalog = await this.numbers.getAll();
     const have = new Map(existing.map((item) => [item.id, item]));
     const grouped = new Map<string, Message[]>();
 

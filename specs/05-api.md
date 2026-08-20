@@ -94,7 +94,7 @@ Bodies JSON das rotas abaixo passam por schema Zod na borda. Inválido → `400 
 
 `GET /api/messages/{id}/media`
 
-- Stream do arquivo (áudio/imagem/vídeo/documento) para o painel
+- Stream do arquivo (áudio/imagem/vídeo/documento) para o painel via `GetMessageMediaUseCase` (`IWhatsAppService.downloadMedia?`, sem `instanceof` de provedor)
 - 401: sem sessão de operador quando o Supabase está configurado
 - 404: mensagem inexistente, tipo texto, ou mídia indisponível na Evolution/Storage
 - 200: bytes + `Content-Type`; cache no bucket `media` (`messages/{id}`) na primeira leitura
@@ -109,8 +109,8 @@ Bodies JSON das rotas abaixo passam por schema Zod na borda. Inválido → `400 
 `GET` / `PUT` / `DELETE /api/quick-replies/{id}/media`
 
 - 401: sem sessão de operador quando o Supabase está configurado
-- 404: resposta inexistente (GET/PUT/DELETE) ou sem áudio no Storage (GET)
-- GET: stream do áudio (`quick-replies/{id}`); `Cache-Control: private, no-cache`
+- 404: resposta inexistente (GET/PUT/DELETE) ou sem áudio no Storage (GET). No picker, 404/falha do GET **não** fecha o painel; o item mostra “Não foi possível enviar o áudio”.
+- GET: stream do áudio via `GetQuickReplyAudioUseCase` (`quick-replies/{id}`); `Cache-Control: private, no-cache`
 - PUT: multipart `file` (só áudio, máx. 16 MB). Grava Storage + `mediaKind: "audio"`. 400 se não for áudio ou passar de 16 MB. 200: `QuickReply`
 - DELETE: tira `mediaKind` (o `body` permanece). 200: `QuickReply`
 - Sem Zod (multipart / sem body). Não cria a resposta: o catálogo `save` no client vem antes
@@ -148,18 +148,18 @@ Erros de rede: 500 com `message` genérico (sem vazar secrets nem stack). Com Ev
 
 ## Auth
 
-`POST /api/auth/login` — `{ email, password }` (Zod) → 200 usuário (sem token) + cookies; 400 body inválido; 401 inválido; 403 agente `offline`; 503 sem Supabase. A dica de env na UI de login cita só `NEXT_PUBLIC_SUPABASE_URL` e `NEXT_PUBLIC_SUPABASE_ANON_KEY`. **Não** citar `SUPABASE_SERVICE_ROLE_KEY` (só servidor). **Não** há rota de “esqueci a senha”: o reset é o e-mail do Auth no cliente (anon) — `08-supabase.md`.
+`POST /api/auth/login` — `{ email, password }` (Zod) → `LoginUseCase` (cookie + rejeita agente `offline`). 200 usuário (sem token) + cookies; 400 body inválido; 401 inválido; 403 agente `offline`; 503 sem Supabase. A dica de env na UI de login cita só `NEXT_PUBLIC_SUPABASE_URL` e `NEXT_PUBLIC_SUPABASE_ANON_KEY`. **Não** citar `SUPABASE_SERVICE_ROLE_KEY` (só servidor). **Não** há rota de “esqueci a senha”: o reset é o e-mail do Auth no cliente (anon) — `08-supabase.md`.
 
-`POST /api/auth/logout` — encerra sessão.
+`POST /api/auth/logout` — `LogoutUseCase`. Encerra sessão.
 
-`GET /api/auth/me` — 200 `User` ou 401.
+`GET /api/auth/me` — `GetCurrentUserUseCase`. 200 `User` ou 401 (403 se o agente estiver `offline`).
 
-`GET /api/operators` — lista `User[]`. Só admin. 401/403.
+`GET /api/operators` — `ListOperatorsUseCase`. Lista `User[]`. Só admin. 401/403.
 
-`POST /api/operators` — `{ email, password, name, role?: "admin"|"user", departmentId? }` (Zod). Cria login (Auth) + perfil + agente. Senha mín. 6. 201 `User`. 400 body inválido. 409 e-mail duplicado (já existe em Auth, `profiles` ou `agents`, case-insensitive). Só admin.
+`POST /api/operators` — `CreateOperatorUseCase`. `{ email, password, name, role?: "admin"|"user", departmentId? }` (Zod). Cria login (Auth) + perfil + agente. Senha mín. 6. 201 `User`. 400 body inválido. 409 e-mail duplicado (já existe em Auth, `profiles` ou `agents`, case-insensitive). Só admin.
 
-`PATCH /api/operators/{id}` — `{ role?: "admin"|"user", password?: string }` (Zod; pelo menos um). Papel: 400 se for o último admin. Senha: mín. 6; `service_role` + `auth.admin.updateUserById`. 404 se o id não existir. Só admin.
+`PATCH /api/operators/{id}` — `SetOperatorRoleUseCase` e/ou `SetOperatorPasswordUseCase`. `{ role?: "admin"|"user", password?: string }` (Zod; pelo menos um). Papel: 400 se for o último admin. Senha: mín. 6; `service_role` + `auth.admin.updateUserById`. 404 se o id não existir. Só admin.
 
-`DELETE /api/operators/{id}` — apaga Auth + perfil + agente. 400 se for o último admin. 404 se o id não existir. Só admin. `service_role` só no servidor para `auth.admin.deleteUser`.
+`DELETE /api/operators/{id}` — `DeleteOperatorUseCase`. Apaga Auth + perfil + agente. 400 se for o último admin. 404 se o id não existir. Só admin. `service_role` só no servidor para `auth.admin.deleteUser`.
 
 Sessão em cookie httpOnly. `POST /api/messages/send` → 401 sem sessão se o Supabase estiver configurado. `GET`/`POST /api/schedules/dispatch` aceita sessão **ou** Bearer `CRON_SECRET`. Webhooks **não** usam sessão de operador. `service_role` só no servidor (`serverLocator`). `POST /api/operators` usa `service_role` só para `auth.admin.createUser`. `PATCH /api/operators/{id}` com `password` usa `service_role` para `auth.admin.updateUserById`. `DELETE /api/operators/{id}` usa `service_role` só para `auth.admin.deleteUser` e para apagar o agente.

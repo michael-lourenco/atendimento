@@ -1,10 +1,10 @@
-import { serviceLocator } from '../../infra/adapters/ServiceLocator';
 import { Flow } from '../entities/Flow';
+import { IFlowRepository } from '../repositories/IFlowRepository';
 
 export class GetAllFlowsUseCase {
-  async execute(): Promise<Flow[]> {
-    const repository = serviceLocator.getFlowRepository();
-    return repository.getAll();
+  constructor(private repository: IFlowRepository) {}
+
+  execute(): Promise<Flow[]> {
+    return this.repository.getAll();
   }
 }
-

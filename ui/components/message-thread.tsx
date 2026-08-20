@@ -1,24 +1,11 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
-import { Message } from '@/core/entities/Message';
-import { Agent } from '@/core/entities/Agent';
-import { Conversation } from '@/core/entities/Conversation';
-import { Department } from '@/core/entities/Department';
-import { Tag } from '@/core/entities/Tag';
-import { User } from '@/core/entities/User';
-import { WhatsAppNumber } from '@/core/entities/WhatsAppNumber';
-import { conversationDisplayName, conversationPhotoUrl, conversationIsTyping } from '@/core/entities/conversationInbox';
-import { GetMessagesByContactUseCase } from '@/core/usecases/GetMessagesByContactUseCase';
-import { GetFlowSessionUseCase } from '@/core/usecases/GetFlowSessionUseCase';
-import { GetConversationByIdUseCase } from '@/core/usecases/GetConversationByIdUseCase';
-import { MarkConversationReadUseCase } from '@/core/usecases/MarkConversationReadUseCase';
-import { GetCurrentUserUseCase } from '@/core/usecases/GetCurrentUserUseCase';
-import { AgentCatalogUseCase } from '@/core/usecases/AgentCatalogUseCase';
-import { DepartmentCatalogUseCase } from '@/core/usecases/DepartmentCatalogUseCase';
-import { TagCatalogUseCase } from '@/core/usecases/TagCatalogUseCase';
-import { ResumeContactFlowUseCase } from '@/core/usecases/ResumeContactFlowUseCase';
-import { listWhatsAppNumbersCached } from '@/ui/lib/whatsapp-number-cache';
+import { useMessageThread } from '@/ui/lib/use-message-thread';
+import {
+  conversationDisplayName,
+  conversationPhotoUrl,
+  conversationIsTyping,
+} from '@/core/entities/conversationInbox';
 import { MessageComposer } from '@/ui/components/message-composer';
 import { ConversationActions } from '@/ui/components/conversation-actions';
 import { ConversationSchedulePanel } from '@/ui/components/conversation-schedule-panel';
@@ -31,12 +18,7 @@ import { ChatThreadSkeleton } from '@/ui/components/chat-thread-skeleton';
 import { ChatMessageList } from '@/ui/components/chat-message-list';
 import { conversationThreadBody } from '@/ui/lib/conversation-thread-body';
 import { messagesMatchingQuery } from '@/ui/lib/messages-matching-query';
-import { coalesceMessageList, nextMessageReactions } from '@/core/entities/messageReaction';
-import { DASHBOARD_POLL_MS } from '@/ui/lib/dashboard-poll';
-import { useInboxRealtime } from '@/ui/lib/use-inbox-realtime';
 import { queueToneOf } from '@/ui/lib/status-tone';
-import { postThreadMessage } from '@/ui/lib/post-thread-message';
-import { notifyWhatsAppRead } from '@/ui/lib/notify-whatsapp-read';
 
 type MessageThreadProps = {
   conversationId: string;
@@ -45,174 +27,34 @@ type MessageThreadProps = {
 };
 
 export function MessageThread({ conversationId, onBack, onConversationChanged }: MessageThreadProps) {
-  const [messages, setMessages] = useState<Message[]>([]);
-  const [paused, setPaused] = useState(false);
-  const [conversation, setConversation] = useState<Conversation | null>(null);
-  const [agents, setAgents] = useState<Agent[]>([]);
-  const [departments, setDepartments] = useState<Department[]>([]);
-  const [tags, setTags] = useState<Tag[]>([]);
-  const [operator, setOperator] = useState<User | null>(null);
-  const [sending, setSending] = useState(false);
-  const [pendingSend, setPendingSend] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [messagesReady, setMessagesReady] = useState(false);
-  const [lineName, setLineName] = useState('');
-  const [scheduleOpen, setScheduleOpen] = useState(false);
-  const [search, setSearch] = useState('');
-  const [replyTo, setReplyTo] = useState<Message | null>(null);
-  const bottomRef = useRef<HTMLDivElement>(null);
-
-  const lineRef = useRef<WhatsAppNumber | null>(null);
-
-  const load = async (refreshCatalogs: boolean, isCancelled: () => boolean = () => false) => {
-    try {
-      await new MarkConversationReadUseCase().execute(conversationId);
-    } catch {
-      // zerar não lidas não pode esconder o chat
-    }
-    notifyWhatsAppRead(conversationId);
-    if (isCancelled()) return;
-    const conv = await new GetConversationByIdUseCase().execute(conversationId);
-    if (isCancelled()) return;
-    if (refreshCatalogs) {
-      const [agentList, departmentList, user, numberList, tagList] = await Promise.all([
-        new AgentCatalogUseCase().list(),
-        new DepartmentCatalogUseCase().list(),
-        new GetCurrentUserUseCase().execute(),
-        listWhatsAppNumbersCached(),
-        new TagCatalogUseCase().list(),
-      ]);
-      if (isCancelled()) return;
-      lineRef.current = numberList.find((item) => item.id === conv?.whatsappNumberId) ?? null;
-      setLineName(lineRef.current?.name ?? '');
-      setAgents(agentList);
-      setDepartments(departmentList);
-      setTags(tagList);
-      setOperator(user);
-    } else if (conv?.whatsappNumberId && lineRef.current?.id !== conv.whatsappNumberId) {
-      const numberList = await listWhatsAppNumbersCached();
-      if (isCancelled()) return;
-      lineRef.current = numberList.find((item) => item.id === conv.whatsappNumberId) ?? null;
-      setLineName(lineRef.current?.name ?? '');
-    }
-    const phone = conv?.contactPhone ?? conversationId;
-    const [list, session] = await Promise.all([
-      new GetMessagesByContactUseCase().execute(phone, lineRef.current),
-      new GetFlowSessionUseCase().execute(conversationId),
-    ]);
-    if (isCancelled()) return;
-    setMessages((prev) => coalesceMessageList(list, prev));
-    setPaused(Boolean(session?.paused));
-    setConversation(conv);
-  };
-
-  const refresh = () => {
-    void load(false).then(() => onConversationChanged?.());
-  };
-
-  useEffect(() => {
-    let cancelled = false;
-    const isCancelled = () => cancelled;
-    lineRef.current = null;
-    setLineName('');
-    setScheduleOpen(false);
-    setMessages([]);
-    setPendingSend(null);
-    setMessagesReady(false);
-    setSearch('');
-    void load(true, isCancelled)
-      .catch((err) => {
-        if (!cancelled) {
-          console.error('Erro ao carregar conversa:', err);
-        }
-      })
-      .finally(() => {
-        if (!cancelled) {
-          setMessagesReady(true);
-        }
-      });
-    const timer = setInterval(() => {
-      load(false, isCancelled).catch((err) => console.error('Erro ao atualizar conversa:', err));
-    }, DASHBOARD_POLL_MS);
-    return () => {
-      cancelled = true;
-      clearInterval(timer);
-    };
-  }, [conversationId]);
-
-  useInboxRealtime(() => {
-    void load(false);
-  });
-
-  useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages.length, pendingSend]);
-
-  const phone = conversation?.contactPhone ?? conversationId;
-
-  const send = async (input: { text: string; file: File | null; quotedMessageId?: string }) => {
-    setSending(true);
-    setError(null);
-    setPendingSend(input.text.trim() || (input.file ? input.file.name : '…'));
-    try {
-      await postThreadMessage({
-        to: phone,
-        conversationId,
-        text: input.text,
-        file: input.file,
-        quotedMessageId: input.quotedMessageId,
-      });
-      setPaused(true);
-      setPendingSend(null);
-      setReplyTo(null);
-      refresh();
-    } catch (err) {
-      setPendingSend(null);
-      setError(err instanceof Error ? err.message : 'Falha ao enviar');
-      throw err;
-    } finally {
-      setSending(false);
-    }
-  };
-
-  const react = async (messageId: string, emoji: string) => {
-    const current = messages.find((item) => item.id === messageId);
-    if (!current) {
-      return;
-    }
-    const optimistic = { ...current, reactions: nextMessageReactions(current, emoji) };
-    setMessages((prev) => prev.map((item) => (item.id === messageId ? optimistic : item)));
-    try {
-      const response = await fetch('/api/messages/react', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ messageId, emoji }),
-      });
-      const body = await response.json().catch(() => ({}));
-      if (!response.ok) {
-        throw new Error(body.error || 'Falha ao reagir');
-      }
-      if (Array.isArray(body.reactions)) {
-        setMessages((prev) =>
-          prev.map((item) => (item.id === messageId ? { ...item, reactions: body.reactions } : item))
-        );
-      }
-      refresh();
-    } catch (err) {
-      setMessages((prev) => prev.map((item) => (item.id === messageId ? current : item)));
-      setError(err instanceof Error ? err.message : 'Falha ao reagir');
-    }
-  };
-
-  const resume = async () => {
-    try {
-      await new ResumeContactFlowUseCase().execute(conversationId);
-      setPaused(false);
-    } catch (err) {
-      console.error('Erro ao retomar chatbot:', err);
-      setError('Não foi possível retomar o chatbot');
-    }
-  };
+  const thread = useMessageThread(conversationId, onConversationChanged);
+  const {
+    messages,
+    paused,
+    conversation,
+    agents,
+    departments,
+    tags,
+    operator,
+    sending,
+    pendingSend,
+    error,
+    messagesReady,
+    lineName,
+    scheduleOpen,
+    setScheduleOpen,
+    search,
+    setSearch,
+    replyTo,
+    setReplyTo,
+    bottomRef,
+    lineRef,
+    phone,
+    send,
+    react,
+    resume,
+    refresh,
+  } = thread;
 
   const threadBody = conversationThreadBody({
     ready: messagesReady,
@@ -309,6 +151,7 @@ export function MessageThread({ conversationId, onBack, onConversationChanged }:
           onCancelReply={() => setReplyTo(null)}
           presenceTo={phone}
           conversationId={conversationId}
+          conversationDepartmentId={conversation?.departmentId}
           onSend={send}
         />
       </CardContent>

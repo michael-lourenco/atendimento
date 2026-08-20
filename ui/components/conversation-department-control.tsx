@@ -1,7 +1,7 @@
 'use client';
 
+import { clientUseCases } from '@/infra/adapters/clientUseCases';
 import { Department } from '@/core/entities/Department';
-import { SetConversationDepartmentUseCase } from '@/core/usecases/SetConversationDepartmentUseCase';
 import { ActionMenu, ActionMenuItem } from '@/ui/components/action-menu';
 
 type ConversationDepartmentControlProps = {
@@ -31,7 +31,7 @@ export function ConversationDepartmentControl({
 
   const change = async (nextId: string) => {
     const department = active.find((item) => item.id === nextId);
-    await new SetConversationDepartmentUseCase().execute({
+    await clientUseCases.setConversationDepartment().execute({
       conversationId,
       departmentId: nextId,
       departmentName: department?.name ?? '',

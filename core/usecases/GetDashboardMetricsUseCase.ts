@@ -2,7 +2,6 @@ import { DashboardMetrics } from '../entities/Report';
 import { IConversationRepository } from '../repositories/IConversationRepository';
 import { IMessageRepository } from '../repositories/IMessageRepository';
 import { IWhatsAppNumberRepository } from '../repositories/IWhatsAppNumberRepository';
-import { serviceLocator } from '../../infra/adapters/ServiceLocator';
 import { avgFirstHumanReplyMinutes, unassignedOlderThanMinutes } from '../entities/slaMetrics';
 
 export function conversationsByDepartment(
@@ -34,17 +33,16 @@ export function avgAssumeMinutes(
 
 export class GetDashboardMetricsUseCase {
   constructor(
-    private messages: IMessageRepository = serviceLocator.getMessageRepository(),
-    private conversations: IConversationRepository = serviceLocator.getConversationRepository(),
-    private numbers: IWhatsAppNumberRepository | null = null
+    private messages: IMessageRepository,
+    private conversations: IConversationRepository,
+    private numbers: IWhatsAppNumberRepository
   ) {}
 
   async execute(): Promise<DashboardMetrics> {
-    const numbers = this.numbers ?? serviceLocator.getWhatsAppNumberRepository();
     const [allMessages, allConversations, numberList] = await Promise.all([
       this.messages.getAll(),
       this.conversations.getAll(),
-      numbers.getAll(),
+      this.numbers.getAll(),
     ]);
 
     const incoming = allMessages.filter((message) => message.direction === 'incoming').length;

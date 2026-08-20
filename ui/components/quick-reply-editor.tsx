@@ -15,17 +15,26 @@ import { quickReplyAudioFileError } from '@/ui/lib/quick-reply-audio';
 
 type QuickReplyEditorProps = {
   editing: QuickReply | null;
+  departments: { id: string; name: string; isActive: boolean }[];
   onCancel: () => void;
-  onSave: (input: { title: string; body: string; file: File | null; removeAudio: boolean }) => Promise<void>;
+  onSave: (input: {
+    title: string;
+    body: string;
+    departmentId?: string;
+    file: File | null;
+    removeAudio: boolean;
+  }) => Promise<void>;
 };
 
-export function QuickReplyEditor({ editing, onCancel, onSave }: QuickReplyEditorProps) {
+export function QuickReplyEditor({ editing, departments, onCancel, onSave }: QuickReplyEditorProps) {
   const [title, setTitle] = useState(editing?.title ?? '');
   const [body, setBody] = useState(editing?.body ?? '');
+  const [departmentId, setDepartmentId] = useState(editing?.departmentId ?? '');
   const [file, setFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [removeAudio, setRemoveAudio] = useState(false);
   const [sizeError, setSizeError] = useState<string | null>(null);
+  const [pttCancelArmed, setPttCancelArmed] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
   const finishingPtt = useRef(false);
   const ptt = usePttRecorder();
@@ -75,6 +84,7 @@ export function QuickReplyEditor({ editing, onCancel, onSave }: QuickReplyEditor
       return;
     }
     finishingPtt.current = true;
+    setPttCancelArmed(false);
     try {
       const audio = keep ? await ptt.stop() : (ptt.cancel(), null);
       if (audio) {
@@ -98,7 +108,13 @@ export function QuickReplyEditor({ editing, onCancel, onSave }: QuickReplyEditor
     if (ptt.recording || !quickReplyIsValid(draft) || sizeError) {
       return;
     }
-    await onSave({ title: title.trim(), body: body.trim(), file, removeAudio });
+    await onSave({
+      title: title.trim(),
+      body: body.trim(),
+      departmentId: departmentId || undefined,
+      file,
+      removeAudio,
+    });
   };
 
   const seconds = Math.max(1, Math.ceil(ptt.elapsedMs / 1000));
@@ -121,6 +137,24 @@ export function QuickReplyEditor({ editing, onCancel, onSave }: QuickReplyEditor
               required
               className="bg-background"
             />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="department">Setor</Label>
+            <select
+              id="department"
+              className="flex h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
+              value={departmentId}
+              onChange={(event) => setDepartmentId(event.target.value)}
+            >
+              <option value="">Todos os setores</option>
+              {departments
+                .filter((item) => item.isActive || item.id === departmentId)
+                .map((department) => (
+                  <option key={department.id} value={department.id}>
+                    {department.name}
+                  </option>
+                ))}
+            </select>
           </div>
           <div className="space-y-2">
             <Label htmlFor="body">Texto</Label>
@@ -146,6 +180,7 @@ export function QuickReplyEditor({ editing, onCancel, onSave }: QuickReplyEditor
                   }}
                   onHoldEnd={() => void finishPtt(true)}
                   onHoldCancel={() => void finishPtt(false)}
+                  onSlideCancelChange={setPttCancelArmed}
                 />
               ) : null}
               <Input
@@ -159,7 +194,11 @@ export function QuickReplyEditor({ editing, onCancel, onSave }: QuickReplyEditor
               />
             </div>
             {ptt.recording ? (
-              <p className="text-sm text-destructive">Gravando… {seconds}s · solte para usar</p>
+              <p className="text-sm text-destructive">
+                {pttCancelArmed
+                  ? 'Solte para cancelar'
+                  : `Gravando… ${seconds}s · solte para usar · deslize para cima para cancelar`}
+              </p>
             ) : null}
             {file && !ptt.recording ? (
               <p className="text-sm text-muted-foreground">{file.name}</p>

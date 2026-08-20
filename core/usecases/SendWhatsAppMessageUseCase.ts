@@ -4,8 +4,8 @@ import {
   WhatsAppMessageResponse,
 } from '../services/IWhatsAppService';
 import { IMessageRepository } from '../repositories/IMessageRepository';
-import { serviceLocator } from '../../infra/adapters/ServiceLocator';
 import { Message } from '../entities/Message';
+import { conversationFromInboxQuery } from '../entities/conversationThread';
 import {
   IMediaStorage,
   defaultOutgoingCaption,
@@ -40,7 +40,7 @@ export interface SendWhatsAppMessageInput {
 export class SendWhatsAppMessageUseCase {
   constructor(
     private whatsAppService: IWhatsAppService,
-    private messageRepository: IMessageRepository = serviceLocator.getMessageRepository(),
+    private messageRepository: IMessageRepository,
     private upsertConversation: UpsertConversationFromMessageUseCase | null = null,
     private upsertContact: UpsertContactFromIncomingUseCase | null = null,
     private mediaStorage: IMediaStorage | null = null,
@@ -107,8 +107,11 @@ export class SendWhatsAppMessageUseCase {
     if (input.instanceName) {
       return { instanceName: input.instanceName, from: input.instanceName };
     }
-    const conversations = this.conversations ?? serviceLocator.getConversationRepository();
-    const numbers = this.numbers ?? serviceLocator.getWhatsAppNumberRepository();
+    if (!this.conversations || !this.numbers) {
+      return { instanceName: input.instanceName, from: input.instanceName || input.to };
+    }
+    const conversations = this.conversations;
+    const numbers = this.numbers;
     const catalog = await numbers.getAll();
     if (input.conversationId) {
       const byId = await conversations.getById(input.conversationId);

@@ -1,10 +1,10 @@
-import { serviceLocator } from '../../infra/adapters/ServiceLocator';
 import { Message } from '../entities/Message';
+import { IMessageRepository } from '../repositories/IMessageRepository';
 
 export class GetAllMessagesUseCase {
-  async execute(): Promise<Message[]> {
-    const repository = serviceLocator.getMessageRepository();
-    return repository.getAll();
+  constructor(private repository: IMessageRepository) {}
+
+  execute(): Promise<Message[]> {
+    return this.repository.getAll();
   }
 }
-

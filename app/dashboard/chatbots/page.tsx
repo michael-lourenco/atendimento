@@ -1,8 +1,8 @@
 'use client';
 
+import { clientUseCases } from '@/infra/adapters/clientUseCases';
 import { useEffect, useState } from 'react';
 import { Chatbot } from '@/core/entities/Chatbot';
-import { ChatbotCatalogUseCase } from '@/core/usecases/ChatbotCatalogUseCase';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/ui/components/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/ui/components/table';
 import { Button } from '@/ui/components/button';
@@ -21,7 +21,7 @@ import {
   DEFAULT_BUSINESS_HOURS,
 } from '@/ui/components/business-hours-fields';
 
-const catalog = () => new ChatbotCatalogUseCase();
+const catalog = clientUseCases.chatbots;
 
 export default function ChatbotsPage() {
   const [chatbots, setChatbots] = useState<Chatbot[]>([]);

@@ -10,26 +10,6 @@ import { sendEvolutionPresence } from './evolutionSendPresence';
 import { sendEvolutionMarkMessagesRead } from './evolutionMarkMessagesRead';
 import { evolutionQuotedBody } from './evolutionQuoted';
 
-/**
- * Implementação do serviço WhatsApp usando Evolution API como intermediário
- * 
- * Evolution API é uma solução open-source que usa WhatsApp Web para enviar/receber mensagens.
- * Pode ser self-hosted ou usado via serviço hospedado.
- * 
- * Vantagens:
- * - Gratuito (se self-hosted)
- * - API REST simples e direta
- * - Suporte completo a mídia, grupos, etc.
- * - Muito popular no Brasil
- * 
- * Para usar:
- * 1. Instale Evolution API (Docker ou hospedado)
- * 2. Crie uma instância
- * 3. Configure as variáveis de ambiente
- * 4. Configure o webhook no Evolution API
- * 
- * Documentação: https://doc.evolution-api.com/
- */
 export class EvolutionWhatsAppService implements IWhatsAppService {
   private baseUrl: string;
   private apiKey: string;

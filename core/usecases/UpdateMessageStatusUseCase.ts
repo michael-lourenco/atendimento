@@ -3,11 +3,10 @@ import { mergeMessageStatus } from '../entities/messageStatus';
 import { applyLastMessageStatus } from '../entities/lastMessageForConversation';
 import { IMessageRepository } from '../repositories/IMessageRepository';
 import { IConversationRepository } from '../repositories/IConversationRepository';
-import { serviceLocator } from '../../infra/adapters/ServiceLocator';
 
 export class UpdateMessageStatusUseCase {
   constructor(
-    private messages: IMessageRepository = serviceLocator.getMessageRepository(),
+    private messages: IMessageRepository,
     private conversations: IConversationRepository | null = null
   ) {}
 

@@ -45,14 +45,17 @@ Detalhe das rotas: `05-api.md`.
 
 ### Regras de dependência
 
-- `core` **não** importa `app`, `ui` nem implementações concretas de `infra` (exceto que use cases hoje usam `serviceLocator` — ver débito abaixo).
-- Use cases dependem de **interfaces** (`IFlowRepository`, `IQuickReplyRepository`, `IWhatsAppService`, etc.).
-- Páginas e APIs chamam **use cases**, não repositórios concretos.
-- Troca mock → real: só `ServiceLocator` (ou composition root futuro).
+- `core` **não** importa `app`, `ui` nem implementações concretas de `infra`.
+- Use cases dependem só de **interfaces** (`IFlowRepository`, `IQuickReplyRepository`, `IWhatsAppService`, etc.). Construtor **sem** default de `serviceLocator`.
+- Páginas e APIs chamam **use cases**, não repositórios concretos. No client, a fábrica `infra/adapters/clientUseCases.ts` injeta o `ServiceLocator`. No servidor, `serverLocator` injeta o bag (service_role) e o `SupabaseServerAuthRepository`.
+- Troca mock → real: só `ServiceLocator` / `serverLocator`.
 
-## Débito conhecido
+## Composition root
 
-Use cases importam `serviceLocator` de `infra`. Aceitável na Fase 1. Ao persistir de verdade, injetar dependências no construtor e restringir o locator à borda (`app/`).
+- **Client (painel):** `infra/adapters/ServiceLocator.ts` escolhe mock vs Supabase browser; `clientUseCases` monta os use cases.
+- **Servidor (API/webhooks):** `infra/adapters/serverLocator.ts` — bag service_role + `SupabaseServerAuthRepository` (cookie para sessão, service_role para Auth admin). Rotas `/api/auth/*` e `/api/operators*` chamam `LoginUseCase`, `LogoutUseCase`, `GetCurrentUserUseCase`, `ListOperatorsUseCase`, `CreateOperatorUseCase`, `SetOperatorRoleUseCase`, `SetOperatorPasswordUseCase`, `DeleteOperatorUseCase`.
+
+Validação de fluxo do editor (`flowHealthIssues`) vive em `core/engine/`. `IWhatsAppService.downloadMedia?` evita `instanceof` na rota de mídia.
 
 ## Ambientes
 

@@ -1,11 +1,11 @@
 'use client';
 
+import { clientUseCases } from '@/infra/adapters/clientUseCases';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { WhatsAppNumber } from '@/core/entities/WhatsAppNumber';
 import { defaultEvolutionInstanceName } from '@/core/entities/whatsappNumberLine';
-import { WhatsAppNumberCatalogUseCase } from '@/core/usecases/WhatsAppNumberCatalogUseCase';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/ui/components/card';
 import { Button } from '@/ui/components/button';
 import { RefreshCw, CheckCircle2, XCircle, Loader2 } from 'lucide-react';
@@ -38,7 +38,7 @@ export default function WhatsAppPage() {
   const [refreshing, setRefreshing] = useState(false);
 
   useEffect(() => {
-    void new WhatsAppNumberCatalogUseCase().list().then((rows) => {
+    void clientUseCases.whatsAppNumbers().list().then((rows) => {
       setNumbers(rows);
       if (!queryInstance) {
         const first = rows.find((item) => item.instanceName)?.instanceName;

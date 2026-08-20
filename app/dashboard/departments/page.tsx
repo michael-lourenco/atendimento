@@ -1,5 +1,6 @@
 'use client';
 
+import { clientUseCases } from '@/infra/adapters/clientUseCases';
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/ui/components/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/ui/components/table';
@@ -9,7 +10,6 @@ import { Label } from '@/ui/components/label';
 import { Textarea } from '@/ui/components/textarea';
 import { Badge } from '@/ui/components/badge';
 import { Plus, Users, MessageSquare } from 'lucide-react';
-import { DepartmentCatalogUseCase } from '@/core/usecases/DepartmentCatalogUseCase';
 import { Department } from '@/core/entities/Department';
 import { useConfirm } from '@/ui/components/confirm-dialog';
 import { EmptyState } from '@/ui/components/empty-state';
@@ -36,7 +36,7 @@ export default function DepartmentsPage() {
       setLoading(true);
     }
     try {
-      const allDepartments = await new DepartmentCatalogUseCase().list();
+      const allDepartments = await clientUseCases.departments().list();
       setDepartments(allDepartments);
     } catch (error) {
       console.error('Erro ao carregar setores:', error);
@@ -63,7 +63,7 @@ export default function DepartmentsPage() {
         createdAt: editingDepartment?.createdAt || new Date(),
         updatedAt: new Date(),
       };
-      await new DepartmentCatalogUseCase().save(department);
+      await clientUseCases.departments().save(department);
       setShowForm(false);
       setEditingDepartment(null);
       setFormData({ name: '', description: '', color: '#3b82f6', isActive: true });
@@ -79,7 +79,7 @@ export default function DepartmentsPage() {
       return;
     }
     try {
-      await new DepartmentCatalogUseCase().delete(id);
+      await clientUseCases.departments().delete(id);
       loadDepartments();
     } catch (error) {
       console.error('Erro ao excluir setor:', error);

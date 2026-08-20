@@ -27,6 +27,9 @@ export function catalogPersistErrorMessage(error: unknown, tableHint: string): s
     return 'Falta a coluna keywords no banco. Rode 017_flow_editor_session.sql no SQL Editor do Supabase.';
   }
   if (code === 'PGRST204' && tableHint === 'quick_replies') {
+    if (errorMessage(error).includes('department_id')) {
+      return 'Falta a coluna department_id no banco. Rode 023_quick_reply_department.sql no SQL Editor do Supabase.';
+    }
     return 'Falta a coluna media_kind no banco. Rode 022_quick_reply_audio.sql no SQL Editor do Supabase.';
   }
   if (code === 'PGRST204' && tableHint === 'scheduled_messages') {

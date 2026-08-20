@@ -1,11 +1,10 @@
 import { canChangeOperatorRole, isAdmin } from '../entities/operatorRole';
 import { User } from '../entities/User';
 import { IAuthRepository } from '../repositories/IAuthRepository';
-import { serviceLocator } from '../../infra/adapters/ServiceLocator';
 import { CreateOperatorError } from './CreateOperatorUseCase';
 
 export class SetOperatorRoleUseCase {
-  constructor(private auth: IAuthRepository = serviceLocator.getAuthRepository()) {}
+  constructor(private auth: IAuthRepository) {}
 
   async execute(actor: User, targetId: string, role: 'admin' | 'user'): Promise<void> {
     if (!isAdmin(actor)) {

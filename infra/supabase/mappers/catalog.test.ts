@@ -38,6 +38,20 @@ describe('quickReplyToRow', () => {
       }).mediaKind
     ).toBe('audio');
   });
+
+  it('manda e lê department_id', () => {
+    expect(quickReplyToRow({ ...reply, departmentId: '1' }).department_id).toBe('1');
+    expect(quickReplyToRow(reply).department_id).toBeNull();
+    expect(
+      quickReplyFromRow({
+        id: 'qr-1',
+        title: 'Saudação',
+        body: 'Olá',
+        department_id: '1',
+        created_at: '2026-08-20T12:00:00Z',
+      }).departmentId
+    ).toBe('1');
+  });
 });
 
 describe('scheduleToRow', () => {

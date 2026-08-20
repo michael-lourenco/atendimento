@@ -1,11 +1,11 @@
 'use client';
 
+import { clientUseCases } from '@/infra/adapters/clientUseCases';
 import { FormEvent, useEffect, useState } from 'react';
 import { CalendarClock } from 'lucide-react';
 import { Conversation } from '@/core/entities/Conversation';
 import { ScheduledMessage } from '@/core/entities/ScheduledMessage';
 import { schedulesForConversation } from '@/core/entities/schedulesForConversation';
-import { ScheduledMessageCatalogUseCase } from '@/core/usecases/ScheduledMessageCatalogUseCase';
 import { Badge } from '@/ui/components/badge';
 import { Button } from '@/ui/components/button';
 import { Input } from '@/ui/components/input';
@@ -19,7 +19,7 @@ import { defaultScheduleDatetimeValue } from '@/ui/lib/datetime-local';
 import { dispatchDueSchedules } from '@/ui/lib/use-dispatch-due-schedules';
 import { useCatalogSavedFlash } from '@/ui/lib/use-catalog-saved-flash';
 
-const catalog = () => new ScheduledMessageCatalogUseCase();
+const catalog = clientUseCases.scheduledMessages;
 
 type ConversationSchedulePanelProps = {
   conversation: Conversation;

@@ -12,6 +12,8 @@ import { insertEmojiAtCursor } from '@/ui/lib/emoji';
 import { MAX_OUTGOING_MEDIA_BYTES } from '@/core/services/IMediaStorage';
 import { PTT_MAX_MS } from '@/ui/lib/ptt-file';
 import { usePttRecorder } from '@/ui/lib/use-ptt-recorder';
+import { ComposerPresence, postComposerPresence } from '@/ui/lib/composer-presence';
+import { isQuickReplyPickerOpenKey } from '@/ui/lib/quick-reply-picker-keys';
 
 type MessageComposerProps = {
   disabled?: boolean;
@@ -21,10 +23,9 @@ type MessageComposerProps = {
   onCancelReply?: () => void;
   presenceTo?: string;
   conversationId?: string;
+  conversationDepartmentId?: string;
   onSend: (input: { text: string; file: File | null; quotedMessageId?: string }) => Promise<void>;
 };
-
-type ComposerPresence = 'composing' | 'recording' | 'paused';
 
 export function MessageComposer({
   disabled,
@@ -34,14 +35,17 @@ export function MessageComposer({
   onCancelReply,
   presenceTo,
   conversationId,
+  conversationDepartmentId,
   onSend,
 }: MessageComposerProps) {
   const [draft, setDraft] = useState('');
   const [file, setFile] = useState<File | null>(null);
   const [sizeError, setSizeError] = useState<string | null>(null);
+  const [quickOpen, setQuickOpen] = useState(false);
+  const [pttCancelArmed, setPttCancelArmed] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const textRef = useRef<HTMLTextAreaElement>(null);
-  const lastPresence = useRef<string>('');
+  const lastPresence = useRef('');
   const finishingPtt = useRef(false);
   const ptt = usePttRecorder();
   const busy = sending || disabled;
@@ -49,18 +53,11 @@ export function MessageComposer({
   const showMic = ptt.supported && !draft.trim() && !file && !busy;
 
   const sendPresence = (presence: ComposerPresence) => {
-    if (!presenceTo || (busy && presence !== 'paused')) {
-      return;
-    }
-    if (lastPresence.current === presence) {
+    if (!presenceTo || (busy && presence !== 'paused') || lastPresence.current === presence) {
       return;
     }
     lastPresence.current = presence;
-    void fetch('/api/messages/presence', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ to: presenceTo, presence, conversationId }),
-    });
+    postComposerPresence(presenceTo, conversationId, presence);
   };
 
   useEffect(() => {
@@ -77,14 +74,8 @@ export function MessageComposer({
 
   useEffect(
     () => () => {
-      if (presenceTo) {
-        lastPresence.current = '';
-        void fetch('/api/messages/presence', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ to: presenceTo, presence: 'paused', conversationId }),
-        });
-      }
+      lastPresence.current = '';
+      postComposerPresence(presenceTo, conversationId, 'paused');
       ptt.cancel();
     },
     [presenceTo, conversationId]
@@ -95,16 +86,6 @@ export function MessageComposer({
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
-  };
-
-  const onFileChange = (event: ChangeEvent<HTMLInputElement>) => {
-    const selected = event.target.files?.[0] ?? null;
-    if (selected && selected.size > MAX_OUTGOING_MEDIA_BYTES) {
-      setSizeError('Arquivo maior que 16 MB');
-      return;
-    }
-    setSizeError(null);
-    setFile(selected);
   };
 
   const insertText = (piece: string) => {
@@ -140,6 +121,7 @@ export function MessageComposer({
       return;
     }
     finishingPtt.current = true;
+    setPttCancelArmed(false);
     sendPresence('paused');
     try {
       const audio = sendIt ? await ptt.stop() : (ptt.cancel(), null);
@@ -177,12 +159,17 @@ export function MessageComposer({
     }
   }, [ptt.recording, ptt.elapsedMs]);
 
-  const onSubmit = (event: FormEvent) => {
-    event.preventDefault();
-    void submit();
-  };
-
   const onKeyDown = (event: KeyboardEvent<HTMLTextAreaElement>) => {
+    if (isQuickReplyPickerOpenKey(event, draft)) {
+      event.preventDefault();
+      setQuickOpen(true);
+      return;
+    }
+    if (event.key === 'Escape' && quickOpen) {
+      event.preventDefault();
+      setQuickOpen(false);
+      return;
+    }
     if (event.key === 'Enter' && !event.shiftKey) {
       event.preventDefault();
       void submit();
@@ -198,9 +185,18 @@ export function MessageComposer({
   };
 
   const seconds = Math.max(1, Math.ceil(ptt.elapsedMs / 1000));
+  const pttHint = pttCancelArmed
+    ? 'Solte para cancelar'
+    : `Gravando… ${seconds}s · solte para enviar · deslize para cima para cancelar`;
 
   return (
-    <form onSubmit={onSubmit} className="bg-muted">
+    <form
+      onSubmit={(event: FormEvent) => {
+        event.preventDefault();
+        void submit();
+      }}
+      className="bg-muted"
+    >
       {replyTo ? (
         <div className="flex items-start justify-between gap-2 border-b border-border px-3 py-2">
           <div className="min-w-0 border-l-2 border-primary pl-2">
@@ -229,16 +225,27 @@ export function MessageComposer({
           type="file"
           className="hidden"
           accept="image/*,audio/*,video/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.zip"
-          onChange={onFileChange}
+          onChange={(event: ChangeEvent<HTMLInputElement>) => {
+            const selected = event.target.files?.[0] ?? null;
+            if (selected && selected.size > MAX_OUTGOING_MEDIA_BYTES) {
+              setSizeError('Arquivo maior que 16 MB');
+              return;
+            }
+            setSizeError(null);
+            setFile(selected);
+          }}
           disabled={busy || ptt.recording}
         />
         <EmojiPicker compact disabled={busy || ptt.recording} onPick={insertText} />
         <QuickReplyPicker
           compact
+          open={quickOpen}
+          onOpenChange={setQuickOpen}
+          conversationDepartmentId={conversationDepartmentId}
           disabled={busy || ptt.recording}
-          onPick={async ({ text, file }) => {
-            if (file) {
-              await onSend({ text, file, quotedMessageId: replyTo?.id });
+          onPick={async ({ text, file: audio }) => {
+            if (audio) {
+              await onSend({ text, file: audio, quotedMessageId: replyTo?.id });
               return;
             }
             insertText(text);
@@ -254,9 +261,7 @@ export function MessageComposer({
           <Paperclip className="h-5 w-5" />
         </button>
         {ptt.recording ? (
-          <p className="min-h-10 flex-1 px-4 py-2.5 text-sm text-destructive">
-            Gravando… {seconds}s · solte para enviar
-          </p>
+          <p className="min-h-10 flex-1 px-4 py-2.5 text-sm text-destructive">{pttHint}</p>
         ) : (
           <Textarea
             ref={textRef}
@@ -264,7 +269,7 @@ export function MessageComposer({
             onChange={(event) => setDraft(event.target.value)}
             onKeyDown={onKeyDown}
             placeholder="Mensagem"
-            title="Enter envia. Shift+Enter quebra a linha."
+            title="Enter envia. Shift+Enter quebra a linha. / abre respostas rápidas."
             rows={1}
             disabled={busy}
             className="min-h-10 max-h-24 flex-1 resize-none rounded-3xl border-0 bg-card px-4 py-2.5 shadow-sm focus-visible:ring-1"
@@ -277,6 +282,7 @@ export function MessageComposer({
             onHoldStart={() => void startPtt()}
             onHoldEnd={() => void finishPtt(true)}
             onHoldCancel={() => void finishPtt(false)}
+            onSlideCancelChange={setPttCancelArmed}
           />
         ) : (
           <button

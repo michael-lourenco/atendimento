@@ -1,10 +1,10 @@
 'use client';
 
+import { clientUseCases } from '@/infra/adapters/clientUseCases';
 import { useEffect, useRef, useState } from 'react';
 import { Message } from '@/core/entities/Message';
 import { WhatsAppNumber } from '@/core/entities/WhatsAppNumber';
 import { InboxSearchCorpus } from '@/core/entities/inboxFilterHint';
-import { GetAllMessagesUseCase } from '@/core/usecases/GetAllMessagesUseCase';
 
 export function useInboxMessageSearch(filter: string, numbers: WhatsAppNumber[]) {
   const [searchMessages, setSearchMessages] = useState<Message[]>([]);
@@ -16,7 +16,7 @@ export function useInboxMessageSearch(filter: string, numbers: WhatsAppNumber[])
       return;
     }
     try {
-      setSearchMessages(await new GetAllMessagesUseCase().execute());
+      setSearchMessages(await clientUseCases.allMessages().execute());
     } catch {
       // busca por texto fica na prévia lastMessage
     }
@@ -28,7 +28,7 @@ export function useInboxMessageSearch(filter: string, numbers: WhatsAppNumber[])
       return;
     }
     let cancelled = false;
-    void new GetAllMessagesUseCase()
+    void clientUseCases.allMessages()
       .execute()
       .then((list) => {
         if (!cancelled) {

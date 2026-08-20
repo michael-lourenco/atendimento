@@ -97,7 +97,10 @@ const peer: Agent = {
 
 describe('AgentCatalogUseCase', () => {
   it('recusa outro id com o mesmo e-mail', async () => {
-    const catalog = new AgentCatalogUseCase(new MemoryAgents([michael]));
+    const catalog = new AgentCatalogUseCase(
+      new MemoryAgents([michael]),
+      new FakeAuth(admin, [admin])
+    );
     await expect(
       catalog.save({
         ...michael,
@@ -110,7 +113,10 @@ describe('AgentCatalogUseCase', () => {
   });
 
   it('permite atualizar o próprio cadastro', async () => {
-    const catalog = new AgentCatalogUseCase(new MemoryAgents([michael]));
+    const catalog = new AgentCatalogUseCase(
+      new MemoryAgents([michael]),
+      new FakeAuth(admin, [admin])
+    );
     await catalog.save({ ...michael, name: 'Michael Lourenço' });
     expect((await catalog.list())[0].name).toBe('Michael Lourenço');
   });

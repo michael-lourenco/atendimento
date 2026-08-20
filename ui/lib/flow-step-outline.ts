@@ -1,24 +1,10 @@
 import { FlowStep } from '@/core/entities/Flow';
+import { visibleFlowSteps } from '@/core/engine/visibleFlowSteps';
 import { conditionsOwnedByQuestion, trueStepIdForOption } from './flow-option-paths';
 import { removeFlowStep } from './flow-step-graph';
 import { END_STEP_LABEL, stepDisplayName } from './flow-step-copy';
 
-export function ownedConditionIds(steps: FlowStep[]): Set<string> {
-  const ids = new Set<string>();
-  for (const step of steps) {
-    for (const condition of conditionsOwnedByQuestion(steps, step)) {
-      ids.add(condition.id);
-    }
-  }
-  return ids;
-}
-
-export function visibleFlowSteps(steps: FlowStep[]): { step: FlowStep; index: number }[] {
-  const owned = ownedConditionIds(steps);
-  return steps
-    .map((step, index) => ({ step, index }))
-    .filter(({ step }) => !owned.has(step.id));
-}
+export { ownedConditionIds, visibleFlowSteps } from '@/core/engine/visibleFlowSteps';
 
 export function optionBranchLabel(
   steps: FlowStep[],

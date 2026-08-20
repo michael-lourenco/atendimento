@@ -1,5 +1,6 @@
 'use client';
 
+import { clientUseCases } from '@/infra/adapters/clientUseCases';
 import { useState } from 'react';
 import { MoreVertical } from 'lucide-react';
 import { Agent } from '@/core/entities/Agent';
@@ -11,9 +12,6 @@ import {
   agentsAvailableForTransfer,
   departmentNameOf,
 } from '@/core/entities/conversationDepartment';
-import { AssignConversationUseCase } from '@/core/usecases/AssignConversationUseCase';
-import { CloseConversationUseCase } from '@/core/usecases/CloseConversationUseCase';
-import { PauseContactFlowUseCase } from '@/core/usecases/PauseContactFlowUseCase';
 import { TransferAgentControl } from '@/ui/components/transfer-agent-control';
 import { ConversationDepartmentControl } from '@/ui/components/conversation-department-control';
 import { ActionMenu, ActionMenuItem, ActionMenuLabel } from '@/ui/components/action-menu';
@@ -50,14 +48,14 @@ export function ConversationActions({
     if (!operator || !assignment || !threadId) {
       return;
     }
-    await new AssignConversationUseCase().execute({
+    await clientUseCases.assignConversation().execute({
       conversationId: threadId,
       agentId: assignment.agentId,
       agentName: assignment.agentName,
       departmentId: assignment.departmentId,
       departmentName: departmentNameOf(departments, assignment.departmentId) || undefined,
     });
-    await new PauseContactFlowUseCase().execute(threadId);
+    await clientUseCases.pauseContactFlow().execute(threadId);
     onChanged();
   };
 
@@ -65,7 +63,7 @@ export function ConversationActions({
     if (!threadId) {
       return;
     }
-    await new CloseConversationUseCase().execute(threadId);
+    await clientUseCases.closeConversation().execute(threadId);
     setConfirmClose(false);
     onChanged();
   };

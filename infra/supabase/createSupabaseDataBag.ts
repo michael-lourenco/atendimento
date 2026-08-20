@@ -250,7 +250,10 @@ function createQuickReplyRepository(client: SupabaseClient): IQuickReplyReposito
     getAll: () => crud.getAll(),
     getById: (id: string) => crud.getById(id),
     save: (reply: QuickReply) =>
-      upsertOmittingMissingColumns(client, 'quick_replies', quickReplyToRow(reply), ['media_kind']),
+      upsertOmittingMissingColumns(client, 'quick_replies', quickReplyToRow(reply), [
+        'media_kind',
+        'department_id',
+      ]),
     delete: (id: string) => crud.delete(id),
   };
 }

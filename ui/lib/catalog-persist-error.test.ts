@@ -42,6 +42,15 @@ describe('catalogPersistErrorMessage', () => {
     ).toContain('022_quick_reply_audio');
   });
 
+  it('explica department_id ausente nas respostas rápidas', () => {
+    expect(
+      catalogPersistErrorMessage(
+        { code: 'PGRST204', message: "Could not find the 'department_id' column" },
+        'quick_replies'
+      )
+    ).toContain('023_quick_reply_department');
+  });
+
   it('usa a mensagem do objeto PostgREST', () => {
     expect(catalogPersistErrorMessage({ message: 'payload too large' }, 'flows')).toBe(
       'payload too large'

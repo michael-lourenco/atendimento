@@ -3,10 +3,9 @@ import { agentFromUser } from '../entities/agentFromUser';
 import { findAgentByEmail } from '../entities/uniqueAgentEmail';
 import { User } from '../entities/User';
 import { IAgentRepository } from '../repositories/IAgentRepository';
-import { serviceLocator } from '../../infra/adapters/ServiceLocator';
 
 export class EnsureOperatorAgentUseCase {
-  constructor(private agents: IAgentRepository = serviceLocator.getAgentRepository()) {}
+  constructor(private agents: IAgentRepository) {}
 
   async execute(user: User): Promise<Agent> {
     const byId = await this.agents.getById(user.id);

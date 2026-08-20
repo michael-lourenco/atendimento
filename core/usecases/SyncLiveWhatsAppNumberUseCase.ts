@@ -5,11 +5,10 @@ import {
   liveWhatsAppNumberNeedsSave,
 } from '../entities/whatsappNumberLive';
 import { IWhatsAppNumberRepository } from '../repositories/IWhatsAppNumberRepository';
-import { serviceLocator } from '../../infra/adapters/ServiceLocator';
 
 export class SyncLiveWhatsAppNumberUseCase {
   constructor(
-    private numbers: IWhatsAppNumberRepository = serviceLocator.getWhatsAppNumberRepository()
+    private numbers: IWhatsAppNumberRepository
   ) {}
 
   async execute(live: LiveWhatsAppInfo): Promise<WhatsAppNumber | null> {

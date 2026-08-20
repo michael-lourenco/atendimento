@@ -3,7 +3,6 @@ import { findAgentByEmail, normalizeAgentEmail } from '../entities/uniqueAgentEm
 import { User } from '../entities/User';
 import { IAgentRepository } from '../repositories/IAgentRepository';
 import { CreateOperatorInput, IAuthRepository } from '../repositories/IAuthRepository';
-import { serviceLocator } from '../../infra/adapters/ServiceLocator';
 import { EnsureOperatorAgentUseCase } from './EnsureOperatorAgentUseCase';
 
 export class CreateOperatorError extends Error {
@@ -19,9 +18,9 @@ export type CreateOperatorRequest = CreateOperatorInput;
 
 export class CreateOperatorUseCase {
   constructor(
-    private auth: IAuthRepository = serviceLocator.getAuthRepository(),
-    private agents: IAgentRepository = serviceLocator.getAgentRepository(),
-    private ensure: EnsureOperatorAgentUseCase = new EnsureOperatorAgentUseCase()
+    private auth: IAuthRepository,
+    private agents: IAgentRepository,
+    private ensure: EnsureOperatorAgentUseCase
   ) {}
 
   async execute(actor: User, input: CreateOperatorRequest): Promise<User> {

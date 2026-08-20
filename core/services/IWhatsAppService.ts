@@ -145,6 +145,15 @@ export interface IWhatsAppService {
 
   markMessagesRead?(params: MarkMessagesReadParams): Promise<void>;
 
+  downloadMedia?(input: {
+    messageId: string;
+    webhookItem?: Record<string, unknown>;
+    convertToMp4?: boolean;
+    remoteJid?: string;
+    fromMe?: boolean;
+    instanceName?: string;
+  }): Promise<StoredMedia | null>;
+
   fetchProfilePicture(phone: string, instanceName?: string): Promise<StoredMedia | null>;
 
   /**

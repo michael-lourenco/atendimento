@@ -46,7 +46,7 @@ Atender muitos contatos no WhatsApp com triagem, automação e histórico, sem d
 
 ## Estado atual
 
-Fases 1–5 feitas. Inbox: citação, digitando, PTT, visto no WhatsApp ao abrir a thread, busca por texto nas conversas, áudio nas respostas rápidas, SLA nos relatórios, aviso de schema para admin.
+Fases 1–5 feitas. Inbox: citação, digitando, PTT (deslizar cancela), visto no WhatsApp ao abrir a thread, busca por texto nas conversas, respostas rápidas (áudio, busca no picker, atalho, setor opcional), SLA nos relatórios, aviso de schema para admin.
 
 **Fase 5 (produção):** validação Zod na borda HTTP, `x-request-id`, logs sanitizados, dica de login só com URL + anon. Uma empresa = uma stack (`08-supabase.md`).
 

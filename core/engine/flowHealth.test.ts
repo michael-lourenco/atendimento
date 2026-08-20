@@ -1,5 +1,5 @@
-import { FlowStep } from '@/core/entities/Flow';
-import { flowHealthIssues } from './flow-health';
+import { FlowStep } from '../entities/Flow';
+import { flowHealthIssues } from './flowHealth';
 
 const message = (id: string, content = 'oi'): FlowStep => ({
   id,

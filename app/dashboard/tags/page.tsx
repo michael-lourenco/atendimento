@@ -1,8 +1,8 @@
 'use client';
 
+import { clientUseCases } from '@/infra/adapters/clientUseCases';
 import { useEffect, useState } from 'react';
 import { Tag } from '@/core/entities/Tag';
-import { TagCatalogUseCase } from '@/core/usecases/TagCatalogUseCase';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/ui/components/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/ui/components/table';
 import { Button } from '@/ui/components/button';
@@ -15,7 +15,7 @@ import { CatalogListSkeleton } from '@/ui/components/catalog-list-skeleton';
 import { CatalogSavedNotice } from '@/ui/components/catalog-saved-notice';
 import { useCatalogSavedFlash } from '@/ui/lib/use-catalog-saved-flash';
 
-const catalog = () => new TagCatalogUseCase();
+const catalog = clientUseCases.tags;
 
 export default function TagsPage() {
   const [tags, setTags] = useState<Tag[]>([]);

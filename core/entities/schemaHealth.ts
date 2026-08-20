@@ -31,6 +31,7 @@ export const EXPECTED_SCHEMA_COLUMNS: SchemaHealthIssue[] = [
   { table: 'messages', column: 'quoted_from', sqlType: 'text' },
   { table: 'conversations', column: 'contact_typing_at', sqlType: 'timestamptz' },
   { table: 'quick_replies', column: 'media_kind', sqlType: 'text' },
+  { table: 'quick_replies', column: 'department_id', sqlType: 'text' },
 ];
 
 export function schemaHealthSql(issues: SchemaHealthIssue[]): string {

@@ -1,8 +1,8 @@
 'use client';
 
+import { clientUseCases } from '@/infra/adapters/clientUseCases';
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { GetCurrentUserUseCase } from '@/core/usecases/GetCurrentUserUseCase';
 import { LoginDeniedError, loginDeniedHref } from '@/core/entities/loginDenied';
 
 export default function Home() {
@@ -11,7 +11,7 @@ export default function Home() {
   useEffect(() => {
     const checkAuth = async () => {
       try {
-        const user = await new GetCurrentUserUseCase().execute();
+        const user = await clientUseCases.currentUser().execute();
         if (user) {
           router.push('/dashboard/conversations');
         } else {

@@ -1,8 +1,11 @@
 import { NextRequest } from 'next/server';
+import { LoginDeniedError } from '@/core/entities/loginDenied';
+import { LoginUseCase } from '@/core/usecases/LoginUseCase';
 import { apiJson } from '@/infra/http/apiJson';
+import { operatorUseCaseResponse } from '@/infra/http/operatorUseCaseResponse';
 import { HttpBodyError, parseJsonBody } from '@/infra/http/parseJson';
 import { loginBodySchema } from '@/infra/http/schemas';
-import { createCookieSupabase } from '@/infra/supabase/cookieClient';
+import { serverLocator } from '@/infra/adapters/serverLocator';
 import { isPublicSupabaseConfigured } from '@/infra/supabase/env';
 
 export async function POST(request: NextRequest) {
@@ -12,40 +15,19 @@ export async function POST(request: NextRequest) {
 
   try {
     const { email, password } = await parseJsonBody(request, loginBodySchema);
-    const supabase = await createCookieSupabase();
-    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error || !data.user) {
+    const repos = serverLocator.getRepos();
+    const user = await new LoginUseCase(repos.auth, repos.agent).execute(email, password);
+    if (!user) {
       return apiJson(request, { error: 'Credenciais inválidas' }, { status: 401 });
     }
-
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('id', data.user.id)
-      .maybeSingle();
-
-    const { data: agent } = await supabase
-      .from('agents')
-      .select('status')
-      .eq('id', data.user.id)
-      .maybeSingle();
-
-    if (agent?.status === 'offline') {
-      await supabase.auth.signOut();
-      return apiJson(request, { error: 'Este atendente está desativado' }, { status: 403 });
-    }
-
-    return apiJson(request, {
-      id: data.user.id,
-      email: profile?.email ?? data.user.email,
-      name: profile?.name ?? '',
-      role: profile?.role === 'admin' ? 'admin' : 'user',
-      createdAt: profile?.created_at ?? new Date().toISOString(),
-    });
+    return apiJson(request, user);
   } catch (error) {
     if (error instanceof HttpBodyError) {
       return apiJson(request, { error: error.message }, { status: 400 });
     }
-    return apiJson(request, { error: 'Erro ao entrar' }, { status: 500 });
+    if (error instanceof LoginDeniedError) {
+      return apiJson(request, { error: error.message }, { status: 403 });
+    }
+    return operatorUseCaseResponse(request, error, 'Erro ao entrar');
   }
 }

@@ -6,6 +6,10 @@ async function parseUser(response: Response): Promise<AuthUser | User | null> {
   if (response.status === 401) {
     return null;
   }
+  if (response.status === 403) {
+    const body = (await response.json().catch(() => ({}))) as { error?: string };
+    throw new LoginDeniedError(body.error || 'Este atendente está desativado');
+  }
   if (!response.ok) {
     return null;
   }

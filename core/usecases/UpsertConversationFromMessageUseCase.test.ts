@@ -30,6 +30,28 @@ class MemoryConversations implements IConversationRepository {
   }
 }
 
+const emptyContacts = {
+  async getAll() {
+    return [];
+  },
+  async getById() {
+    return null;
+  },
+  async save() {},
+  async delete() {},
+};
+
+const emptyNumbers = {
+  async getAll() {
+    return [];
+  },
+  async getById() {
+    return null;
+  },
+  async save() {},
+  async delete() {},
+};
+
 const incoming: Message = {
   id: 'm1',
   from: '5511999999999',
@@ -44,7 +66,11 @@ const incoming: Message = {
 describe('UpsertConversationFromMessageUseCase', () => {
   it('cria conversa open na primeira incoming', async () => {
     const repo = new MemoryConversations();
-    const conversation = await new UpsertConversationFromMessageUseCase(repo).execute(incoming);
+    const conversation = await new UpsertConversationFromMessageUseCase(
+      repo,
+      emptyContacts,
+      emptyNumbers
+    ).execute(incoming);
     expect(conversation?.id).toBe('5511999999999');
     expect(conversation?.status).toBe('open');
     expect(conversation?.unreadCount).toBe(1);
@@ -53,7 +79,7 @@ describe('UpsertConversationFromMessageUseCase', () => {
 
   it('reabre conversa fechada e incrementa não lidas', async () => {
     const repo = new MemoryConversations();
-    const useCase = new UpsertConversationFromMessageUseCase(repo);
+    const useCase = new UpsertConversationFromMessageUseCase(repo, emptyContacts, emptyNumbers);
     await useCase.execute(incoming);
     await repo.save({ ...repo.items[0], status: 'closed', unreadCount: 0 });
     const again = await useCase.execute({ ...incoming, id: 'm2' });
@@ -63,7 +89,7 @@ describe('UpsertConversationFromMessageUseCase', () => {
 
   it('ensureFromMessages cria só o que falta, sem inflar não lidas', async () => {
     const repo = new MemoryConversations();
-    const useCase = new UpsertConversationFromMessageUseCase(repo);
+    const useCase = new UpsertConversationFromMessageUseCase(repo, emptyContacts, emptyNumbers);
     await useCase.ensureFromMessages([
       incoming,
       { ...incoming, id: 'm2', content: 'de novo' },
@@ -76,7 +102,11 @@ describe('UpsertConversationFromMessageUseCase', () => {
 
   it('usa o nome do WhatsApp na conversa', async () => {
     const repo = new MemoryConversations();
-    const conversation = await new UpsertConversationFromMessageUseCase(repo).execute({
+    const conversation = await new UpsertConversationFromMessageUseCase(
+      repo,
+      emptyContacts,
+      emptyNumbers
+    ).execute({
       ...incoming,
       contactName: 'Ana Lima',
     });

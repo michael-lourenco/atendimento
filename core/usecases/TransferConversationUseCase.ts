@@ -1,6 +1,5 @@
 import { Conversation } from '../entities/Conversation';
 import { IConversationRepository } from '../repositories/IConversationRepository';
-import { serviceLocator } from '../../infra/adapters/ServiceLocator';
 
 export interface TransferConversationInput {
   conversationId: string;
@@ -12,7 +11,7 @@ export interface TransferConversationInput {
 
 export class TransferConversationUseCase {
   constructor(
-    private conversations: IConversationRepository = serviceLocator.getConversationRepository()
+    private conversations: IConversationRepository
   ) {}
 
   async execute(input: TransferConversationInput): Promise<Conversation | null> {

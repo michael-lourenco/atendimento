@@ -1,18 +1,15 @@
 import { Contact } from '../entities/Contact';
 import { IContactRepository } from '../repositories/IContactRepository';
 import { IMessageRepository } from '../repositories/IMessageRepository';
-import { serviceLocator } from '../../infra/adapters/ServiceLocator';
 import { CatalogUseCase } from './CatalogUseCase';
 import { UpsertContactFromIncomingUseCase } from './UpsertContactFromIncomingUseCase';
 import { contactPhoneFromMessage } from './UpsertConversationFromMessageUseCase';
 
 export class ContactCatalogUseCase extends CatalogUseCase<Contact> {
   constructor(
-    repo: IContactRepository = serviceLocator.getContactRepository(),
-    private messages: IMessageRepository = serviceLocator.getMessageRepository(),
-    private upsertContact: UpsertContactFromIncomingUseCase = new UpsertContactFromIncomingUseCase(
-      repo
-    )
+    repo: IContactRepository,
+    private messages: IMessageRepository,
+    private upsertContact: UpsertContactFromIncomingUseCase
   ) {
     super(repo);
   }

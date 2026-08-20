@@ -4,17 +4,19 @@ import { IConversationRepository } from '../repositories/IConversationRepository
 import { IMessageRepository } from '../repositories/IMessageRepository';
 import { IWhatsAppNumberRepository } from '../repositories/IWhatsAppNumberRepository';
 import { IWhatsAppService } from '../services/IWhatsAppService';
-import { serviceLocator } from '../../infra/adapters/ServiceLocator';
 import { UpdateMessageStatusUseCase } from './UpdateMessageStatusUseCase';
 
 export class MarkWhatsAppMessagesReadUseCase {
+  private updateStatus: UpdateMessageStatusUseCase;
+
   constructor(
-    private whatsApp: IWhatsAppService = serviceLocator.getWhatsAppService(),
-    private conversations: IConversationRepository = serviceLocator.getConversationRepository(),
-    private messages: IMessageRepository = serviceLocator.getMessageRepository(),
-    private numbers: IWhatsAppNumberRepository = serviceLocator.getWhatsAppNumberRepository(),
-    private updateStatus: UpdateMessageStatusUseCase = new UpdateMessageStatusUseCase(messages)
-  ) {}
+    private whatsApp: IWhatsAppService,
+    private conversations: IConversationRepository,
+    private messages: IMessageRepository,
+    private numbers: IWhatsAppNumberRepository
+  ) {
+    this.updateStatus = new UpdateMessageStatusUseCase(messages, conversations);
+  }
 
   async execute(conversationId: string): Promise<{ marked: number } | null> {
     const id = conversationId.trim();

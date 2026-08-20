@@ -1,9 +1,8 @@
 import { IFlowSessionRepository } from '../repositories/IFlowSessionRepository';
-import { serviceLocator } from '../../infra/adapters/ServiceLocator';
 
 export class ResumeContactFlowUseCase {
   constructor(
-    private sessions: IFlowSessionRepository = serviceLocator.getFlowSessionRepository()
+    private sessions: IFlowSessionRepository
   ) {}
 
   async execute(contactId: string): Promise<void> {

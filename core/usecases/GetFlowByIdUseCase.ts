@@ -1,10 +1,10 @@
-import { serviceLocator } from '../../infra/adapters/ServiceLocator';
 import { Flow } from '../entities/Flow';
+import { IFlowRepository } from '../repositories/IFlowRepository';
 
 export class GetFlowByIdUseCase {
-  async execute(id: string): Promise<Flow | null> {
-    const repository = serviceLocator.getFlowRepository();
-    return repository.getById(id);
+  constructor(private repository: IFlowRepository) {}
+
+  execute(id: string): Promise<Flow | null> {
+    return this.repository.getById(id);
   }
 }
-

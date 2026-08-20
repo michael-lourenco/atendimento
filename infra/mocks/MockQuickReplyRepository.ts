@@ -1,5 +1,6 @@
 import { QuickReply } from '../../core/entities/QuickReply';
 import { IQuickReplyRepository } from '../../core/repositories/IQuickReplyRepository';
+import { INTAKE_DEPARTMENT_COMERCIAL } from '../../core/entities/atendimentoInicialFlow';
 import { createInMemoryCrud } from './inMemoryCrud';
 
 const seed: QuickReply[] = [
@@ -19,6 +20,7 @@ const seed: QuickReply[] = [
     id: 'qr-encerrar',
     title: 'Encerrar',
     body: 'Foi um prazer atender. Qualquer coisa, é só chamar.',
+    departmentId: INTAKE_DEPARTMENT_COMERCIAL,
     createdAt: new Date('2026-01-01'),
   },
 ];

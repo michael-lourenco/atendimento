@@ -2,14 +2,13 @@ import { Conversation } from '../entities/Conversation';
 import { IConversationRepository } from '../repositories/IConversationRepository';
 import { IMessageRepository } from '../repositories/IMessageRepository';
 import { IWhatsAppNumberRepository } from '../repositories/IWhatsAppNumberRepository';
-import { serviceLocator } from '../../infra/adapters/ServiceLocator';
 import { attachMissingLastMessages } from '../entities/lastMessageForConversation';
 
 export class GetAllConversationsUseCase {
   constructor(
-    private conversations: IConversationRepository = serviceLocator.getConversationRepository(),
-    private messages: IMessageRepository = serviceLocator.getMessageRepository(),
-    private numbers: IWhatsAppNumberRepository = serviceLocator.getWhatsAppNumberRepository()
+    private conversations: IConversationRepository,
+    private messages: IMessageRepository,
+    private numbers: IWhatsAppNumberRepository
   ) {}
 
   async execute(persistPreview = false): Promise<Conversation[]> {

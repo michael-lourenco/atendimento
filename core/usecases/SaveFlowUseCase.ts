@@ -1,10 +1,10 @@
-import { serviceLocator } from '../../infra/adapters/ServiceLocator';
 import { Flow } from '../entities/Flow';
+import { IFlowRepository } from '../repositories/IFlowRepository';
 
 export class SaveFlowUseCase {
-  async execute(flow: Flow): Promise<void> {
-    const repository = serviceLocator.getFlowRepository();
-    return repository.save(flow);
+  constructor(private repository: IFlowRepository) {}
+
+  execute(flow: Flow): Promise<void> {
+    return this.repository.save(flow);
   }
 }
-

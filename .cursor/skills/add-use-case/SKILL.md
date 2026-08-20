@@ -20,13 +20,13 @@ Leia `specs/02-domain.md` e `specs/01-architecture.md`.
 
 ```ts
 export class SaveFlowUseCase {
-  constructor(private flows: IFlowRepository = serviceLocator.getFlowRepository()) {}
+  constructor(private flows: IFlowRepository) {}
   async execute(flow: Flow): Promise<void> {
     await this.flows.save(flow);
   }
 }
 ```
 
-Sem Axios, sem `fetch` a Graph API, sem import de `app/` ou `ui/`.
+Sem Axios, sem `fetch` a Graph API, sem import de `app/`, `ui/` ou `serviceLocator`. A borda (`clientUseCases` / `serverLocator`) injeta as portas.
 
 Arquivo único por use case. Se passar de ~150 linhas, extrair política para função/domínio puro.

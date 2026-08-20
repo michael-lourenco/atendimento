@@ -8,6 +8,7 @@
 - `sendReaction?(params)` opcional: `to`, `messageId`, `emoji` (vazio = remover), `fromMe`, `instanceName?`. Evolution (`/message/sendReaction/{instância}`) e Meta (Cloud API `type: reaction`). Twilio **não** implementa nesta versão.
 - `sendPresence?(params)` opcional: `to`, `presence` (`composing` \| `recording` \| `paused`), `delayMs?`, `instanceName?`. Evolution `POST /chat/sendPresence/{instância}`. Meta/Twilio **não** nesta versão. PTT no compositor usa `recording` enquanto o operador segura o microfone.
 - `markMessagesRead?(params)` opcional: `to`, `messageIds` (incoming da thread), `instanceName?`. Evolution `POST /chat/markMessageAsRead/{instância}` (`readMessages[]` com `remoteJid`, `fromMe: false`, `id`). Meta: `status: "read"` + `message_id` (um POST por id). Twilio **não** nesta versão. Sem o método, o use case só no-op no provedor.
+- `downloadMedia?(params)` opcional: bytes + MIME a partir do id da mensagem (Evolution `getBase64FromMediaMessage`). Meta/Twilio **não** nesta versão. A rota `GET /api/messages/{id}/media` usa o método da porta, sem `instanceof`.
 - `fetchProfilePicture(phone, instanceName?)` → bytes + MIME da foto de perfil, ou `null` (Meta/Twilio nesta versão; Evolution: `fetchProfilePictureUrl` + download). Falha **não** impede persistir a mensagem.
 - `verifyWebhook(mode, token, challenge)` → string do challenge ou `null`
 - `processWebhook(entry)` → `Message[]`

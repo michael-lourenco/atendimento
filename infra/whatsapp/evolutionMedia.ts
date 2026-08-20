@@ -1,4 +1,5 @@
 import { Message } from '../../core/entities/Message';
+import { mediaLookupFromMessage } from '../../core/entities/messageMediaLookup';
 import { IMediaStorage, isPlayableMediaType, messageMediaPath } from '../../core/services/IMediaStorage';
 import { listEvolutionWebhookItems } from './mapEvolutionIncoming';
 
@@ -89,16 +90,7 @@ export async function hydrateEvolutionMedia(params: {
   }
 }
 
-export function mediaLookupFromMessage(message: Message): {
-  remoteJid: string;
-  fromMe: boolean;
-} {
-  const phone = message.direction === 'incoming' ? message.from : message.to;
-  return {
-    remoteJid: phone.includes('@') ? phone : `${phone}@s.whatsapp.net`,
-    fromMe: message.direction === 'outgoing',
-  };
-}
+export { mediaLookupFromMessage };
 
 export async function resolvePlayableMedia(params: {
   message: Message;

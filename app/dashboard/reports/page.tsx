@@ -1,11 +1,9 @@
 'use client';
 
+import { clientUseCases } from '@/infra/adapters/clientUseCases';
 import { useEffect, useState } from 'react';
 import { DashboardMetrics, Report } from '@/core/entities/Report';
 import { reportToCsv } from '@/core/entities/reportCsv';
-import { GetDashboardMetricsUseCase } from '@/core/usecases/GetDashboardMetricsUseCase';
-import { ReportCatalogUseCase } from '@/core/usecases/ReportCatalogUseCase';
-import { GenerateReportUseCase } from '@/core/usecases/GenerateReportUseCase';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/ui/components/card';
 import { Button } from '@/ui/components/button';
 import { Download, Calendar } from 'lucide-react';
@@ -22,8 +20,8 @@ export default function ReportsPage() {
     }
     try {
       const [nextMetrics, nextReports] = await Promise.all([
-        new GetDashboardMetricsUseCase().execute(),
-        new ReportCatalogUseCase().list(),
+        clientUseCases.dashboardMetrics().execute(),
+        clientUseCases.reports().list(),
       ]);
       setMetrics(nextMetrics);
       setReports(nextReports);
@@ -37,7 +35,7 @@ export default function ReportsPage() {
   }, []);
 
   const handleGenerate = async () => {
-    await new GenerateReportUseCase().execute();
+    await clientUseCases.generateReport().execute();
     load();
   };
 

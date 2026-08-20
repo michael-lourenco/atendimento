@@ -60,6 +60,11 @@ Isolamento entre empresas = cópia da stack (`00-vision.md`, `08-supabase.md`).
 - Busca da inbox e do histórico pelo texto das mensagens
 - Áudio pré-gravado nas respostas rápidas
 - PTT no cadastro de respostas rápidas (mesmo gravador do chat)
+- Ícone de microfone no picker para respostas de áudio
+- Busca no picker de respostas rápidas; Enviando…/erro ao baixar áudio
+- Deslizar para cima cancela o PTT
+- Atalho `/` e `Ctrl`/`⌘`+`/` no compositor para respostas rápidas
+- Respostas rápidas opcionais por setor
 
 ## Não fazer
 

@@ -5,8 +5,7 @@ import { logApiError } from '@/infra/http/apiLog';
 import { requestIdFrom } from '@/infra/http/requestId';
 import { isPublicSupabaseConfigured } from '@/infra/supabase/env';
 import { getOperatorUser } from '@/infra/supabase/getOperatorUser';
-import { EvolutionWhatsAppService } from '@/infra/whatsapp/EvolutionWhatsAppService';
-import { resolvePlayableMedia } from '@/infra/whatsapp/evolutionMedia';
+import { GetMessageMediaUseCase } from '@/core/usecases/GetMessageMediaUseCase';
 
 export async function GET(
   request: NextRequest,
@@ -25,20 +24,11 @@ export async function GET(
       return apiJson(request, { error: 'id é obrigatório' }, { status: 400 });
     }
 
-    const message = await serverLocator.getRepos().message.getById(id);
-    if (!message) {
-      return apiJson(request, { error: 'Mensagem não encontrada' }, { status: 404 });
-    }
-
-    const whatsApp = serverLocator.getWhatsAppService();
-    const file = await resolvePlayableMedia({
-      message,
-      storage: serverLocator.getMediaStorage(),
-      download:
-        whatsApp instanceof EvolutionWhatsAppService
-          ? (input) => whatsApp.downloadMedia(input)
-          : undefined,
-    });
+    const file = await new GetMessageMediaUseCase(
+      serverLocator.getRepos().message,
+      serverLocator.getMediaStorage(),
+      serverLocator.getWhatsAppService()
+    ).execute(id);
 
     if (!file) {
       return apiJson(request, { error: 'Mídia indisponível' }, { status: 404 });

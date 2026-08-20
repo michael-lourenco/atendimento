@@ -1,9 +1,9 @@
 'use client';
 
+import { clientUseCases } from '@/infra/adapters/clientUseCases';
 import { useState } from 'react';
 import { Agent } from '@/core/entities/Agent';
 import { Department } from '@/core/entities/Department';
-import { TransferConversationUseCase } from '@/core/usecases/TransferConversationUseCase';
 import { departmentNameOf } from '@/core/entities/conversationDepartment';
 import { ActionMenu, ActionMenuItem } from '@/ui/components/action-menu';
 
@@ -37,7 +37,7 @@ export function TransferAgentControl({
     }
     setBusy(true);
     try {
-      await new TransferConversationUseCase().execute({
+      await clientUseCases.transferConversation().execute({
         conversationId,
         targetAgentId: agent.id,
         targetAgentName: agent.name,

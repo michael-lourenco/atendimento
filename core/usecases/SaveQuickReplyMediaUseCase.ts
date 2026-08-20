@@ -7,7 +7,6 @@ import {
   mediaKindFromMime,
   quickReplyMediaPath,
 } from '../services/IMediaStorage';
-import { serviceLocator } from '../../infra/adapters/ServiceLocator';
 
 export class InvalidQuickReplyMediaError extends Error {
   constructor(message: string) {
@@ -18,7 +17,7 @@ export class InvalidQuickReplyMediaError extends Error {
 
 export class SaveQuickReplyMediaUseCase {
   constructor(
-    private replies: IQuickReplyRepository = serviceLocator.getQuickReplyRepository(),
+    private replies: IQuickReplyRepository,
     private storage: IMediaStorage | null = null
   ) {}
 

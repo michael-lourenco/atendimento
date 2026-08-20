@@ -1,4 +1,3 @@
-import { serviceLocator } from '../../infra/adapters/ServiceLocator';
 import { User } from '../entities/User';
 import { IAgentRepository } from '../repositories/IAgentRepository';
 import { IAuthRepository } from '../repositories/IAuthRepository';
@@ -7,9 +6,9 @@ import { rejectOfflineAgent } from './rejectOfflineAgent';
 
 export class GetCurrentUserUseCase {
   constructor(
-    private repository: IAuthRepository = serviceLocator.getAuthRepository(),
-    private ensureAgent: EnsureOperatorAgentUseCase = new EnsureOperatorAgentUseCase(),
-    private agents: IAgentRepository = serviceLocator.getAgentRepository()
+    private repository: IAuthRepository,
+    private ensureAgent: EnsureOperatorAgentUseCase,
+    private agents: IAgentRepository
   ) {}
 
   async execute(): Promise<User | null> {

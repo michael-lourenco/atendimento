@@ -1,10 +1,9 @@
 'use client';
 
+import { clientUseCases } from '@/infra/adapters/clientUseCases';
 import { FormEvent, useEffect, useState } from 'react';
 import { InternalMessage } from '@/core/entities/InternalMessage';
 import { User } from '@/core/entities/User';
-import { GetInternalMessagesUseCase } from '@/core/usecases/GetInternalMessagesUseCase';
-import { SaveInternalMessageUseCase } from '@/core/usecases/SaveInternalMessageUseCase';
 import { Button } from '@/ui/components/button';
 import { Input } from '@/ui/components/input';
 import { formatInboxTime } from '@/core/entities/conversationInbox';
@@ -21,7 +20,7 @@ export function TeamNotes({ conversationId, operator }: TeamNotesProps) {
   const [saving, setSaving] = useState(false);
 
   const load = async () => {
-    setNotes(await new GetInternalMessagesUseCase().execute(conversationId));
+    setNotes(await clientUseCases.internalMessages().execute(conversationId));
   };
 
   useEffect(() => {
@@ -36,7 +35,7 @@ export function TeamNotes({ conversationId, operator }: TeamNotesProps) {
     }
     setSaving(true);
     try {
-      await new SaveInternalMessageUseCase().execute({
+      await clientUseCases.saveInternalMessage().execute({
         id: `note-${Date.now()}`,
         from: operator.id,
         fromName: operator.name,

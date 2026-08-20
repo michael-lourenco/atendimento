@@ -1,33 +1,22 @@
 'use client';
 
+import { clientUseCases } from '@/infra/adapters/clientUseCases';
 import { useEffect, useState } from 'react';
 import { Agent } from '@/core/entities/Agent';
 import { Department } from '@/core/entities/Department';
 import { canSetAgentOffline, operatorForAgent } from '@/core/entities/agentStatus';
-import { canChangeOperatorRole, canDeleteOperator } from '@/core/entities/operatorRole';
+import { canChangeOperatorRole } from '@/core/entities/operatorRole';
 import { User } from '@/core/entities/User';
-import { AgentCatalogUseCase } from '@/core/usecases/AgentCatalogUseCase';
-import { CreateOperatorError, CreateOperatorUseCase } from '@/core/usecases/CreateOperatorUseCase';
-import { DeleteOperatorUseCase } from '@/core/usecases/DeleteOperatorUseCase';
-import { DepartmentCatalogUseCase } from '@/core/usecases/DepartmentCatalogUseCase';
-import { GetCurrentUserUseCase } from '@/core/usecases/GetCurrentUserUseCase';
-import { ListOperatorsUseCase } from '@/core/usecases/ListOperatorsUseCase';
-import { SetOperatorPasswordUseCase } from '@/core/usecases/SetOperatorPasswordUseCase';
-import { SetOperatorRoleUseCase } from '@/core/usecases/SetOperatorRoleUseCase';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/ui/components/card';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/ui/components/table';
+import { CreateOperatorError } from '@/core/usecases/CreateOperatorUseCase';
 import { Button } from '@/ui/components/button';
-import { Input } from '@/ui/components/input';
-import { Badge } from '@/ui/components/badge';
-import { EmptyState } from '@/ui/components/empty-state';
-import { CatalogListSkeleton } from '@/ui/components/catalog-list-skeleton';
-import { Plus, Search } from 'lucide-react';
+import { Plus } from 'lucide-react';
 import { useConfirm } from '@/ui/components/confirm-dialog';
 import { CatalogSavedNotice } from '@/ui/components/catalog-saved-notice';
 import { emptyOperatorForm, OperatorForm, OperatorFormState } from './operator-form';
 import { useCatalogSavedFlash } from '@/ui/lib/use-catalog-saved-flash';
+import { AgentsTable } from '@/ui/components/agents-table';
 
-const catalog = () => new AgentCatalogUseCase();
+const catalog = clientUseCases.agents;
 
 export default function AgentsPage() {
   const [agents, setAgents] = useState<Agent[]>([]);
@@ -48,16 +37,16 @@ export default function AgentsPage() {
       setLoading(true);
     }
     try {
-      const user = await new GetCurrentUserUseCase().execute();
+      const user = await clientUseCases.currentUser().execute();
       const [agentList, departmentList] = await Promise.all([
         catalog().list(),
-        new DepartmentCatalogUseCase().list(),
+        clientUseCases.departments().list(),
       ]);
       setAgents(agentList);
       setDepartments(departmentList);
       setActor(user);
       if (user) {
-        setOperators(await new ListOperatorsUseCase().execute(user));
+        setOperators(await clientUseCases.listOperators().execute(user));
       }
     } finally {
       setLoading(false);
@@ -89,13 +78,13 @@ export default function AgentsPage() {
         });
         const linked = operatorForAgent(editing, operators);
         if (linked && linked.role !== form.role) {
-          await new SetOperatorRoleUseCase().execute(actor, linked.id, form.role);
+          await clientUseCases.setOperatorRole().execute(actor, linked.id, form.role);
         }
         if (linked && form.password.trim()) {
-          await new SetOperatorPasswordUseCase().execute(actor, linked.id, form.password.trim());
+          await clientUseCases.setOperatorPassword().execute(actor, linked.id, form.password.trim());
         }
       } else {
-        await new CreateOperatorUseCase().execute(actor, {
+        await clientUseCases.createOperator().execute(actor, {
           email: form.email,
           password: form.password,
           name: form.name,
@@ -158,157 +147,59 @@ export default function AgentsPage() {
         />
       ) : null}
 
-      <Card>
-        <CardHeader>
-          <div className="flex justify-between items-center">
-            <div>
-              <CardTitle>Lista de Atendentes</CardTitle>
-              <CardDescription>Quem assume, transfere e acessa o painel</CardDescription>
-            </div>
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Buscar atendentes..."
-                className="pl-10 w-64 bg-background"
-                value={filter}
-                onChange={(e) => setFilter(e.target.value)}
-              />
-            </div>
-          </div>
-        </CardHeader>
-        <CardContent>
-          {loading ? (
-            <CatalogListSkeleton />
-          ) : visible.length === 0 ? (
-            <EmptyState
-              title={agents.length === 0 ? 'Nenhum atendente' : 'Nenhum atendente encontrado'}
-              description={
-                agents.length === 0 ? 'Cadastre o time com e-mail, senha, papel e setor.' : undefined
-              }
-              actionLabel={agents.length === 0 ? 'Novo atendente' : undefined}
-              onAction={agents.length === 0 ? () => setShowForm(true) : undefined}
-            />
-          ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Nome</TableHead>
-                  <TableHead>Email</TableHead>
-                  <TableHead>Papel</TableHead>
-                  <TableHead>Setor</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Ações</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {visible.map((agent) => {
-                  const linked = operatorForAgent(agent, operators);
-                  return (
-                    <TableRow key={agent.id}>
-                      <TableCell className="font-medium">
-                        {agent.name}
-                        {actor && agent.id === actor.id ? (
-                          <Badge variant="info" className="ml-2">
-                            Você
-                          </Badge>
-                        ) : null}
-                      </TableCell>
-                      <TableCell>{agent.email}</TableCell>
-                      <TableCell>
-                        {linked ? (linked.role === 'admin' ? 'Admin' : 'Atendente') : '—'}
-                      </TableCell>
-                      <TableCell>{departmentName(agent.departmentId)}</TableCell>
-                      <TableCell>
-                        <Badge variant={agent.status === 'online' ? 'success' : 'muted'}>
-                          {agent.status === 'online' ? 'Online' : 'Offline'}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex gap-2">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => {
-                              setEditing(agent);
-                              setFormError('');
-                              setForm({
-                                name: agent.name,
-                                email: agent.email,
-                                password: '',
-                                role: linked?.role ?? 'user',
-                                status: agent.status,
-                                departmentId: agent.departmentId ?? '',
-                              });
-                              setShowForm(true);
-                            }}
-                          >
-                            Editar
-                          </Button>
-                          {linked && actor && canDeleteOperator(actor, operators, linked.id) ? (
-                            <Button
-                              variant="destructive"
-                              size="sm"
-                              onClick={async () => {
-                                if (!(await confirm('Excluir este atendente? O login também some.'))) return;
-                                try {
-                                  await new DeleteOperatorUseCase().execute(actor, linked.id);
-                                  await load();
-                                } catch (error) {
-                                  setFormError(
-                                    error instanceof CreateOperatorError
-                                      ? error.message
-                                      : 'Não foi possível excluir'
-                                  );
-                                }
-                              }}
-                            >
-                              Excluir
-                            </Button>
-                          ) : linked &&
-                            actor &&
-                            canSetAgentOffline(actor, agent, agents, operators) ? (
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={async () => {
-                                if (!(await confirm('Desativar este atendente (offline)?'))) return;
-                                try {
-                                  await catalog().save({ ...agent, status: 'offline' });
-                                  await load();
-                                } catch (error) {
-                                  setFormError(
-                                    error instanceof CreateOperatorError
-                                      ? error.message
-                                      : 'Não foi possível desativar'
-                                  );
-                                }
-                              }}
-                            >
-                              Desativar
-                            </Button>
-                          ) : linked ? null : (
-                            <Button
-                              variant="destructive"
-                              size="sm"
-                              onClick={async () => {
-                                if (!(await confirm('Excluir este atendente?'))) return;
-                                await catalog().delete(agent.id);
-                                load();
-                              }}
-                            >
-                              Excluir
-                            </Button>
-                          )}
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  );
-                })}
-              </TableBody>
-            </Table>
-          )}
-        </CardContent>
-      </Card>
+      <AgentsTable
+        loading={loading}
+        agents={agents}
+        visible={visible}
+        operators={operators}
+        actor={actor}
+        departmentName={departmentName}
+        filter={filter}
+        onFilter={setFilter}
+        onCreate={() => setShowForm(true)}
+        onEdit={(agent) => {
+          const linked = operatorForAgent(agent, operators);
+          setEditing(agent);
+          setFormError('');
+          setForm({
+            name: agent.name,
+            email: agent.email,
+            password: '',
+            role: linked?.role ?? 'user',
+            status: agent.status,
+            departmentId: agent.departmentId ?? '',
+          });
+          setShowForm(true);
+        }}
+        onDeleteOperator={async (operatorId) => {
+          if (!actor) return;
+          if (!(await confirm('Excluir este atendente? O login também some.'))) return;
+          try {
+            await clientUseCases.deleteOperator().execute(actor, operatorId);
+            await load();
+          } catch (error) {
+            setFormError(
+              error instanceof CreateOperatorError ? error.message : 'Não foi possível excluir'
+            );
+          }
+        }}
+        onDeactivate={async (agent) => {
+          if (!(await confirm('Desativar este atendente (offline)?'))) return;
+          try {
+            await catalog().save({ ...agent, status: 'offline' });
+            await load();
+          } catch (error) {
+            setFormError(
+              error instanceof CreateOperatorError ? error.message : 'Não foi possível desativar'
+            );
+          }
+        }}
+        onDeleteAgent={async (agent) => {
+          if (!(await confirm('Excluir este atendente?'))) return;
+          await catalog().delete(agent.id);
+          load();
+        }}
+      />
     </div>
   );
 }

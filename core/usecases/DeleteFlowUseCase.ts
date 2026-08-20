@@ -1,13 +1,12 @@
-import { serviceLocator } from '../../infra/adapters/ServiceLocator';
 import { IFlowRepository } from '../repositories/IFlowRepository';
 import { IFlowSessionRepository } from '../repositories/IFlowSessionRepository';
 import { IChatbotRepository } from '../repositories/IChatbotRepository';
 
 export class DeleteFlowUseCase {
   constructor(
-    private flows: IFlowRepository = serviceLocator.getFlowRepository(),
-    private sessions: IFlowSessionRepository = serviceLocator.getFlowSessionRepository(),
-    private chatbots: IChatbotRepository = serviceLocator.getChatbotRepository()
+    private flows: IFlowRepository,
+    private sessions: IFlowSessionRepository,
+    private chatbots: IChatbotRepository
   ) {}
 
   async execute(id: string): Promise<void> {

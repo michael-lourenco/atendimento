@@ -1,5 +1,6 @@
 'use client';
 
+import { clientUseCases } from '@/infra/adapters/clientUseCases';
 import { useEffect, useState } from 'react';
 import { DASHBOARD_POLL_MS } from '@/ui/lib/dashboard-poll';
 import { dispatchDueSchedules } from '@/ui/lib/use-dispatch-due-schedules';
@@ -8,10 +9,6 @@ import { Contact } from '@/core/entities/Contact';
 import { Conversation } from '@/core/entities/Conversation';
 import { WhatsAppNumber } from '@/core/entities/WhatsAppNumber';
 import { scheduleOutgoingLineName } from '@/core/entities/scheduleOutgoingLine';
-import { ScheduledMessageCatalogUseCase } from '@/core/usecases/ScheduledMessageCatalogUseCase';
-import { ContactCatalogUseCase } from '@/core/usecases/ContactCatalogUseCase';
-import { GetAllConversationsUseCase } from '@/core/usecases/GetAllConversationsUseCase';
-import { UpsertContactFromIncomingUseCase } from '@/core/usecases/UpsertContactFromIncomingUseCase';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/ui/components/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/ui/components/table';
 import { Button } from '@/ui/components/button';
@@ -34,8 +31,8 @@ import { toLocalDatetimeValue } from '@/ui/lib/datetime-local';
 import { useCatalogSavedFlash } from '@/ui/lib/use-catalog-saved-flash';
 import { listWhatsAppNumbersCached } from '@/ui/lib/whatsapp-number-cache';
 
-const catalog = () => new ScheduledMessageCatalogUseCase();
-const contactsCatalog = () => new ContactCatalogUseCase();
+const catalog = clientUseCases.scheduledMessages;
+const contactsCatalog = clientUseCases.contacts;
 
 function scheduleContactLabel(schedule: ScheduledMessage, contacts: Contact[]): string {
   const found = findContactByPhone(contacts, schedule.contact);
@@ -63,7 +60,7 @@ export default function SchedulesPage() {
       const [scheduleList, contactList, conversationList, numberList] = await Promise.all([
         catalog().list(),
         contactsCatalog().list(),
-        new GetAllConversationsUseCase().execute(false),
+        clientUseCases.conversations().execute(false),
         listWhatsAppNumbersCached(),
       ]);
       setSchedules(scheduleList);
@@ -92,7 +89,7 @@ export default function SchedulesPage() {
     const phone = normalizeSchedulePhone(form.contact);
     if (!phone) return;
     if (!findContactByPhone(contacts, phone)) {
-      await new UpsertContactFromIncomingUseCase().execute(phone, form.newName || undefined);
+      await clientUseCases.upsertContactFromIncoming().execute(phone, form.newName || undefined);
     }
     setError(null);
     try {

@@ -1,10 +1,9 @@
 import { pickWhatsAppDisplayName } from '../entities/pickWhatsAppDisplayName';
 import { Contact } from '../entities/Contact';
 import { IContactRepository } from '../repositories/IContactRepository';
-import { serviceLocator } from '../../infra/adapters/ServiceLocator';
 
 export class UpsertContactFromIncomingUseCase {
-  constructor(private contacts: IContactRepository = serviceLocator.getContactRepository()) {}
+  constructor(private contacts: IContactRepository) {}
 
   async execute(phone: string, name?: string): Promise<Contact | null> {
     const id = phone.replace(/\D/g, '') || phone;

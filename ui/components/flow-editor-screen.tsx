@@ -1,13 +1,10 @@
 'use client';
 
+import { clientUseCases } from '@/infra/adapters/clientUseCases';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { GetAllFlowsUseCase } from '@/core/usecases/GetAllFlowsUseCase';
-import { GetFlowByIdUseCase } from '@/core/usecases/GetFlowByIdUseCase';
-import { SaveFlowUseCase } from '@/core/usecases/SaveFlowUseCase';
 import { Flow, FlowStep } from '@/core/entities/Flow';
 import { Department } from '@/core/entities/Department';
-import { DepartmentCatalogUseCase } from '@/core/usecases/DepartmentCatalogUseCase';
 import { FlowStepsEditor } from '@/ui/components/flow-steps-editor';
 import { CatalogListSkeleton } from '@/ui/components/catalog-list-skeleton';
 import { Button } from '@/ui/components/button';
@@ -65,15 +62,15 @@ export function FlowEditorScreen({ flowId, fromFlowId }: FlowEditorScreenProps) 
       setLoading(true);
       try {
         const [allFlows, departmentList] = await Promise.all([
-          new GetAllFlowsUseCase().execute(),
-          new DepartmentCatalogUseCase().list(),
+          clientUseCases.allFlows().execute(),
+          clientUseCases.departments().list(),
         ]);
         setFlows(allFlows);
         setDepartments(departmentList);
         if (flowId) {
           const found =
             allFlows.find((item) => item.id === flowId) ??
-            (await new GetFlowByIdUseCase().execute(flowId));
+            (await clientUseCases.flowById().execute(flowId));
           if (!found) {
             setError('Fluxo não encontrado.');
             return;
@@ -132,7 +129,7 @@ export function FlowEditorScreen({ flowId, fromFlowId }: FlowEditorScreenProps) 
         createdAt: editing?.createdAt || new Date(),
         updatedAt: new Date(),
       };
-      await new SaveFlowUseCase().execute(flow);
+      await clientUseCases.saveFlow().execute(flow);
       setEditing(flow);
       setError(null);
       setSavedSnap(snapshot({ name: flow.name, description, isActive, keywords, steps }));

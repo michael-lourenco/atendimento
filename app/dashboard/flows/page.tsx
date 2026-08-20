@@ -1,10 +1,8 @@
 'use client';
 
+import { clientUseCases } from '@/infra/adapters/clientUseCases';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { GetAllFlowsUseCase } from '@/core/usecases/GetAllFlowsUseCase';
-import { DeleteFlowUseCase } from '@/core/usecases/DeleteFlowUseCase';
-import { SaveFlowUseCase } from '@/core/usecases/SaveFlowUseCase';
 import { Flow } from '@/core/entities/Flow';
 import { duplicateFlow } from '@/core/entities/duplicateFlow';
 import { resolveActiveFlow } from '@/core/engine/resolveActiveFlow';
@@ -32,7 +30,7 @@ export default function FlowsPage() {
       setLoading(true);
     }
     try {
-      setFlows(await new GetAllFlowsUseCase().execute());
+      setFlows(await clientUseCases.allFlows().execute());
     } catch (loadError) {
       console.error('Erro ao carregar fluxos:', loadError);
     } finally {
@@ -49,7 +47,7 @@ export default function FlowsPage() {
       return;
     }
     try {
-      await new DeleteFlowUseCase().execute(id);
+      await clientUseCases.deleteFlow().execute(id);
       setError(null);
       loadFlows();
     } catch (deleteError) {
@@ -60,7 +58,7 @@ export default function FlowsPage() {
 
   const handleDuplicate = async (flow: Flow) => {
     try {
-      await new SaveFlowUseCase().execute(duplicateFlow(flow));
+      await clientUseCases.saveFlow().execute(duplicateFlow(flow));
       markSaved();
       loadFlows();
     } catch (dupError) {

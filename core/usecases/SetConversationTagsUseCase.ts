@@ -1,10 +1,9 @@
 import { Conversation } from '../entities/Conversation';
 import { IConversationRepository } from '../repositories/IConversationRepository';
-import { serviceLocator } from '../../infra/adapters/ServiceLocator';
 
 export class SetConversationTagsUseCase {
   constructor(
-    private conversations: IConversationRepository = serviceLocator.getConversationRepository()
+    private conversations: IConversationRepository
   ) {}
 
   async execute(conversationId: string, tags: string[]): Promise<Conversation | null> {

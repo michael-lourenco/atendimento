@@ -5,9 +5,9 @@ import { isPublicSupabaseConfigured, isTestEnv } from '../supabase/env';
 import { createServiceRoleClient, isServiceRoleConfigured } from '../supabase/serviceRoleClient';
 import { createSupabaseDataBag } from '../supabase/createSupabaseDataBag';
 import { SupabaseMediaStorage } from '../supabase/SupabaseMediaStorage';
-import { mockAuthRepository } from '../mocks/MockAuthRepository';
 import { mockMediaStorage } from '../mocks/MockMediaStorage';
 import { createWhatsAppServiceFromEnv } from '../whatsapp/createFromEnv';
+import { SupabaseServerAuthRepository } from '../supabase/SupabaseServerAuthRepository';
 import { HandleIncomingWhatsAppMessageUseCase } from '../../core/usecases/HandleIncomingWhatsAppMessageUseCase';
 import { ProcessIncomingFlowUseCase } from '../../core/usecases/ProcessIncomingFlowUseCase';
 import { SendWhatsAppMessageUseCase } from '../../core/usecases/SendWhatsAppMessageUseCase';
@@ -27,7 +27,10 @@ class ServerLocator {
   getRepos(): RepositoryBag {
     if (!this.repos) {
       if (!isTestEnv() && isPublicSupabaseConfigured() && isServiceRoleConfigured()) {
-        this.repos = createSupabaseDataBag(createServiceRoleClient(), mockAuthRepository);
+        this.repos = createSupabaseDataBag(
+          createServiceRoleClient(),
+          new SupabaseServerAuthRepository()
+        );
       } else {
         this.repos = createMockRepositoryBag();
       }

@@ -2,7 +2,7 @@ import 'server-only';
 
 import { User } from '../../core/entities/User';
 import { createCookieSupabase } from './cookieClient';
-import { asDate } from './crud';
+import { userFromProfileRow } from './profileUser';
 
 export async function getOperatorUser(): Promise<User | null> {
   const supabase = await createCookieSupabase();
@@ -21,11 +21,5 @@ export async function getOperatorUser(): Promise<User | null> {
     return null;
   }
 
-  return {
-    id: String(profile.id),
-    email: String(profile.email),
-    name: String(profile.name),
-    role: profile.role === 'admin' ? 'admin' : 'user',
-    createdAt: asDate(profile.created_at),
-  };
+  return userFromProfileRow(profile as Record<string, unknown>);
 }

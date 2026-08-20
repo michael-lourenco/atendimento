@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { serverLocator } from '@/infra/adapters/serverLocator';
-import { quickReplyHasAudio } from '@/core/entities/QuickReply';
 import {
   InvalidQuickReplyMediaError,
   SaveQuickReplyMediaUseCase,
 } from '@/core/usecases/SaveQuickReplyMediaUseCase';
-import { MAX_OUTGOING_MEDIA_BYTES, quickReplyMediaPath } from '@/core/services/IMediaStorage';
+import { GetQuickReplyAudioUseCase } from '@/core/usecases/GetQuickReplyAudioUseCase';
+import { MAX_OUTGOING_MEDIA_BYTES } from '@/core/services/IMediaStorage';
 import { apiJson, applyRequestId } from '@/infra/http/apiJson';
 import { logApiError } from '@/infra/http/apiLog';
 import { requestIdFrom } from '@/infra/http/requestId';
@@ -36,11 +36,10 @@ export async function GET(
     if (!id) {
       return apiJson(request, { error: 'id é obrigatório' }, { status: 400 });
     }
-    const reply = await serverLocator.getRepos().quickReply.getById(id);
-    if (!reply || !quickReplyHasAudio(reply)) {
-      return apiJson(request, { error: 'Áudio não encontrado' }, { status: 404 });
-    }
-    const file = await serverLocator.getMediaStorage().get(quickReplyMediaPath(id));
+    const file = await new GetQuickReplyAudioUseCase(
+      serverLocator.getRepos().quickReply,
+      serverLocator.getMediaStorage()
+    ).execute(id);
     if (!file) {
       return apiJson(request, { error: 'Áudio não encontrado' }, { status: 404 });
     }

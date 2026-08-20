@@ -13,7 +13,11 @@ export function runDispatchDueScheduledMessages() {
   }
   const locator = serverLocator;
   const repos = locator.getRepos();
-  const upsert = new UpsertConversationFromMessageUseCase(repos.conversation, repos.contact);
+  const upsert = new UpsertConversationFromMessageUseCase(
+    repos.conversation,
+    repos.contact,
+    repos.whatsAppNumber
+  );
   const upsertContact = new UpsertContactFromIncomingUseCase(repos.contact);
   const send = new SendWhatsAppMessageUseCase(
     locator.getWhatsAppService(),

@@ -3,14 +3,13 @@ import { canSetAgentOffline } from '../entities/agentStatus';
 import { agentEmailTaken } from '../entities/uniqueAgentEmail';
 import { IAgentRepository } from '../repositories/IAgentRepository';
 import { IAuthRepository } from '../repositories/IAuthRepository';
-import { serviceLocator } from '../../infra/adapters/ServiceLocator';
 import { CatalogUseCase } from './CatalogUseCase';
 import { CreateOperatorError } from './CreateOperatorUseCase';
 
 export class AgentCatalogUseCase extends CatalogUseCase<Agent> {
   constructor(
-    repo: IAgentRepository = serviceLocator.getAgentRepository(),
-    private auth: IAuthRepository = serviceLocator.getAuthRepository()
+    repo: IAgentRepository,
+    private auth: IAuthRepository
   ) {
     super(repo);
   }

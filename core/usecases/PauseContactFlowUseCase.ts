@@ -1,12 +1,11 @@
 import { IFlowSessionRepository } from '../repositories/IFlowSessionRepository';
 import { IFlowRepository } from '../repositories/IFlowRepository';
-import { serviceLocator } from '../../infra/adapters/ServiceLocator';
 import { resolveActiveFlow } from '../engine/resolveActiveFlow';
 
 export class PauseContactFlowUseCase {
   constructor(
-    private sessions: IFlowSessionRepository = serviceLocator.getFlowSessionRepository(),
-    private flows: IFlowRepository = serviceLocator.getFlowRepository()
+    private sessions: IFlowSessionRepository,
+    private flows: IFlowRepository
   ) {}
 
   async execute(contactId: string): Promise<void> {

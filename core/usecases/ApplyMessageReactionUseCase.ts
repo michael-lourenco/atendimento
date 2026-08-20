@@ -1,7 +1,6 @@
 import { Message } from '../entities/Message';
 import { applyMessageReaction } from '../entities/messageReaction';
 import { IMessageRepository } from '../repositories/IMessageRepository';
-import { serviceLocator } from '../../infra/adapters/ServiceLocator';
 
 export type ApplyMessageReactionInput = {
   targetId: string;
@@ -10,7 +9,7 @@ export type ApplyMessageReactionInput = {
 };
 
 export class ApplyMessageReactionUseCase {
-  constructor(private messages: IMessageRepository = serviceLocator.getMessageRepository()) {}
+  constructor(private messages: IMessageRepository) {}
 
   async execute(input: ApplyMessageReactionInput): Promise<Message | null> {
     const existing = await this.messages.getById(input.targetId.trim());

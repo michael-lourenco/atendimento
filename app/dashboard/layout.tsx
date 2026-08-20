@@ -1,9 +1,8 @@
 'use client';
 
+import { clientUseCases } from '@/infra/adapters/clientUseCases';
 import { useEffect, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
-import { GetCurrentUserUseCase } from '@/core/usecases/GetCurrentUserUseCase';
-import { LogoutUseCase } from '@/core/usecases/LogoutUseCase';
 import { LoginDeniedError, loginDeniedHref } from '@/core/entities/loginDenied';
 import { Button } from '@/ui/components/button';
 import { ThemeToggle } from '@/ui/components/theme-toggle';
@@ -41,7 +40,7 @@ export default function DashboardLayout({
   useEffect(() => {
     const checkAuth = async (first: boolean) => {
       try {
-        const currentUser = await new GetCurrentUserUseCase().execute();
+        const currentUser = await clientUseCases.currentUser().execute();
         if (!currentUser) {
           setUser(null);
           router.push('/login');
@@ -78,7 +77,7 @@ export default function DashboardLayout({
   };
 
   const handleLogout = async () => {
-    const logoutUseCase = new LogoutUseCase();
+    const logoutUseCase = clientUseCases.logout();
     await logoutUseCase.execute();
     router.push('/login');
   };

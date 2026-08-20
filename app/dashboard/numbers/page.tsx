@@ -1,5 +1,6 @@
 'use client';
 
+import { clientUseCases } from '@/infra/adapters/clientUseCases';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { WhatsAppNumber, WhatsAppNumberStatus } from '@/core/entities/WhatsAppNumber';
@@ -8,8 +9,6 @@ import {
   mergeWhatsAppNumbersWithLive,
 } from '@/core/entities/whatsappNumberLive';
 import { slugWhatsAppInstanceName } from '@/core/entities/whatsappNumberLine';
-import { SyncLiveWhatsAppNumberUseCase } from '@/core/usecases/SyncLiveWhatsAppNumberUseCase';
-import { WhatsAppNumberCatalogUseCase } from '@/core/usecases/WhatsAppNumberCatalogUseCase';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/ui/components/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/ui/components/table';
 import { Button, buttonVariants } from '@/ui/components/button';
@@ -25,7 +24,7 @@ import { CatalogListSkeleton } from '@/ui/components/catalog-list-skeleton';
 import { CatalogSavedNotice } from '@/ui/components/catalog-saved-notice';
 import { useCatalogSavedFlash } from '@/ui/lib/use-catalog-saved-flash';
 
-const catalog = () => new WhatsAppNumberCatalogUseCase();
+const catalog = clientUseCases.whatsAppNumbers;
 
 export default function NumbersPage() {
   const [saved, setSaved] = useState<WhatsAppNumber[]>([]);
@@ -70,7 +69,7 @@ export default function NumbersPage() {
     let cancelled = false;
     const persist = async () => {
       try {
-        await new SyncLiveWhatsAppNumberUseCase().execute({
+        await clientUseCases.syncLiveWhatsAppNumber().execute({
           connected: true,
           wid,
           pushname,

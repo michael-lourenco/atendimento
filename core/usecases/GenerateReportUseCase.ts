@@ -1,9 +1,8 @@
 import { Report } from '../entities/Report';
 import { IReportRepository } from '../repositories/IReportRepository';
-import { serviceLocator } from '../../infra/adapters/ServiceLocator';
 
 export class GenerateReportUseCase {
-  constructor(private reports: IReportRepository = serviceLocator.getReportRepository()) {}
+  constructor(private reports: IReportRepository) {}
 
   async execute(now: Date = new Date()): Promise<Report> {
     const report: Report = {

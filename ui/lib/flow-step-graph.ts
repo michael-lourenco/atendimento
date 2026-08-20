@@ -170,19 +170,7 @@ function questionOptions(step: FlowStep): string[] {
   return (step.options ?? []).map((item) => item.trim()).filter(Boolean);
 }
 
-export function listQuestionOptions(step: FlowStep): string[] {
-  const seen = new Set<string>();
-  const options: string[] = [];
-  for (const option of questionOptions(step)) {
-    const key = option.toLowerCase();
-    if (seen.has(key)) {
-      continue;
-    }
-    seen.add(key);
-    options.push(option);
-  }
-  return options;
-}
+export { listQuestionOptions } from '@/core/engine/questionOptions';
 
 export function questionOptionsForCondition(steps: FlowStep[], conditionId: string): string[] {
   const visited = new Set<string>();

@@ -1,5 +1,6 @@
 'use client';
 
+import { clientUseCases } from '@/infra/adapters/clientUseCases';
 import { useEffect, useState } from 'react';
 import {
   QuickReply,
@@ -7,8 +8,9 @@ import {
   quickReplyListPreview,
   sortQuickReplies,
 } from '@/core/entities/QuickReply';
+import { Department } from '@/core/entities/Department';
+import { departmentNameOf } from '@/core/entities/conversationDepartment';
 import { quickReplyMediaApiHref } from '@/core/services/IMediaStorage';
-import { QuickReplyCatalogUseCase } from '@/core/usecases/QuickReplyCatalogUseCase';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/ui/components/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/ui/components/table';
 import { Button } from '@/ui/components/button';
@@ -22,7 +24,14 @@ import { CatalogListSkeleton } from '@/ui/components/catalog-list-skeleton';
 import { CatalogSavedNotice } from '@/ui/components/catalog-saved-notice';
 import { useCatalogSavedFlash } from '@/ui/lib/use-catalog-saved-flash';
 
-const catalog = () => new QuickReplyCatalogUseCase();
+const catalog = clientUseCases.quickReplies;
+
+function sectorLabel(departments: Department[], departmentId?: string): string {
+  if (!departmentId) {
+    return 'Todos os setores';
+  }
+  return departmentNameOf(departments, departmentId) || 'Setor removido';
+}
 
 async function putAudio(id: string, file: File): Promise<void> {
   const form = new FormData();
@@ -44,6 +53,7 @@ async function deleteAudio(id: string): Promise<void> {
 
 export default function QuickRepliesPage() {
   const [replies, setReplies] = useState<QuickReply[]>([]);
+  const [departments, setDepartments] = useState<Department[]>([]);
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState<QuickReply | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -56,7 +66,12 @@ export default function QuickRepliesPage() {
       setLoading(true);
     }
     try {
-      setReplies(sortQuickReplies(await catalog().list()));
+      const [rows, depts] = await Promise.all([
+        catalog().list(),
+        clientUseCases.departments().list(),
+      ]);
+      setReplies(sortQuickReplies(rows));
+      setDepartments(depts);
       setError(null);
     } catch (cause) {
       setError(catalogPersistErrorMessage(cause, 'quick_replies'));
@@ -77,6 +92,7 @@ export default function QuickRepliesPage() {
   const handleSave = async (input: {
     title: string;
     body: string;
+    departmentId?: string;
     file: File | null;
     removeAudio: boolean;
   }) => {
@@ -86,6 +102,7 @@ export default function QuickRepliesPage() {
         id,
         title: input.title,
         body: input.body,
+        departmentId: input.departmentId,
         mediaKind: input.removeAudio ? undefined : editing?.mediaKind,
         createdAt: editing?.createdAt || new Date(),
       });
@@ -125,6 +142,7 @@ export default function QuickRepliesPage() {
         <QuickReplyEditor
           key={editing?.id ?? 'new'}
           editing={editing}
+          departments={departments}
           onCancel={reset}
           onSave={handleSave}
         />
@@ -150,6 +168,7 @@ export default function QuickRepliesPage() {
               <TableHeader>
                 <TableRow>
                   <TableHead>Título</TableHead>
+                  <TableHead>Setor</TableHead>
                   <TableHead>Conteúdo</TableHead>
                   <TableHead>Ações</TableHead>
                 </TableRow>
@@ -164,6 +183,9 @@ export default function QuickRepliesPage() {
                           Áudio
                         </Badge>
                       ) : null}
+                    </TableCell>
+                    <TableCell className="text-muted-foreground">
+                      {sectorLabel(departments, item.departmentId)}
                     </TableCell>
                     <TableCell className="max-w-md">
                       {quickReplyHasAudio(item) ? (

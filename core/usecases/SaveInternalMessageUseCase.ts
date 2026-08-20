@@ -1,10 +1,9 @@
 import { InternalMessage } from '../entities/InternalMessage';
 import { IInternalMessageRepository } from '../repositories/IInternalMessageRepository';
-import { serviceLocator } from '../../infra/adapters/ServiceLocator';
 
 export class SaveInternalMessageUseCase {
   constructor(
-    private messages: IInternalMessageRepository = serviceLocator.getInternalMessageRepository()
+    private messages: IInternalMessageRepository
   ) {}
 
   execute(message: InternalMessage): Promise<void> {
