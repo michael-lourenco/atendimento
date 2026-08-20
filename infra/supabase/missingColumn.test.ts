@@ -1,4 +1,4 @@
-import { isMissingColumnError } from './missingColumn';
+import { isMissingColumnError, stripMissingColumn } from './missingColumn';
 
 describe('isMissingColumnError', () => {
   it('reconhece PGRST204 da coluna last_message', () => {
@@ -15,5 +15,17 @@ describe('isMissingColumnError', () => {
 
   it('ignora outro erro', () => {
     expect(isMissingColumnError({ code: '23505', message: 'duplicate' }, 'last_message')).toBe(false);
+  });
+
+  it('remove keywords do upsert quando a coluna não existe', () => {
+    const next = stripMissingColumn(
+      { id: 'inicio', keywords: [] },
+      {
+        code: 'PGRST204',
+        message: "Could not find the 'keywords' column of 'flows' in the schema cache",
+      },
+      ['keywords']
+    );
+    expect(next).toEqual({ id: 'inicio' });
   });
 });

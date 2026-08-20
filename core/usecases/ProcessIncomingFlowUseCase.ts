@@ -6,6 +6,7 @@ import { planFlowTurn } from '../engine/planFlowTurn';
 import { resolveActiveFlow } from '../engine/resolveActiveFlow';
 import { SendWhatsAppMessageUseCase } from './SendWhatsAppMessageUseCase';
 import { SetConversationDepartmentUseCase } from './SetConversationDepartmentUseCase';
+import { loadFlowStepMedia } from './loadFlowStepMedia';
 import { IWhatsAppNumberRepository } from '../repositories/IWhatsAppNumberRepository';
 import { contactPhoneFromMessage } from './UpsertConversationFromMessageUseCase';
 import { conversationThreadId } from '../entities/conversationThread';
@@ -77,6 +78,12 @@ export class ProcessIncomingFlowUseCase {
     }
 
     for (const reply of plan.replies) {
+      if (reply.delayMs) {
+        await sleep(reply.delayMs);
+      }
+      const media = reply.mediaUrl
+        ? await loadFlowStepMedia(reply.mediaUrl, reply.mediaKind ?? 'image')
+        : null;
       await this.sendMessage.execute({
         to: input.contactId,
         message: reply.content,
@@ -84,6 +91,7 @@ export class ProcessIncomingFlowUseCase {
         stepId: reply.stepId,
         instanceName: input.instanceName,
         conversationId: sessionKey,
+        ...(media ? { media } : {}),
       });
     }
 
@@ -105,4 +113,8 @@ export class ProcessIncomingFlowUseCase {
       departmentName: department.name,
     });
   }
+}
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }

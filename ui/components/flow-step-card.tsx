@@ -1,9 +1,10 @@
 'use client';
 
-import { FlowStep } from '@/core/entities/Flow';
+import { FLOW_STEP_MAX_DELAY_MS, FlowStep } from '@/core/entities/Flow';
 import { Department } from '@/core/entities/Department';
 import { Button } from '@/ui/components/button';
 import { Label } from '@/ui/components/label';
+import { Input } from '@/ui/components/input';
 import { Textarea } from '@/ui/components/textarea';
 import { ChevronDown, ChevronUp } from 'lucide-react';
 import {
@@ -12,9 +13,10 @@ import {
   stepDisplayName,
 } from '@/ui/lib/flow-step-copy';
 import { withStepType } from '@/ui/lib/flow-step-graph';
-import { NextStepSelect, flowSelectClass } from '@/ui/components/flow-next-step-select';
+import { flowSelectClass } from '@/ui/components/flow-next-step-select';
 import { FlowConditionFields } from '@/ui/components/flow-condition-fields';
 import { FlowQuestionOptions } from '@/ui/components/flow-question-options';
+import { FlowStepActionFields } from '@/ui/components/flow-step-action-fields';
 import { flowStepToneBar } from '@/ui/lib/status-tone';
 
 const TYPES: FlowStep['type'][] = ['message', 'question', 'condition', 'action'];
@@ -37,6 +39,7 @@ type FlowStepCardProps = {
   onPatchAt: (index: number, next: FlowStep) => void;
   onMove: (direction: -1 | 1) => void;
   onRemove: () => void;
+  onOpenFlow?: (flowId: string) => void;
 };
 
 export function FlowStepCard({
@@ -57,9 +60,9 @@ export function FlowStepCard({
   onPatchAt,
   onMove,
   onRemove,
+  onOpenFlow,
 }: FlowStepCardProps) {
   const hasOptionChain = ownedConditions.length > 0;
-  const jumpsToFlow = step.action?.type === 'goToFlow';
   const jumpTargets = flows.filter((item) => item.isActive);
 
   const open = !collapsible || expanded;
@@ -139,87 +142,58 @@ export function FlowStepCard({
               />
             </div>
           ) : null}
+          {step.type === 'message' ? (
+            <div className="grid gap-2 sm:grid-cols-2">
+              <div className="space-y-1">
+                <Label className="text-xs text-muted-foreground">Pausa antes (ms)</Label>
+                <Input
+                  type="number"
+                  min={0}
+                  max={FLOW_STEP_MAX_DELAY_MS}
+                  value={step.delayMs ?? 0}
+                  onChange={(event) =>
+                    onPatch({ ...step, delayMs: Number(event.target.value) || 0 })
+                  }
+                />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs text-muted-foreground">Mídia (URL http)</Label>
+                <Input
+                  value={step.mediaUrl ?? ''}
+                  placeholder="https://…"
+                  onChange={(event) => onPatch({ ...step, mediaUrl: event.target.value })}
+                />
+                <select
+                  className={flowSelectClass}
+                  value={step.mediaKind ?? 'image'}
+                  aria-label="Tipo da mídia"
+                  onChange={(event) =>
+                    onPatch({ ...step, mediaKind: event.target.value as 'image' | 'audio' })
+                  }
+                >
+                  <option value="image">Imagem</option>
+                  <option value="audio">Áudio</option>
+                </select>
+              </div>
+            </div>
+          ) : null}
           {step.type === 'question' ? (
             <FlowQuestionOptions
               steps={steps}
               index={index}
               departments={departments}
               flows={jumpTargets}
-              onChangeSteps={onChange}
               onPatch={onPatch}
             />
           ) : null}
           {step.type === 'action' ? (
-            <div className="space-y-2">
-              <div className="space-y-1">
-                <Label className="text-xs text-muted-foreground">Esta ação</Label>
-                <select
-                  className={flowSelectClass}
-                  value={jumpsToFlow ? 'goToFlow' : 'setDepartment'}
-                  aria-label="Tipo da ação"
-                  onChange={(event) =>
-                    onPatch({
-                      ...step,
-                      action:
-                        event.target.value === 'goToFlow'
-                          ? { type: 'goToFlow', flowId: '' }
-                          : { type: 'setDepartment', departmentId: '' },
-                    })
-                  }
-                >
-                  <option value="setDepartment">Definir setor</option>
-                  <option value="goToFlow">Ir para outro fluxo</option>
-                </select>
-              </div>
-              {jumpsToFlow ? (
-                <div className="space-y-1">
-                  <Label className="text-xs text-muted-foreground">Fluxo destino</Label>
-                  <select
-                    className={flowSelectClass}
-                    value={step.action?.type === 'goToFlow' ? step.action.flowId : ''}
-                    aria-label="Fluxo destino"
-                    onChange={(event) =>
-                      onPatch({
-                        ...step,
-                        action: { type: 'goToFlow', flowId: event.target.value },
-                      })
-                    }
-                  >
-                    <option value="">Escolha o fluxo…</option>
-                    {jumpTargets.map((item) => (
-                      <option key={item.id} value={item.id}>
-                        {item.name}
-                      </option>
-                    ))}
-                  </select>
-                  <p className="text-xs text-muted-foreground">
-                    O cliente continua nesse fluxo. O de entrada (selo WhatsApp) não muda.
-                  </p>
-                </div>
-              ) : (
-                <div className="space-y-1">
-                  <Label className="text-xs text-muted-foreground">Setor da conversa</Label>
-                  <select
-                    className={flowSelectClass}
-                    value={step.action?.type === 'setDepartment' ? step.action.departmentId : ''}
-                    aria-label="Setor da ação"
-                    onChange={(event) =>
-                      onPatch({
-                        ...step,
-                        action: { type: 'setDepartment', departmentId: event.target.value },
-                      })
-                    }
-                  >
-                    <option value="">Escolha o setor…</option>
-                    {departments.map((department) => (
-                      <option key={department.id} value={department.id}>
-                        {department.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              )}
-            </div>
+            <FlowStepActionFields
+              step={step}
+              departments={departments}
+              jumpTargets={jumpTargets}
+              onPatch={onPatch}
+              onOpenFlow={onOpenFlow}
+            />
           ) : null}
           {step.type === 'condition' && step.condition ? (
             <FlowConditionFields
@@ -259,19 +233,6 @@ export function FlowStepCard({
                 })}
               </div>
             </details>
-          ) : null}
-          {step.type !== 'condition' &&
-          !(step.type === 'question' && hasOptionChain) &&
-          !jumpsToFlow ? (
-            <NextStepSelect
-              steps={steps}
-              departments={departments}
-              flows={flows}
-              currentId={step.id}
-              value={step.nextStepId ?? ''}
-              label="Depois, ir para"
-              onChange={(nextStepId) => onPatch({ ...step, nextStepId: nextStepId || undefined })}
-            />
           ) : null}
           <details className="text-sm">
             <summary className="cursor-pointer text-muted-foreground">Tipo deste bloco</summary>

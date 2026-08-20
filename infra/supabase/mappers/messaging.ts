@@ -11,6 +11,7 @@ export function flowFromRow(row: Record<string, unknown>): Flow {
     name: String(row.name),
     description: row.description ? String(row.description) : undefined,
     steps: (row.steps as FlowStep[]) || [],
+    keywords: Array.isArray(row.keywords) ? (row.keywords as string[]) : [],
     isActive: Boolean(row.is_active),
     createdAt: asDate(row.created_at),
     updatedAt: asDate(row.updated_at),
@@ -23,6 +24,7 @@ export function flowToRow(flow: Flow) {
     name: flow.name,
     description: flow.description ?? null,
     steps: flow.steps,
+    keywords: flow.keywords ?? [],
     is_active: flow.isActive,
     created_at: flow.createdAt.toISOString(),
     updated_at: flow.updatedAt.toISOString(),
@@ -65,6 +67,9 @@ export function sessionFromRow(row: Record<string, unknown>): FlowSession {
     flowId: String(row.flow_id),
     currentStepId: row.current_step_id ? String(row.current_step_id) : null,
     paused: Boolean(row.paused),
+    returnStack: Array.isArray(row.return_stack)
+      ? (row.return_stack as FlowSession['returnStack'])
+      : undefined,
     updatedAt: asDate(row.updated_at),
   };
 }

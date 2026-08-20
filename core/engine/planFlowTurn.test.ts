@@ -251,4 +251,91 @@ describe('planFlowTurn', () => {
     ]);
     expect(plan.nextSession.flowId).toBe('inicio');
   });
+
+  it('goToFlow com Ao voltar retoma a origem quando o destino acaba', () => {
+    const faq: Flow = {
+      id: 'faq',
+      name: 'FAQ',
+      isActive: true,
+      createdAt: now,
+      updatedAt: now,
+      steps: [{ id: 'faq_hi', type: 'message', content: 'Ajuda rápida' }],
+    };
+    const withJump: Flow = {
+      ...flow,
+      steps: [
+        {
+          id: 'jump',
+          type: 'action',
+          content: '',
+          nextStepId: 'after',
+          action: { type: 'goToFlow', flowId: 'faq' },
+        },
+        { id: 'after', type: 'message', content: 'De volta' },
+      ],
+    };
+    const plan = planFlowTurn({
+      flow: withJump,
+      flows: [withJump, faq],
+      session: null,
+      contactId: '5511999999999',
+      incomingText: 'oi',
+      now,
+    });
+    expect(plan.replies.map((reply) => reply.content)).toEqual(['Ajuda rápida', 'De volta']);
+    expect(plan.nextSession.flowId).toBe('inicio');
+    expect(plan.nextSession.returnStack).toBeUndefined();
+  });
+
+  it('handoff pausa e pode gravar setor', () => {
+    const withHandoff: Flow = {
+      ...flow,
+      steps: [
+        {
+          id: 'h',
+          type: 'action',
+          content: 'Um humano vem',
+          action: { type: 'handoff', departmentId: '1' },
+        },
+      ],
+    };
+    const plan = planFlowTurn({
+      flow: withHandoff,
+      session: null,
+      contactId: '5511999999999',
+      incomingText: 'oi',
+      now,
+    });
+    expect(plan.effects).toEqual([{ type: 'setDepartment', departmentId: '1' }]);
+    expect(plan.replies[0].content).toBe('Um humano vem');
+    expect(plan.nextSession.paused).toBe(true);
+  });
+
+  it('palavra-chave de outro fluxo ativo inicia esse roteiro', () => {
+    const price: Flow = {
+      id: 'preco',
+      name: 'Preço',
+      isActive: true,
+      keywords: ['preço', 'valor'],
+      createdAt: now,
+      updatedAt: now,
+      steps: [{ id: 'p', type: 'message', content: 'Tabela de valores' }],
+    };
+    const plan = planFlowTurn({
+      flow,
+      flows: [flow, price],
+      session: {
+        contactId: '5511999999999',
+        flowId: 'inicio',
+        currentStepId: 'ask',
+        paused: false,
+        updatedAt: now,
+      },
+      contactId: '5511999999999',
+      incomingText: 'quero o preço',
+      now,
+    });
+    expect(plan.replies.map((reply) => reply.content)).toEqual(['Tabela de valores']);
+    expect(plan.nextSession.flowId).toBe('preco');
+  });
 });

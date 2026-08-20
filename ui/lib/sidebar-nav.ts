@@ -67,6 +67,7 @@ export function sidebarGroupsForRole(role: 'admin' | 'user'): SidebarGroup[] {
 const extraTitles: { href: string; title: string }[] = [
   { href: '/dashboard/messages', title: 'Mensagens' },
   { href: '/dashboard/chatbots', title: 'Chatbots' },
+  { href: '/dashboard/flows/new', title: 'Novo fluxo' },
 ];
 
 export function isSidebarItemActive(pathname: string, href: string): boolean {

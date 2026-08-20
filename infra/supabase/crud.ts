@@ -1,5 +1,6 @@
 import { SupabaseClient } from '@supabase/supabase-js';
 import { ICrudRepository } from '../../core/repositories/ICrudRepository';
+import { stripMissingColumn } from './missingColumn';
 
 export function asDate(value: unknown): Date {
   if (value instanceof Date) {
@@ -13,6 +14,27 @@ export function asStringArray(value: unknown): string[] {
     return [];
   }
   return value.map((item) => String(item));
+}
+
+export async function upsertOmittingMissingColumns(
+  client: SupabaseClient,
+  table: string,
+  row: Record<string, unknown>,
+  columns: readonly string[]
+): Promise<void> {
+  let current = row;
+  for (let attempt = 0; attempt <= columns.length; attempt += 1) {
+    const { error } = await client.from(table).upsert(current);
+    if (!error) {
+      return;
+    }
+    const next = stripMissingColumn(current, error, columns);
+    if (!next) {
+      throw error;
+    }
+    current = next;
+  }
+  throw new Error(`Não foi possível gravar ${table}`);
 }
 
 export function createSupabaseCrud<T extends { id: string }>(

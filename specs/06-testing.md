@@ -54,6 +54,9 @@ Runner: Jest + `ts-jest` (`npm test`). Testing Library só quando houver teste d
 - `ui/lib/inbox-notify.test.ts` — som só após a primeira carga, se não lidas sobem
 - `ui/lib/flow-path-map.test.ts` — ligações Depois / Se sim / Se não
 - `ui/lib/flow-canvas-graph.test.ts` — nós sem condições da pergunta; setas next/opção; `canvasPosition`; ligar/desligar handle
+- `ui/lib/flow-health.test.ts` — bloco solto; pergunta sem opção; goToFlow vazio
+- `core/engine/matchFlowByKeyword.test.ts` — atalho de outro fluxo ativo
+- `core/engine/planFlowTurn.test.ts` — também `returnStack`, `handoff`, keyword
 - `core/entities/whatsappNumberLive.test.ts` — lista de Números inclui a sessão ao vivo (wid)
 - `core/usecases/SyncLiveWhatsAppNumberUseCase.test.ts` — primeira conexão grava; poll igual não regrava
 - `ui/lib/status-tone.test.ts` — fila entrada/esperando/finalizado; ligado/desligado
@@ -80,7 +83,7 @@ Runner: Jest + `ts-jest` (`npm test`). Testing Library só quando houver teste d
 - `core/usecases/SetOperatorPasswordUseCase.test.ts` — só admin; senha curta falha; id inexistente 404
 - `ui/lib/emoji.test.ts` — insere emoji na posição do cursor e substitui a seleção; o mesmo helper insere `body` de resposta rápida (texto Unicode, inclusive com emoji)
 - `core/entities/QuickReply.test.ts` — lista ordenada pelo título
-- `ui/lib/catalog-persist-error.test.ts` — PGRST205 vira aviso de migration; 23503 ao excluir fluxo
+- `ui/lib/catalog-persist-error.test.ts` — PGRST205 vira aviso de migration; PGRST204 em flows cita 017; 23503 ao excluir fluxo
 - `ui/lib/catalog-load-phase.test.ts` — enquanto carrega não é empty state
 - `ui/lib/sidebar-nav.test.ts` — atendente vê Conversas, Contatos, `/dashboard/quick-replies` **e** `/dashboard/schedules`; `isAdminPath` dessas duas é false; admin vê Configuração. Sem Testing Library obrigatório para esta feature
 - `ui/lib/inbox-href.test.ts` — Contatos: uma thread → `?conversation=`; nenhuma → `?contact=`; várias → `?contact=` (o menu escolhe o id)

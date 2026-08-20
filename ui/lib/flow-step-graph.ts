@@ -32,21 +32,42 @@ export function addFlowStep(
   return [...steps.slice(0, -1), linked, created];
 }
 
-export type FlowAddKind = 'message' | 'question' | 'action' | 'goToFlow';
+export type FlowAddKind = 'message' | 'question' | 'action' | 'goToFlow' | 'handoff';
 
 export function addFlowKind(
   steps: FlowStep[],
   kind: FlowAddKind,
   extras: AddFlowStepOptions = {}
 ): FlowStep[] {
-  const type = kind === 'goToFlow' ? 'action' : kind;
+  const type = kind === 'goToFlow' || kind === 'handoff' ? 'action' : kind;
   const id = `step-${Date.now()}-${steps.length}`;
   let next = addFlowStep(steps, id, type, extras);
   if (kind === 'goToFlow') {
     const last = next[next.length - 1];
     next = [...next.slice(0, -1), { ...last, action: { type: 'goToFlow', flowId: '' } }];
   }
+  if (kind === 'handoff') {
+    const last = next[next.length - 1];
+    next = [...next.slice(0, -1), { ...last, action: { type: 'handoff', departmentId: '' } }];
+  }
   return next;
+}
+
+export function duplicateVisibleFlowStep(steps: FlowStep[], stepId: string): FlowStep[] {
+  const index = steps.findIndex((step) => step.id === stepId);
+  const step = steps[index];
+  if (!step) {
+    return steps;
+  }
+  const copy: FlowStep = {
+    ...step,
+    id: `step-${Date.now()}-copy`,
+    nextStepId: undefined,
+    canvasPosition: step.canvasPosition
+      ? { x: step.canvasPosition.x + 48, y: step.canvasPosition.y + 48 }
+      : undefined,
+  };
+  return [...steps, copy];
 }
 
 export function moveStepToStart(steps: FlowStep[], stepId: string): FlowStep[] {

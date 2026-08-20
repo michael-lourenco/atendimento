@@ -34,6 +34,9 @@ function stepTypeLabel(step: FlowStep): string {
   if (step.action?.type === 'goToFlow') {
     return 'Ir para fluxo';
   }
+  if (step.action?.type === 'handoff') {
+    return 'Passar para atendente';
+  }
   return STEP_TYPE_LABELS[step.type];
 }
 
@@ -42,11 +45,15 @@ function stepPreview(
   departments: NamedDepartment[],
   flows: NamedFlow[]
 ): string {
-  if (step.action?.type === 'goToFlow') {
-    return flows.find((item) => item.id === step.action?.flowId)?.name ?? '';
+  const action = step.action;
+  if (action?.type === 'goToFlow') {
+    return flows.find((item) => item.id === action.flowId)?.name ?? '';
   }
-  if (step.type === 'action' && step.action?.type === 'setDepartment') {
-    return departments.find((item) => item.id === step.action?.departmentId)?.name ?? '';
+  if (action?.type === 'handoff') {
+    return departments.find((item) => item.id === action.departmentId)?.name ?? 'time';
+  }
+  if (action?.type === 'setDepartment') {
+    return departments.find((item) => item.id === action.departmentId)?.name ?? '';
   }
   if (step.type === 'condition') {
     const value = step.condition?.value?.trim() ?? '';
@@ -64,15 +71,19 @@ export function stepCollapsedHint(
   departments: NamedDepartment[] = [],
   flows: NamedFlow[] = []
 ): string {
+  const action = step.action;
   if (step.type === 'question') {
     const count = (step.options ?? []).map((item) => item.trim()).filter(Boolean).length;
     return count === 1 ? '1 opção' : `${count} opções`;
   }
-  if (step.action?.type === 'goToFlow') {
-    return flows.find((item) => item.id === step.action.flowId)?.name || 'sem fluxo';
+  if (action?.type === 'goToFlow') {
+    return flows.find((item) => item.id === action.flowId)?.name || 'sem fluxo';
+  }
+  if (action?.type === 'handoff') {
+    return departments.find((item) => item.id === action.departmentId)?.name || 'sem setor';
   }
   if (step.type === 'action') {
-    const departmentId = step.action?.type === 'setDepartment' ? step.action.departmentId : '';
+    const departmentId = action?.type === 'setDepartment' ? action.departmentId : '';
     return departments.find((item) => item.id === departmentId)?.name || 'sem setor';
   }
   if (step.type === 'condition') {

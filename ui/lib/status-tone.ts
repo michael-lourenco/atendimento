@@ -44,6 +44,7 @@ export const flowCanvasNodeBorder: Record<string, string> = {
   condition: 'border-violet-500',
   action: 'border-emerald-500',
   goToFlow: 'border-sky-400',
+  handoff: 'border-amber-600',
 };
 
 export const flowPathLabelClass: Record<string, string> = {

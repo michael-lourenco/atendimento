@@ -60,6 +60,11 @@ describe('addFlowKind', () => {
     expect(next[0].nextStepId).toBeUndefined();
     expect(next[1].action).toEqual({ type: 'goToFlow', flowId: '' });
   });
+
+  it('creates a handoff action', () => {
+    const next = addFlowKind([], 'handoff');
+    expect(next[0].action).toEqual({ type: 'handoff', departmentId: '' });
+  });
 });
 
 describe('moveStepToStart', () => {

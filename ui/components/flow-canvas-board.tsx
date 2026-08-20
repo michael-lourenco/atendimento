@@ -22,6 +22,7 @@ import { DragEvent, useCallback, useEffect, useMemo, useRef, useState } from 're
 import { FlowCanvasNode, FlowCanvasNodeData, FlowCanvasRfNode } from '@/ui/components/flow-canvas-node';
 import { FLOW_KIND_MIME } from '@/ui/components/flow-canvas-palette';
 import { flowCanvasLinks, setCanvasPosition, setStepLink, sourceHandlesFor } from '@/ui/lib/flow-canvas-graph';
+import { flowHealthIssues, issuesForStep } from '@/ui/lib/flow-health';
 import { fallbackCanvasPosition } from '@/ui/lib/flow-canvas-layout';
 import { stepCollapsedHint, STEP_TYPE_LABELS } from '@/ui/lib/flow-step-copy';
 import { addFlowKind, FlowAddKind } from '@/ui/lib/flow-step-graph';
@@ -33,7 +34,7 @@ const nodeTypes = { flowStep: FlowCanvasNode };
 type FlowCanvasBoardProps = {
   steps: FlowStep[];
   departments: Department[];
-  flows: { id: string; name: string }[];
+  flows: { id: string; name: string; isActive?: boolean }[];
   selectedId: string | null;
   fitSeed: string;
   onChange: (steps: FlowStep[]) => void;
@@ -41,11 +42,23 @@ type FlowCanvasBoardProps = {
 };
 
 function nodeKind(step: FlowStep): string {
-  return step.action?.type === 'goToFlow' ? 'goToFlow' : step.type;
+  if (step.action?.type === 'goToFlow') {
+    return 'goToFlow';
+  }
+  if (step.action?.type === 'handoff') {
+    return 'handoff';
+  }
+  return step.type;
 }
 
 function nodeTitle(step: FlowStep): string {
-  return step.action?.type === 'goToFlow' ? 'Ir para fluxo' : STEP_TYPE_LABELS[step.type];
+  if (step.action?.type === 'goToFlow') {
+    return 'Ir para fluxo';
+  }
+  if (step.action?.type === 'handoff') {
+    return 'Atendente';
+  }
+  return STEP_TYPE_LABELS[step.type];
 }
 
 function toNodes(
@@ -54,6 +67,7 @@ function toNodes(
   flows: { id: string; name: string }[],
   selectedId: string | null
 ): FlowCanvasRfNode[] {
+  const issues = flowHealthIssues(steps, flows);
   return visibleFlowSteps(steps).map(({ step }, index) => ({
     id: step.id,
     type: 'flowStep' as const,
@@ -64,6 +78,7 @@ function toNodes(
       hint: stepCollapsedHint(step, departments, flows),
       isStart: steps[0]?.id === step.id,
       kind: nodeKind(step),
+      warning: issuesForStep(issues, step.id).length > 0,
       handles: sourceHandlesFor(step),
     },
   }));
@@ -184,7 +199,7 @@ function FlowCanvasBoardInner({
 
   return (
     <div
-      className="flow-canvas relative h-[min(70vh,640px)] overflow-hidden rounded-md border border-border bg-muted/30"
+      className="flow-canvas relative h-[min(82vh,760px)] min-h-[480px] w-full overflow-hidden rounded-md border border-border bg-muted/30"
       onDragOver={(event) => event.preventDefault()}
       onDrop={onDrop}
     >
@@ -205,6 +220,7 @@ function FlowCanvasBoardInner({
         deleteKeyCode={['Backspace', 'Delete']}
         nodesConnectable
         elementsSelectable
+        style={{ width: '100%', height: '100%' }}
       >
         <Background gap={18} />
         <Controls showInteractive={false} />
@@ -215,7 +231,7 @@ function FlowCanvasBoardInner({
             const kind = node.data?.kind ?? 'message';
             if (kind === 'question') return '#f59e0b';
             if (kind === 'condition') return '#8b5cf6';
-            if (kind === 'action') return '#10b981';
+            if (kind === 'action' || kind === 'handoff') return '#10b981';
             return '#0ea5e9';
           }}
         />

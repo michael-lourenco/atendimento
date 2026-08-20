@@ -22,7 +22,9 @@ Todas as rotas abaixo são **funcionais** (use case + mock). Nenhuma é vitrine.
 
 | Rota | Use cases | Persistência Fase 3 |
 |------|-----------|---------------------|
-| `/dashboard/flows` | `GetAll` / `Save` / `Delete` Flow; editor de passos (`action` pode definir setor) | `IFlowRepository` + departamentos |
+| `/dashboard/flows` | lista + duplicar + excluir | `IFlowRepository` + departamentos |
+| `/dashboard/flows/new` | editor em tela cheia (criar) | mesmo |
+| `/dashboard/flows/[flowId]` | editor em tela cheia (editar) | mesmo |
 | `/dashboard/messages` | histórico geral (sem thread) | mensagens |
 | `/dashboard/conversations` | inbox: lista + chat (`?conversation=`); Assumir/Transferir/Setor/Finalizar/Agendar no menu **⋯** | conversa + agentes + departamentos + usuário |
 | `/dashboard/whatsapp` | QR + status **por linha** (`?instance=`); atalho para Conversas | BFF `/api/chat-whatsapp/qr` e `/status` |
@@ -39,9 +41,9 @@ Todas as rotas abaixo são **funcionais** (use case + mock). Nenhuma é vitrine.
 
 Catálogo = `list` / `save` / `delete` via `CatalogUseCase` (subclasses no locator). Páginas **não** importam `infra/mocks`.
 
-**Fluxos:** o formulário edita o roteiro num **quadro** (arrastar blocos, zoom, ligar bolinhas), lib `@xyflow/react`. Paleta: **Mensagem**, **Pergunta**, **Definir setor**, **Ir para fluxo** — clique adiciona; também dá para arrastar a paleta para o quadro. Clique no bloco abre o **inspetor** (texto, opções, setor, fluxo destino). Puxar a seta da bolinha direita até outro bloco grava o destino (`nextStepId`, ramo da opção, se sim / se não). Condições da cadeia de uma **Pergunta** **não** viram cartões no quadro: cada opção é uma bolinha na pergunta. “Aplicar opções no roteiro” ainda gera a cadeia se faltar. O `id` do passo **não** é digitado. Arrastar o bloco **não** muda a ordem de execução: o atendimento **começa no primeiro passo da lista** (selo **Início** no quadro); “Começar por este bloco” move esse passo para o índice 0. Posição (`canvasPosition`) grava no JSONB do fluxo; o motor ignora. Sem posição salva, o quadro organiza sozinho; o botão **Organizar** refaz o layout. Prévia **Como o cliente vê** fica ao lado do quadro. `action` + setor = `setDepartment`. `action` + fluxo = `goToFlow` (a sessão muda para o destino no mesmo turno; novos contatos continuam no selo WhatsApp). Sem volta automática ao fluxo de origem. Opções no WhatsApp saem numeradas (`1. …`); o cliente pode responder com o número ou o texto. Na lista, o fluxo que `resolveActiveFlow` escolher ganha o selo WhatsApp. Empty state com ação de criar. **Excluir** apaga o fluxo e as sessões daquele roteiro (a próxima mensagem do contato cai no fluxo de entrada); chatbots que apontavam para ele ficam sem `flowId`. Se a exclusão falhar, a página mostra o erro (não só o console).
+**Fluxos:** `/dashboard/flows` é a **lista**. Criar/editar abre **tela cheia** (`/dashboard/flows/new` ou `/dashboard/flows/[flowId]`). O **quadro** (`@xyflow/react`) é a área principal (arrastar, zoom, ligar bolinhas). O formulário do passo fica num **painel sobre o quadro** (não empilha cartões no lugar do canvas). Paleta: Mensagem, Pergunta, Definir setor, Ir para fluxo, **Passar para atendente**. Simulador recolhido no painel. Avisos de roteiro quebrado. Alterações não salvas: banner + `Ctrl`/`⌘`+S. Duplicar fluxo na lista e bloco no quadro. **Ir para fluxo:** botão abre o destino (`?from=`). `goToFlow` com “Ao voltar” empilha retorno. `handoff` pausa para o time. Lista: selo WhatsApp; **Excluir** apaga sessões.
 
-**Caso de sucesso (seed):** o fluxo `inicio` / Atendimento Inicial é só o **menu de entrada** (saudação em nome do **Michael**). Os ramos saltam com `goToFlow` para fluxos ativos menores: `sistema`, `demo`, `cliente`, `comercial` (`setDepartment` 1/2/3 no destino). Fonte: `salesIntakeFlows` em `core/entities/atendimentoInicialFlow.ts` + migrations `003_sales_intake_seed.sql` e `016_split_intake_flows.sql`. Novos contatos entram em `inicio` (selo WhatsApp); os outros ficam ativos para o salto, sem roubar a entrada.
+**Caso de sucesso (seed):** o fluxo `inicio` / Atendimento Inicial é só o **menu de entrada** (saudação em nome do **Michael**). Os ramos saltam com `goToFlow` para fluxos ativos menores: `sistema`, `demo`, `cliente`, `comercial` (`setDepartment` 1/2/3 no destino). Fonte: `salesIntakeFlows` em `core/entities/atendimentoInicialFlow.ts` + migrations `003_sales_intake_seed.sql` e `016_split_intake_flows.sql`. Novos contatos entram em `inicio` (selo WhatsApp); os outros ficam ativos para o salto, sem roubar a entrada — salvo `keywords`.
 
 ## Relatórios
 
@@ -106,7 +108,7 @@ Salvar um agendamento chama `POST /api/schedules/dispatch` na hora (no-op se a d
 - Novo item de menu: `sidebarGroups` em `ui/lib/sidebar-nav.ts` **e** esta spec
 - Copy do painel em linguagem de atendimento (“linha”, “número”). Sem jargão de provedor na UI
 - **Carga de listas:** primeira visita mostra **esqueleto** (`CatalogListSkeleton` / inbox `InboxSkeleton`), nunca o empty state. Só depois da resposta: lista ou “nenhum …”. Reload após salvar não volta o esqueleto. Poll (Conversas, Mensagens, Agendamentos) também não.
-- **Confirmação ao salvar:** depois de gravar um catálogo (fluxo, etiqueta, resposta rápida, contato, setor, número, agente, chatbot, agendamento), a página mostra aviso **Salvo** (~3,5s) e o formulário some. Sem lib de toast.
+- **Confirmação ao salvar:** depois de gravar um catálogo (etiqueta, resposta rápida, contato, setor, número, agente, chatbot, agendamento), a página mostra aviso **Salvo** (~3,5s) e o formulário some. No **editor de fluxo** (tela cheia) o aviso **Salvo** aparece e o quadro **permanece**. Sem lib de toast.
 
 ## Fora de escopo (esta melhoria)
 

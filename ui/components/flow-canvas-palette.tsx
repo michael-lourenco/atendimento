@@ -10,6 +10,7 @@ export const FLOW_ADD_KINDS: { kind: FlowAddKind; label: string; hint: string }[
   { kind: 'question', label: 'Pergunta', hint: 'Opções 1, 2, 3…' },
   { kind: 'action', label: 'Definir setor', hint: 'Manda a conversa para um setor' },
   { kind: 'goToFlow', label: 'Ir para fluxo', hint: 'Continua em outro roteiro' },
+  { kind: 'handoff', label: 'Passar para atendente', hint: 'Pausa o bot para o time' },
 ];
 
 type FlowCanvasPaletteProps = {

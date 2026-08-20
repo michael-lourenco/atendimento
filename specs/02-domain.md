@@ -5,7 +5,7 @@
 | Entidade | Papel |
 |----------|--------|
 | `User` / `AuthUser` | Operador do painel (`admin` \| `user`) |
-| `Flow` + `FlowStep` | Automação: `message` \| `question` \| `condition` \| `action` (`setDepartment` ou `goToFlow`). `canvasPosition` opcional (só o quadro do painel; o motor ignora) |
+| `Flow` + `FlowStep` | Automação: `message` \| `question` \| `condition` \| `action` (`setDepartment`, `goToFlow` ou `handoff`). `canvasPosition` opcional (só o quadro). `delayMs` (0–8000) e `mediaUrl`/`mediaKind` (`image` \| `audio`) na mensagem. `Flow.keywords` opcional (entrada por atalho) |
 | `FlowSession` | Passo atual do contato no fluxo |
 | `Message` | Mensagem WhatsApp (in/out, tipo, status) |
 | `Conversation` | Atendimento com contato, setor, agente, tags, status |
@@ -85,7 +85,8 @@ Sem atalho de teclado nesta versão. Inserir no compositor é só cliente (mesmo
   contactId: string; // = Conversation.id (thread: telefone ou telefone:lineId)
   flowId: string;
   currentStepId: string | null; // passo aguardando resposta; null = encerrado (próxima msg: só a 1ª question, sem Olá)
-  paused: boolean; // true = operador assumiu; motor não responde
+  paused: boolean; // true = operador assumiu ou passo handoff; motor não responde
+  returnStack?: { flowId: string; resumeStepId: string | null }[]; // pilha de goToFlow
   updatedAt: Date;
 }
 ```
@@ -106,9 +107,10 @@ Planejamento puro em `core/engine` (`planFlowTurn`, `evaluateCondition`, `resolv
 
 - **Sem sessão (primeiro contato):** começa no primeiro passo do fluxo (ex. saudação “Olá”). A mensagem do usuário só dispara o fluxo; o texto alimenta `condition` encontradas **antes** de uma `question` no mesmo turno.
 - **Sessão existe e `currentStepId` null** (já houve atendimento neste fluxo): **não** reenvia as mensagens iniciais. Começa na primeira `question` (só o enunciado e as opções).
-- **`currentStepId` em `question`:** o texto é a resposta; se for só o **número** da opção (`1`, `2`, `1.`, `2)`), o motor troca pelo texto daquela linha (1 = primeira opção) e segue `nextStepId` (não reenvia a pergunta). Número inexistente ou texto livre: usa o que a pessoa digitou.
-- **`message`:** envia `content` se não vazio; segue `nextStepId`.
-- **`action`:** se `action.type === "setDepartment"` e `action.departmentId` existe no catálogo e está ativo, grava o setor da conversa da thread (`SetConversationDepartmentUseCase` com o `Conversation.id`) e **não** envia `content` no WhatsApp. Se `action.type === "goToFlow"` e `action.flowId` é um fluxo **ativo** (e ainda não visitado neste turno), a sessão passa a esse fluxo e o motor **continua no mesmo turno no primeiro passo** do destino (como um primeiro contato). Destino inativo, inexistente ou ciclo (A→B→A) → não salta; segue `nextStepId` se houver, senão encerra. Sem `setDepartment`/`goToFlow`, comporta-se como `message`. `goToFlow` **não** envia `content`. Novos contatos **continuam** no fluxo de entrada (`inicio` / selo WhatsApp); o salto só vale depois que o roteiro manda. Fluxos reutilizáveis ficam **Ativos**, mas não roubam a entrada enquanto `inicio` estiver ativo. Sem volta automática ao fluxo de origem nesta versão (quando o destino acaba, a sessão permanece nele).
+- **`currentStepId` em `question`:** o texto é a resposta; se for só o **número** da opção (`1`, `2`, `1.`, `2)`), o motor troca pelo texto daquela linha (1 = primeira opção) e segue `nextStepId` (não reenvia a pergunta). Número inexistente ou texto livre: usa o que a pessoa digitou. Se **não** bater com uma opção (número ou texto igual) e o texto coincidir com `keywords` de outro fluxo ativo, entra nesse fluxo no primeiro passo e zera a pilha.
+- **`message`:** envia `content` se não vazio; se `mediaUrl` http(s) e `mediaKind` `image`/`audio`, tenta enviar a mídia (URL inválida = só o texto). `delayMs` (0–8000, padrão 0) pausa **antes** deste envio. Segue `nextStepId`.
+- **`action`:** `setDepartment` grava o setor da thread se o id existir e estiver ativo e **não** envia `content`. `goToFlow` para fluxo **ativo** ainda não visitado **por salto** neste turno: continua no primeiro passo do destino no mesmo turno. Se o passo de salto tiver `nextStepId` (“Ao voltar”), empilha origem e retoma esse passo quando o destino acaba. Sem “Ao voltar”, a sessão permanece no destino. Destino inativo/inexistente/ciclo A→B→A → não salta; segue `nextStepId` se o salto falhar. `goToFlow` **não** envia `content`. Novos contatos entram em `inicio` (selo WhatsApp), salvo palavra-chave. `handoff` envia `content` se houver, grava setor se `departmentId` ativo, `paused: true` e **para**. Sem esses tipos, a action se comporta como `message`.
+- **Palavra-chave (sem pergunta à espera, ou texto que não é opção):** `contains`/`equals` case-insensitive contra `Flow.keywords` de um fluxo ativo **diferente** do atual → primeiro passo desse fluxo, pilha vazia.
 - **`question`:** envia `content`; se houver `options`, concatena uma linha `N. opção` (1-based) por item; grava `currentStepId` nessa pergunta e **para**.
 - **`condition`:** `field` suportado: `content` (texto incoming do turno, **já resolvido** para o texto da opção se a pessoa digitou o número). Outro `field` → ramo `false`. Operadores: `equals` e `contains` (trim, case-insensitive); `greaterThan` / `lessThan` numéricos (`Number`); `NaN` → `false`. Segue `trueStepId` ou `falseStepId`.
 - Passo ou `nextStepId` inexistente → encerra (`currentStepId` null). A próxima mensagem **não** reenvia a abertura: só a primeira `question`. No fluxo `inicio`, o passo `miss` (“Não identifiquei…”) aponta para `menu` no mesmo turno, para reapresentar as opções sem o “Olá”. Ramos do menu usam `goToFlow` para `sistema`, `demo`, `cliente` e `comercial` (`salesIntakeFlows`).
@@ -124,7 +126,9 @@ Entrada do motor: só incoming `type === "text"` com conteúdo não vazio. Mídi
 - Resposta avança `nextStepId`.
 - `condition` ramos true e false (texto da opção ou **número** `1`/`2`/`1.`).
 - `action` `setDepartment` grava o setor da conversa da thread (`id`).
-- `action` `goToFlow` troca a sessão para o fluxo destino no mesmo turno; destino inativo não salta.
+- `action` `goToFlow` troca a sessão para o fluxo destino no mesmo turno; destino inativo não salta; ao acabar o destino, retoma a origem (`returnStack`).
+- `action` `handoff` pausa a sessão (e grava setor se houver).
+- Palavra-chave de outro fluxo ativo inicia esse roteiro.
 - Sessão `paused` não dispara resposta automática.
 - `PauseContactFlowUseCase` / `ResumeContactFlowUseCase` atuam na sessão cujo `contactId` é o id da conversa.
 - Duas linhas WhatsApp = duas conversas e duas sessões; legado (`id` = telefone) não duplica.

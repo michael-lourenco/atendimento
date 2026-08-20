@@ -8,6 +8,7 @@ export type FlowCanvasNodeData = {
   hint: string;
   isStart: boolean;
   kind: string;
+  warning: boolean;
   handles: { id: string; label: string }[];
 };
 
@@ -29,6 +30,11 @@ export function FlowCanvasNode({ data, selected }: NodeProps<FlowCanvasRfNode>) 
           {data.isStart ? (
             <span className="rounded bg-primary px-1.5 py-0.5 text-[10px] font-medium text-primary-foreground">
               Início
+            </span>
+          ) : null}
+          {data.warning ? (
+            <span className="rounded bg-destructive px-1.5 py-0.5 text-[10px] font-medium text-destructive-foreground">
+              !
             </span>
           ) : null}
           <p className="truncate text-sm font-medium text-foreground">{data.title}</p>

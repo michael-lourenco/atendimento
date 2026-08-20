@@ -23,5 +23,7 @@ describe('sidebarGroupsForRole', () => {
     expect(isAdminPath('/dashboard/conversations')).toBe(false);
     expect(isAdminPath('/dashboard/quick-replies')).toBe(false);
     expect(isAdminPath('/dashboard/schedules')).toBe(false);
+    expect(isAdminPath('/dashboard/flows/inicio')).toBe(true);
+    expect(isAdminPath('/dashboard/flows/new')).toBe(true);
   });
 });

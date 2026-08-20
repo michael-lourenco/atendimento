@@ -6,8 +6,7 @@ import { IMessageRepository } from '../../core/repositories/IMessageRepository';
 import { IFlowSessionRepository } from '../../core/repositories/IFlowSessionRepository';
 import { IConversationRepository } from '../../core/repositories/IConversationRepository';
 import { IInternalMessageRepository } from '../../core/repositories/IInternalMessageRepository';
-import { createSupabaseCrud } from './crud';
-import { isMissingColumnError } from './missingColumn';
+import { createSupabaseCrud, upsertOmittingMissingColumns } from './crud';
 import {
   agentFromRow,
   agentToRow,
@@ -44,12 +43,14 @@ import { InternalMessage } from '../../core/entities/InternalMessage';
 
 function createFlowRepository(client: SupabaseClient): IFlowRepository {
   const crud = createSupabaseCrud<Flow>(client, 'flows', flowFromRow, flowToRow);
+  const save = (flow: Flow) =>
+    upsertOmittingMissingColumns(client, 'flows', flowToRow(flow), ['keywords']);
   return {
     getAll: () => crud.getAll(),
     getById: (id) => crud.getById(id),
-    save: (flow) => crud.save(flow),
+    save,
     delete: (id) => crud.delete(id),
-    update: (flow) => crud.save(flow),
+    update: save,
   };
 }
 
@@ -104,14 +105,19 @@ function createSessionRepository(client: SupabaseClient): IFlowSessionRepository
       return data ? sessionFromRow(data as Record<string, unknown>) : null;
     },
     async save(session: FlowSession) {
-      const { error } = await client.from('flow_sessions').upsert({
-        contact_id: session.contactId,
-        flow_id: session.flowId,
-        current_step_id: session.currentStepId,
-        paused: session.paused,
-        updated_at: session.updatedAt.toISOString(),
-      });
-      if (error) throw error;
+      await upsertOmittingMissingColumns(
+        client,
+        'flow_sessions',
+        {
+          contact_id: session.contactId,
+          flow_id: session.flowId,
+          current_step_id: session.currentStepId,
+          paused: session.paused,
+          return_stack: session.returnStack ?? [],
+          updated_at: session.updatedAt.toISOString(),
+        },
+        ['return_stack']
+      );
     },
     async deleteByFlowId(flowId: string) {
       const { error } = await client.from('flow_sessions').delete().eq('flow_id', flowId);
@@ -155,22 +161,12 @@ function createConversationRepository(client: SupabaseClient): IConversationRepo
       return map(data as Record<string, unknown>[]);
     },
     async save(conversation: Conversation) {
-      let row: Record<string, unknown> = conversationToRow(conversation);
-      for (let attempt = 0; attempt < 4; attempt += 1) {
-        const result = await client.from('conversations').upsert(row);
-        if (!result.error) {
-          return;
-        }
-        const missing = (['last_message', 'contact_avatar_url'] as const).find(
-          (column) => isMissingColumnError(result.error, column) && column in row
-        );
-        if (!missing) {
-          throw result.error;
-        }
-        const { [missing]: _ignored, ...rest } = row;
-        row = rest;
-      }
-      throw new Error('Não foi possível gravar a conversa');
+      await upsertOmittingMissingColumns(
+        client,
+        'conversations',
+        conversationToRow(conversation),
+        ['last_message', 'contact_avatar_url']
+      );
     },
     async delete(id: string) {
       const { error } = await client.from('conversations').delete().eq('id', id);

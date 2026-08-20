@@ -36,6 +36,9 @@ export function sourceHandlesFor(step: FlowStep): FlowCanvasHandle[] {
     ];
   }
   if (step.action?.type === 'goToFlow') {
+    return [{ id: 'next', label: 'Ao voltar' }];
+  }
+  if (step.action?.type === 'handoff') {
     return [];
   }
   return [{ id: 'next', label: 'Depois' }];
@@ -83,6 +86,17 @@ export function flowCanvasLinks(steps: FlowStep[]): FlowCanvasLink[] {
       continue;
     }
     if (step.action?.type === 'goToFlow') {
+      if (step.nextStepId && visible.has(step.nextStepId)) {
+        links.push({
+          sourceId: step.id,
+          sourceHandle: 'next',
+          targetId: step.nextStepId,
+          label: 'Ao voltar',
+        });
+      }
+      continue;
+    }
+    if (step.action?.type === 'handoff') {
       continue;
     }
     if (step.nextStepId && visible.has(step.nextStepId)) {

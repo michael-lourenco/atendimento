@@ -1,22 +1,18 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { GetAllFlowsUseCase } from '@/core/usecases/GetAllFlowsUseCase';
 import { DeleteFlowUseCase } from '@/core/usecases/DeleteFlowUseCase';
 import { SaveFlowUseCase } from '@/core/usecases/SaveFlowUseCase';
-import { Flow, FlowStep } from '@/core/entities/Flow';
-import { Department } from '@/core/entities/Department';
-import { DepartmentCatalogUseCase } from '@/core/usecases/DepartmentCatalogUseCase';
+import { Flow } from '@/core/entities/Flow';
+import { duplicateFlow } from '@/core/entities/duplicateFlow';
 import { resolveActiveFlow } from '@/core/engine/resolveActiveFlow';
-import { FlowStepsEditor } from '@/ui/components/flow-steps-editor';
 import { EmptyState } from '@/ui/components/empty-state';
 import { CatalogListSkeleton } from '@/ui/components/catalog-list-skeleton';
 import { Button } from '@/ui/components/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/ui/components/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/ui/components/table';
-import { Input } from '@/ui/components/input';
-import { Label } from '@/ui/components/label';
-import { Textarea } from '@/ui/components/textarea';
 import { Badge } from '@/ui/components/badge';
 import { useConfirm } from '@/ui/components/confirm-dialog';
 import { CatalogSavedNotice } from '@/ui/components/catalog-saved-notice';
@@ -24,117 +20,53 @@ import { useCatalogSavedFlash } from '@/ui/lib/use-catalog-saved-flash';
 import { catalogPersistErrorMessage } from '@/ui/lib/catalog-persist-error';
 
 export default function FlowsPage() {
+  const router = useRouter();
   const [flows, setFlows] = useState<Flow[]>([]);
-  const [departments, setDepartments] = useState<Department[]>([]);
-  const [steps, setSteps] = useState<FlowStep[]>([]);
   const [loading, setLoading] = useState(true);
-  const [showForm, setShowForm] = useState(false);
-  const [editingFlow, setEditingFlow] = useState<Flow | null>(null);
-  const [formData, setFormData] = useState({
-    id: '',
-    name: '',
-    description: '',
-    isActive: true,
-  });
   const { confirm, dialog } = useConfirm();
   const { show, markSaved } = useCatalogSavedFlash();
   const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    void loadFlows(true);
-  }, []);
 
   const loadFlows = async (showLoading = false) => {
     if (showLoading) {
       setLoading(true);
     }
     try {
-      const [allFlows, departmentList] = await Promise.all([
-        new GetAllFlowsUseCase().execute(),
-        new DepartmentCatalogUseCase().list(),
-      ]);
-      setFlows(allFlows);
-      setDepartments(departmentList);
-    } catch (error) {
-      console.error('Erro ao carregar fluxos:', error);
+      setFlows(await new GetAllFlowsUseCase().execute());
+    } catch (loadError) {
+      console.error('Erro ao carregar fluxos:', loadError);
     } finally {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    void loadFlows(true);
+  }, []);
 
   const handleDelete = async (id: string) => {
     if (!(await confirm('Excluir este fluxo?'))) {
       return;
     }
     try {
-      const deleteFlowUseCase = new DeleteFlowUseCase();
-      await deleteFlowUseCase.execute(id);
+      await new DeleteFlowUseCase().execute(id);
       setError(null);
       loadFlows();
-    } catch (error) {
-      console.error('Erro ao excluir fluxo:', error);
-      setError(catalogPersistErrorMessage(error, 'flows'));
+    } catch (deleteError) {
+      console.error('Erro ao excluir fluxo:', deleteError);
+      setError(catalogPersistErrorMessage(deleteError, 'flows'));
     }
   };
 
-  const handleEdit = (flow: Flow) => {
-    setEditingFlow(flow);
-    setFormData({
-      id: flow.id,
-      name: flow.name,
-      description: flow.description || '',
-      isActive: flow.isActive,
-    });
-    setSteps(flow.steps);
-    setShowForm(true);
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    await saveFlow();
-  };
-
-  const saveFlow = async () => {
-    if (!formData.name.trim()) {
-      setError('Dê um nome ao fluxo.');
-      return;
-    }
+  const handleDuplicate = async (flow: Flow) => {
     try {
-      const saveFlowUseCase = new SaveFlowUseCase();
-      const flow: Flow = {
-        id: formData.id || `flow-${Date.now()}`,
-        name: formData.name,
-        description: formData.description,
-        isActive: formData.isActive,
-        steps,
-        createdAt: editingFlow?.createdAt || new Date(),
-        updatedAt: new Date(),
-      };
-      await saveFlowUseCase.execute(flow);
-      setError(null);
-      setShowForm(false);
-      setEditingFlow(null);
-      setSteps([]);
-      setFormData({ id: '', name: '', description: '', isActive: true });
+      await new SaveFlowUseCase().execute(duplicateFlow(flow));
       markSaved();
       loadFlows();
-    } catch (error) {
-      console.error('Erro ao salvar fluxo:', error);
+    } catch (dupError) {
+      console.error('Erro ao duplicar fluxo:', dupError);
+      setError(catalogPersistErrorMessage(dupError, 'flows'));
     }
-  };
-
-  const handleCancel = () => {
-    setShowForm(false);
-    setEditingFlow(null);
-    setSteps([]);
-    setFormData({ id: '', name: '', description: '', isActive: true });
-  };
-
-  const openNew = () => {
-    setEditingFlow(null);
-    setSteps([]);
-    setFormData({ id: '', name: '', description: '', isActive: true });
-    setShowForm(true);
   };
 
   if (loading) {
@@ -159,71 +91,10 @@ export default function FlowsPage() {
       ) : null}
       <div className="mb-6 flex flex-wrap items-center justify-between gap-2">
         <p className="text-muted-foreground">
-          O roteiro que o chatbot envia no WhatsApp. Só um fluxo ativo entra no ar.
+          O roteiro que o chatbot envia no WhatsApp. Só um fluxo ativo entra no ar, salvo palavra-chave.
         </p>
-        <Button onClick={openNew}>Novo Fluxo</Button>
+        <Button onClick={() => router.push('/dashboard/flows/new')}>Novo Fluxo</Button>
       </div>
-
-      {showForm && (
-        <Card className="mb-6">
-          <CardHeader>
-            <CardTitle>{editingFlow ? 'Editar Fluxo' : 'Novo Fluxo'}</CardTitle>
-            <CardDescription>
-              Arraste os blocos no quadro, ligue as bolinhas e salve no final.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="name">Nome</Label>
-                <Input
-                  id="name"
-                  value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  required
-                  className="bg-background"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="description">Descrição</Label>
-                <Textarea
-                  id="description"
-                  value={formData.description}
-                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                  className="bg-background"
-                />
-              </div>
-              <div className="flex items-center space-x-2">
-                <input
-                  type="checkbox"
-                  id="isActive"
-                  checked={formData.isActive}
-                  onChange={(e) => setFormData({ ...formData, isActive: e.target.checked })}
-                  className="rounded border-border accent-accent"
-                />
-                <Label htmlFor="isActive" className="cursor-pointer">Ativo</Label>
-              </div>
-            </form>
-            <FlowStepsEditor
-              key={formData.id || editingFlow?.id || 'new'}
-              steps={steps}
-              departments={departments}
-              flows={flows}
-              currentFlowId={formData.id || editingFlow?.id}
-              onChange={setSteps}
-            />
-            <div className="sticky bottom-0 z-10 flex space-x-2 border-t border-border bg-card py-3">
-              <Button type="button" onClick={() => void saveFlow()}>
-                Salvar fluxo
-              </Button>
-              <Button type="button" variant="outline" onClick={handleCancel}>
-                Cancelar
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
       <Card>
         <CardHeader>
           <CardTitle>Lista de Fluxos</CardTitle>
@@ -235,7 +106,7 @@ export default function FlowsPage() {
               title="Nenhum fluxo cadastrado"
               description="Crie o Atendimento Inicial: o cliente recebe as mensagens nesta ordem no WhatsApp."
               actionLabel="Novo fluxo"
-              onAction={openNew}
+              onAction={() => router.push('/dashboard/flows/new')}
             />
           ) : (
             <Table>
@@ -265,19 +136,18 @@ export default function FlowsPage() {
                     </TableCell>
                     <TableCell>{flow.steps.length}</TableCell>
                     <TableCell>
-                      <div className="flex space-x-2">
+                      <div className="flex flex-wrap gap-2">
                         <Button
                           variant="outline"
                           size="sm"
-                          onClick={() => handleEdit(flow)}
+                          onClick={() => router.push(`/dashboard/flows/${flow.id}`)}
                         >
                           Editar
                         </Button>
-                        <Button
-                          variant="destructive"
-                          size="sm"
-                          onClick={() => handleDelete(flow.id)}
-                        >
+                        <Button variant="outline" size="sm" onClick={() => void handleDuplicate(flow)}>
+                          Duplicar
+                        </Button>
+                        <Button variant="destructive" size="sm" onClick={() => handleDelete(flow.id)}>
                           Excluir
                         </Button>
                       </div>
@@ -292,4 +162,3 @@ export default function FlowsPage() {
     </div>
   );
 }
-
