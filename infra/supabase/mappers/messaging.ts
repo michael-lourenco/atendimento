@@ -129,7 +129,6 @@ export function conversationToRow(conversation: Conversation) {
     department_name: conversation.departmentName ?? null,
     assigned_agent_id: conversation.assignedAgentId ?? null,
     assigned_agent_name: conversation.assignedAgentName ?? null,
-    whatsapp_number_id: conversation.whatsappNumberId ?? null,
     status: conversation.status,
     unread_count: conversation.unreadCount,
     last_activity: conversation.lastActivity.toISOString(),
@@ -138,6 +137,9 @@ export function conversationToRow(conversation: Conversation) {
   };
   if (conversation.lastMessage) {
     row.last_message = messageToRow(conversation.lastMessage);
+  }
+  if (conversation.whatsappNumberId) {
+    row.whatsapp_number_id = conversation.whatsappNumberId;
   }
   if (conversation.contactAvatarUrl) {
     row.contact_avatar_url = conversation.contactAvatarUrl;

@@ -36,7 +36,7 @@ Todas as rotas abaixo são **funcionais** (use case + mock). Nenhuma é vitrine.
 | `/dashboard/numbers` | catálogo de **linhas** (nome visível; `instanceName` gerado) + status por linha | `IWhatsAppNumberRepository` + `/api/chat-whatsapp/status` |
 | `/dashboard/tags` | catálogo | `ITagRepository` |
 | `/dashboard/quick-replies` | catálogo **funcional** da empresa (atendente e admin; **não** `adminOnly`) | `QuickReplyCatalogUseCase` / `IQuickReplyRepository` |
-| `/dashboard/schedules` | catálogo **funcional** da empresa (atendente e admin; **não** `adminOnly`) + picker + disparo na hora | `IScheduledMessageRepository` + `ContactCatalogUseCase` + cron / `POST /api/schedules/dispatch` |
+| `/dashboard/schedules` | catálogo **funcional** da empresa (atendente e admin; **não** `adminOnly`) + picker + disparo na hora. Lista conversas **sem** gravar snapshot `last_message` | `IScheduledMessageRepository` + `ContactCatalogUseCase` + cron / `POST /api/schedules/dispatch` |
 | `/dashboard/reports` | métricas + lista/gerar | mensagens/conversas + `IReportRepository` |
 
 Catálogo = `list` / `save` / `delete` via `CatalogUseCase` (subclasses no locator). Páginas **não** importam `infra/mocks`.

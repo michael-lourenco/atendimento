@@ -37,6 +37,7 @@ import {
 } from './mappers';
 import { Flow } from '../../core/entities/Flow';
 import { Chatbot } from '../../core/entities/Chatbot';
+import { ScheduledMessage } from '../../core/entities/ScheduledMessage';
 import { Message } from '../../core/entities/Message';
 import { FlowSession } from '../../core/entities/FlowSession';
 import { Conversation } from '../../core/entities/Conversation';
@@ -166,7 +167,7 @@ function createConversationRepository(client: SupabaseClient): IConversationRepo
         client,
         'conversations',
         conversationToRow(conversation),
-        ['last_message', 'contact_avatar_url', 'assigned_at']
+        ['last_message', 'contact_avatar_url', 'assigned_at', 'whatsapp_number_id']
       );
     },
     async delete(id: string) {
@@ -217,6 +218,25 @@ function createChatbotRepository(client: SupabaseClient) {
   };
 }
 
+function createScheduledMessageRepository(client: SupabaseClient) {
+  const crud = createSupabaseCrud<ScheduledMessage>(
+    client,
+    'scheduled_messages',
+    scheduleFromRow,
+    scheduleToRow
+  );
+  const save = (schedule: ScheduledMessage) =>
+    upsertOmittingMissingColumns(client, 'scheduled_messages', scheduleToRow(schedule), [
+      'conversation_id',
+    ]);
+  return {
+    getAll: () => crud.getAll(),
+    getById: (id: string) => crud.getById(id),
+    save,
+    delete: (id: string) => crud.delete(id),
+  };
+}
+
 export function createSupabaseDataBag(
   client: SupabaseClient,
   auth: IAuthRepository
@@ -235,7 +255,7 @@ export function createSupabaseDataBag(
     whatsAppNumber: createSupabaseCrud(client, 'whatsapp_numbers', numberFromRow, numberToRow),
     tag: createSupabaseCrud(client, 'tags', tagFromRow, tagToRow),
     quickReply: createSupabaseCrud(client, 'quick_replies', quickReplyFromRow, quickReplyToRow),
-    scheduledMessage: createSupabaseCrud(client, 'scheduled_messages', scheduleFromRow, scheduleToRow),
+    scheduledMessage: createScheduledMessageRepository(client),
     report: createSupabaseCrud(client, 'reports', reportFromRow, reportToRow),
   };
 }

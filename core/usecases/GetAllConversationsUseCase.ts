@@ -12,7 +12,7 @@ export class GetAllConversationsUseCase {
     private numbers: IWhatsAppNumberRepository = serviceLocator.getWhatsAppNumberRepository()
   ) {}
 
-  async execute(): Promise<Conversation[]> {
+  async execute(persistPreview = true): Promise<Conversation[]> {
     const listed = await this.conversations.getAll();
     if (listed.every((item) => item.lastMessage)) {
       return listed;
@@ -22,11 +22,13 @@ export class GetAllConversationsUseCase {
       this.numbers.getAll(),
     ]);
     const hydrated = attachMissingLastMessages(listed, messageList, numberList);
-    await Promise.allSettled(
-      hydrated
-        .filter((item, index) => item.lastMessage && !listed[index].lastMessage)
-        .map((item) => this.conversations.save(item))
-    );
+    if (persistPreview) {
+      await Promise.allSettled(
+        hydrated
+          .filter((item, index) => item.lastMessage && !listed[index].lastMessage)
+          .map((item) => this.conversations.save(item))
+      );
+    }
     return hydrated;
   }
 }

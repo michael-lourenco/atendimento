@@ -131,4 +131,20 @@ describe('GetAllConversationsUseCase', () => {
     ).execute();
     expect(listed[0].lastMessage?.content).toBe('preciso de ajuda');
   });
+
+  it('execute(false) preenche a prévia e não grava', async () => {
+    const conversations = new MemoryConversations([row()]);
+    let saves = 0;
+    conversations.save = async () => {
+      saves += 1;
+    };
+    const listed = await new GetAllConversationsUseCase(
+      conversations,
+      new MemoryMessages([last]),
+      new MemoryNumbers()
+    ).execute(false);
+    expect(listed[0].lastMessage?.content).toBe('preciso de ajuda');
+    expect(saves).toBe(0);
+    expect(conversations.items[0].lastMessage).toBeUndefined();
+  });
 });

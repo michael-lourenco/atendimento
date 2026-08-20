@@ -18,6 +18,10 @@ describe('conversationToRow', () => {
     expect(conversationToRow(base)).not.toHaveProperty('last_message');
   });
 
+  it('não manda whatsapp_number_id sem linha (evita 400 se a coluna não existir)', () => {
+    expect(conversationToRow(base)).not.toHaveProperty('whatsapp_number_id');
+  });
+
   it('manda last_message quando há prévia', () => {
     const row = conversationToRow({
       ...base,

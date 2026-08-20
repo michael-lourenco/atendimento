@@ -24,6 +24,7 @@ import { Plus } from 'lucide-react';
 import { useConfirm } from '@/ui/components/confirm-dialog';
 import { CatalogListSkeleton } from '@/ui/components/catalog-list-skeleton';
 import { CatalogSavedNotice } from '@/ui/components/catalog-saved-notice';
+import { catalogPersistErrorMessage } from '@/ui/lib/catalog-persist-error';
 import {
   contactPickerLabel,
   findContactByPhone,
@@ -50,6 +51,7 @@ export default function SchedulesPage() {
   const [editing, setEditing] = useState<ScheduledMessage | null>(null);
   const [form, setForm] = useState({ contact: '', newName: '', message: '', scheduledDate: '' });
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const { confirm, dialog } = useConfirm();
   const { show, markSaved } = useCatalogSavedFlash();
 
@@ -61,7 +63,7 @@ export default function SchedulesPage() {
       const [scheduleList, contactList, conversationList, numberList] = await Promise.all([
         catalog().list(),
         contactsCatalog().list(),
-        new GetAllConversationsUseCase().execute(),
+        new GetAllConversationsUseCase().execute(false),
         listWhatsAppNumbersCached(),
       ]);
       setSchedules(scheduleList);
@@ -92,15 +94,21 @@ export default function SchedulesPage() {
     if (!findContactByPhone(contacts, phone)) {
       await new UpsertContactFromIncomingUseCase().execute(phone, form.newName || undefined);
     }
-    await catalog().save({
-      id: editing?.id || `schedule-${Date.now()}`,
-      contact: phone,
-      message: form.message,
-      scheduledDate: new Date(form.scheduledDate),
-      status: editing?.status || 'pending',
-      createdAt: editing?.createdAt || new Date(),
-      conversationId: editing?.conversationId,
-    });
+    setError(null);
+    try {
+      await catalog().save({
+        id: editing?.id || `schedule-${Date.now()}`,
+        contact: phone,
+        message: form.message,
+        scheduledDate: new Date(form.scheduledDate),
+        status: editing?.status || 'pending',
+        createdAt: editing?.createdAt || new Date(),
+        conversationId: editing?.conversationId,
+      });
+    } catch (cause) {
+      setError(catalogPersistErrorMessage(cause, 'scheduled_messages'));
+      return;
+    }
     try {
       await dispatchDueSchedules();
     } catch {
@@ -115,6 +123,7 @@ export default function SchedulesPage() {
     <div>
       {dialog}
       <CatalogSavedNotice show={show} />
+      {error ? <p className="mb-4 text-sm text-destructive">{error}</p> : null}
       <div className="mb-6 flex justify-between items-center">
         <p className="text-muted-foreground">Envio na hora marcada, mesmo com o painel fechado</p>
         <Button onClick={() => setShowForm(true)}>

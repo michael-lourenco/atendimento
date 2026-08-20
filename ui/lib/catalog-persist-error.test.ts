@@ -24,6 +24,15 @@ describe('catalogPersistErrorMessage', () => {
     ).toContain('017_flow_editor_session');
   });
 
+  it('explica conversation_id ausente no agendamento', () => {
+    expect(
+      catalogPersistErrorMessage(
+        { code: 'PGRST204', message: "Could not find the 'conversation_id' column" },
+        'scheduled_messages'
+      )
+    ).toContain('010_schedule_conversation');
+  });
+
   it('usa a mensagem do objeto PostgREST', () => {
     expect(catalogPersistErrorMessage({ message: 'payload too large' }, 'flows')).toBe(
       'payload too large'

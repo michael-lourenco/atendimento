@@ -26,6 +26,9 @@ export function catalogPersistErrorMessage(error: unknown, tableHint: string): s
   if (code === 'PGRST204' && tableHint === 'flows') {
     return 'Falta a coluna keywords no banco. Rode 017_flow_editor_session.sql no SQL Editor do Supabase.';
   }
+  if (code === 'PGRST204' && tableHint === 'scheduled_messages') {
+    return 'Falta a coluna conversation_id no banco. Rode 010_schedule_conversation.sql no SQL Editor do Supabase.';
+  }
   if (code === 'PGRST204') {
     return `Uma coluna ainda não existe em ${tableHint}. Rode a migration correspondente no SQL Editor do Supabase.`;
   }

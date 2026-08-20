@@ -202,15 +202,18 @@ export function scheduleFromRow(row: Record<string, unknown>): ScheduledMessage 
 }
 
 export function scheduleToRow(schedule: ScheduledMessage) {
-  return {
+  const row: Record<string, unknown> = {
     id: schedule.id,
     contact: schedule.contact,
     message: schedule.message,
     scheduled_date: schedule.scheduledDate.toISOString(),
     status: schedule.status,
     created_at: schedule.createdAt.toISOString(),
-    conversation_id: schedule.conversationId || null,
   };
+  if (schedule.conversationId) {
+    row.conversation_id = schedule.conversationId;
+  }
+  return row;
 }
 
 export function reportFromRow(row: Record<string, unknown>): Report {

@@ -13,6 +13,7 @@ import { Label } from '@/ui/components/label';
 import { Textarea } from '@/ui/components/textarea';
 import { CatalogSavedNotice } from '@/ui/components/catalog-saved-notice';
 import { useConfirm } from '@/ui/components/confirm-dialog';
+import { catalogPersistErrorMessage } from '@/ui/lib/catalog-persist-error';
 import { DASHBOARD_POLL_MS } from '@/ui/lib/dashboard-poll';
 import { defaultScheduleDatetimeValue } from '@/ui/lib/datetime-local';
 import { dispatchDueSchedules } from '@/ui/lib/use-dispatch-due-schedules';
@@ -44,6 +45,7 @@ export function ConversationSchedulePanel({
   const [items, setItems] = useState<ScheduledMessage[]>([]);
   const [message, setMessage] = useState('');
   const [scheduledDate, setScheduledDate] = useState(() => defaultScheduleDatetimeValue());
+  const [error, setError] = useState<string | null>(null);
   const { show, markSaved } = useCatalogSavedFlash();
   const { confirm, dialog } = useConfirm();
 
@@ -64,15 +66,21 @@ export function ConversationSchedulePanel({
     if (!text || !scheduledDate) {
       return;
     }
-    await catalog().save({
-      id: `schedule-${Date.now()}`,
-      contact: conversation.contactPhone,
-      message: text,
-      scheduledDate: new Date(scheduledDate),
-      status: 'pending',
-      createdAt: new Date(),
-      conversationId: conversation.id,
-    });
+    setError(null);
+    try {
+      await catalog().save({
+        id: `schedule-${Date.now()}`,
+        contact: conversation.contactPhone,
+        message: text,
+        scheduledDate: new Date(scheduledDate),
+        status: 'pending',
+        createdAt: new Date(),
+        conversationId: conversation.id,
+      });
+    } catch (cause) {
+      setError(catalogPersistErrorMessage(cause, 'scheduled_messages'));
+      return;
+    }
     try {
       await dispatchDueSchedules();
     } catch {
@@ -104,6 +112,7 @@ export function ConversationSchedulePanel({
       {isOpen ? (
         <div className="space-y-3 rounded-md border border-border p-3">
           <CatalogSavedNotice show={show} />
+          {error ? <p className="text-sm text-destructive">{error}</p> : null}
           {hideTrigger ? (
             <div className="flex justify-end">
               <Button type="button" variant="ghost" size="sm" onClick={() => setOpen(false)}>
