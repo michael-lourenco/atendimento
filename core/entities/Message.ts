@@ -1,5 +1,10 @@
 export type MessageStatus = 'pending' | 'sent' | 'delivered' | 'read' | 'failed';
 
+export type MessageReaction = {
+  emoji: string;
+  from: string;
+};
+
 export interface Message {
   id: string;
   from: string;
@@ -12,5 +17,6 @@ export interface Message {
   contactName?: string;
   direction: 'incoming' | 'outgoing';
   status: MessageStatus;
+  reactions?: MessageReaction[];
 }
 

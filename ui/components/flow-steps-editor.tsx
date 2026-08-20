@@ -12,11 +12,10 @@ import {
   moveStepToStart,
 } from '@/ui/lib/flow-step-graph';
 import { applyCanvasLayout, fallbackCanvasPosition } from '@/ui/lib/flow-canvas-layout';
-import { conditionsOwnedByQuestion } from '@/ui/lib/flow-option-paths';
 import { removeVisibleFlowStep, visibleFlowSteps } from '@/ui/lib/flow-step-outline';
 import { flowHealthIssues } from '@/ui/lib/flow-health';
 import { FlowSimulator } from '@/ui/components/flow-simulator';
-import { FlowStepCard } from '@/ui/components/flow-step-card';
+import { FlowStepInspector } from '@/ui/components/flow-step-inspector';
 import { FlowCanvasBoard } from '@/ui/components/flow-canvas-board';
 import { FlowCanvasPalette } from '@/ui/components/flow-canvas-palette';
 
@@ -59,7 +58,6 @@ export function FlowStepsEditor({
 
   const selectedIndex = steps.findIndex((step) => step.id === selectedId);
   const selected = selectedIndex >= 0 ? steps[selectedIndex] : null;
-  const selectedVisibleIndex = visible.findIndex((item) => item.step.id === selectedId);
   const selectedIssues = issues.filter((issue) => issue.stepId === selectedId);
 
   const patch = (index: number, next: FlowStep) => {
@@ -176,23 +174,13 @@ export function FlowStepsEditor({
                     ))}
                   </ul>
                 ) : null}
-                <FlowStepCard
+                <FlowStepInspector
                   step={selected}
                   index={selectedIndex}
-                  visibleIndex={selectedVisibleIndex >= 0 ? selectedVisibleIndex : selectedIndex}
-                  visibleCount={visible.length}
                   steps={steps}
                   departments={activeDepartments}
                   flows={jumpTargets}
-                  expanded
-                  collapsible={false}
-                  showReorder={false}
-                  ownedConditions={conditionsOwnedByQuestion(steps, selected)}
-                  onToggle={() => undefined}
-                  onChange={onChange}
                   onPatch={(next) => patch(selectedIndex, next)}
-                  onPatchAt={patch}
-                  onMove={() => undefined}
                   onOpenFlow={onOpenFlow}
                   onRemove={() => {
                     const next = removeVisibleFlowStep(steps, selected.id);

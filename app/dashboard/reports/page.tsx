@@ -95,6 +95,36 @@ export default function ReportsPage() {
             <p className="text-sm text-muted-foreground mt-2">Outgoing / incoming</p>
           </CardContent>
         </Card>
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg">Tempo até Assumir</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-3xl font-bold text-foreground">
+              {metrics?.avgAssumeMinutes == null ? '—' : `${metrics.avgAssumeMinutes} min`}
+            </div>
+            <p className="text-sm text-muted-foreground mt-2">Média do primeiro Assumir</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg">Volume por setor</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {metrics?.conversationsByDepartment.length ? (
+              <ul className="space-y-1 text-sm">
+                {metrics.conversationsByDepartment.map((item) => (
+                  <li key={item.name} className="flex justify-between gap-2">
+                    <span>{item.name}</span>
+                    <span className="font-medium">{item.count}</span>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="text-sm text-muted-foreground">Sem conversas ainda</p>
+            )}
+          </CardContent>
+        </Card>
       </div>
 
       <Card>

@@ -12,4 +12,6 @@ export interface DashboardMetrics {
   totalMessages: number;
   activeConversations: number;
   responseRatePercent: number;
+  conversationsByDepartment: { name: string; count: number }[];
+  avgAssumeMinutes: number | null;
 }

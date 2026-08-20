@@ -46,6 +46,11 @@ export const sendMessageJsonSchema = z
     }
   });
 
+export const reactMessageBodySchema = z.object({
+  messageId: z.string().trim().min(1, 'Campo obrigatório: messageId'),
+  emoji: z.string().max(16),
+});
+
 export const evolutionWebhookSchema = z
   .object({
     event: z.string().min(1, 'Formato de webhook inválido'),

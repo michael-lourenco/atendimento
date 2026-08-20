@@ -6,6 +6,8 @@ import { HttpBodyError, parseJsonBody } from '@/infra/http/parseJson';
 import { requestIdFrom } from '@/infra/http/requestId';
 import { metaWebhookSchema } from '@/infra/http/schemas';
 import { WhatsAppWebhookEntry } from '@/core/services/IWhatsAppService';
+import { ApplyMessageReactionUseCase } from '@/core/usecases/ApplyMessageReactionUseCase';
+import { mapMetaReactions } from '@/infra/whatsapp/mapMetaReactions';
 
 export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams;
@@ -32,8 +34,12 @@ export async function POST(request: NextRequest) {
     const body = await parseJsonBody(request, metaWebhookSchema);
     if (body.entry && Array.isArray(body.entry)) {
       const useCase = serverLocator.createIncomingHandler();
+      const applyReaction = new ApplyMessageReactionUseCase(serverLocator.getRepos().message);
       for (const entry of body.entry as WhatsAppWebhookEntry[]) {
         await useCase.execute(entry);
+        for (const reaction of mapMetaReactions(entry)) {
+          await applyReaction.execute(reaction);
+        }
       }
     }
     return apiJson(request, { status: 'ok' }, { status: 200 });

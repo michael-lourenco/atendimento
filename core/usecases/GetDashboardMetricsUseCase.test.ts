@@ -89,6 +89,33 @@ describe('GetDashboardMetricsUseCase', () => {
       totalMessages: 3,
       activeConversations: 1,
       responseRatePercent: 50,
+      conversationsByDepartment: [{ name: 'Sem setor', count: 2 }],
+      avgAssumeMinutes: null,
     });
+  });
+
+  it('média até Assumir usa assignedAt', async () => {
+    const created = new Date('2026-08-19T12:00:00Z');
+    const assumed = new Date('2026-08-19T12:05:00Z');
+    const metrics = await new GetDashboardMetricsUseCase(
+      new FakeMessages([]),
+      new FakeConversations([
+        {
+          id: 'c1',
+          contactId: '1',
+          contactName: 'A',
+          contactPhone: '1',
+          status: 'waiting',
+          unreadCount: 0,
+          lastActivity: assumed,
+          createdAt: created,
+          assignedAt: assumed,
+          tags: [],
+          departmentName: 'Comercial',
+        },
+      ])
+    ).execute();
+    expect(metrics.avgAssumeMinutes).toBe(5);
+    expect(metrics.conversationsByDepartment).toEqual([{ name: 'Comercial', count: 1 }]);
   });
 });

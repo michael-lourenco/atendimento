@@ -38,6 +38,7 @@ export class HandleIncomingWhatsAppMessageUseCase {
       const existing = await this.messageRepository.getById(message.id);
       if (existing) {
         message.status = mergeMessageStatus(existing.status, message.status);
+        message.reactions = existing.reactions;
       }
       await this.messageRepository.save(message);
       const phone = contactPhoneFromMessage(message);

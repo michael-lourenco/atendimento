@@ -6,6 +6,7 @@ import {
   evolutionWebhookSchema,
   loginBodySchema,
   metaWebhookSchema,
+  reactMessageBodySchema,
   setOperatorRoleBodySchema,
 } from './schemas';
 
@@ -61,5 +62,11 @@ describe('schemas HTTP', () => {
       }).success
     ).toBe(true);
     expect(metaWebhookSchema.safeParse({ object: 'instagram', entry: [] }).success).toBe(false);
+  });
+
+  it('reação exige messageId', () => {
+    expect(reactMessageBodySchema.safeParse({ messageId: 'm1', emoji: '👍' }).success).toBe(true);
+    expect(reactMessageBodySchema.safeParse({ messageId: '', emoji: '👍' }).success).toBe(false);
+    expect(reactMessageBodySchema.safeParse({ messageId: 'm1', emoji: '' }).success).toBe(true);
   });
 });

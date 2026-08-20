@@ -4,6 +4,7 @@ import { FlowSession } from '../../../core/entities/FlowSession';
 import { Conversation } from '../../../core/entities/Conversation';
 import { InternalMessage } from '../../../core/entities/InternalMessage';
 import { asDate, asStringArray } from '../crud';
+import { reactionsFromUnknown } from '../../../core/entities/messageReaction';
 
 export function flowFromRow(row: Record<string, unknown>): Flow {
   return {
@@ -43,11 +44,12 @@ export function messageFromRow(row: Record<string, unknown>): Message {
     stepId: row.step_id ? String(row.step_id) : undefined,
     direction: row.direction as Message['direction'],
     status: row.status as Message['status'],
+    reactions: reactionsFromUnknown(row.reactions),
   };
 }
 
 export function messageToRow(message: Message) {
-  return {
+  const row: Record<string, unknown> = {
     id: message.id,
     from_address: message.from,
     to_address: message.to,
@@ -58,7 +60,9 @@ export function messageToRow(message: Message) {
     step_id: message.stepId ?? null,
     direction: message.direction,
     status: message.status,
+    reactions: message.reactions ?? [],
   };
+  return row;
 }
 
 export function sessionFromRow(row: Record<string, unknown>): FlowSession {
@@ -70,6 +74,7 @@ export function sessionFromRow(row: Record<string, unknown>): FlowSession {
     returnStack: Array.isArray(row.return_stack)
       ? (row.return_stack as FlowSession['returnStack'])
       : undefined,
+    outsideHoursNotified: Boolean(row.outside_hours_notified),
     updatedAt: asDate(row.updated_at),
   };
 }
@@ -110,6 +115,7 @@ export function conversationFromRow(row: Record<string, unknown>): Conversation 
     createdAt: asDate(row.created_at),
     tags: asStringArray(row.tags),
     contactAvatarUrl: row.contact_avatar_url ? String(row.contact_avatar_url) : undefined,
+    assignedAt: row.assigned_at ? asDate(row.assigned_at) : undefined,
   };
 }
 
@@ -135,6 +141,9 @@ export function conversationToRow(conversation: Conversation) {
   }
   if (conversation.contactAvatarUrl) {
     row.contact_avatar_url = conversation.contactAvatarUrl;
+  }
+  if (conversation.assignedAt) {
+    row.assigned_at = conversation.assignedAt.toISOString();
   }
   return row;
 }

@@ -1,10 +1,11 @@
-import { IWhatsAppService, SendMessageParams, WhatsAppMessageResponse, WhatsAppWebhookEntry } from '../../core/services/IWhatsAppService';
+import { IWhatsAppService, SendMessageParams, SendReactionParams, WhatsAppMessageResponse, WhatsAppWebhookEntry } from '../../core/services/IWhatsAppService';
 import { Message } from '../../core/entities/Message';
 import axios, { AxiosInstance } from 'axios';
 import { mapEvolutionIncomingMessages } from './mapEvolutionIncoming';
 import { parseEvolutionMediaResponse, DownloadedMedia } from './evolutionMedia';
 import { StoredMedia } from '../../core/services/IMediaStorage';
 import { evolutionSendEnvelope, sendEvolutionMedia } from './evolutionSendMedia';
+import { sendEvolutionReaction } from './evolutionSendReaction';
 
 /**
  * Implementação do serviço WhatsApp usando Evolution API como intermediário
@@ -74,6 +75,20 @@ export class EvolutionWhatsAppService implements IWhatsAppService {
     }
   }
 
+  async sendReaction(params: SendReactionParams): Promise<void> {
+    const instanceName = params.instanceName?.trim() || this.instanceName;
+    if (!this.apiKey || !instanceName) {
+      throw new Error('Credenciais Evolution API não configuradas.');
+    }
+    try {
+      await sendEvolutionReaction(this.axiosClient, instanceName, params);
+    } catch (error: unknown) {
+      const err = error as { response?: { data?: { message?: string } }; message?: string };
+      const errorMessage = err.response?.data?.message || err.message || 'Erro desconhecido';
+      throw new Error(`Erro ao enviar reação via Evolution API: ${errorMessage}`);
+    }
+  }
+
   verifyWebhook(mode: string, token: string, challenge: string): string | null {
     // Evolution API não usa verificação no mesmo formato da Meta
     // Mas mantemos compatibilidade para não quebrar o webhook existente
@@ -97,6 +112,9 @@ export class EvolutionWhatsAppService implements IWhatsAppService {
 
       if (value.messages) {
         for (const msg of value.messages) {
+          if (msg.type === 'reaction') {
+            continue;
+          }
           let content = '';
           let type: 'text' | 'image' | 'document' | 'audio' | 'video' = 'text';
 

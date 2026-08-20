@@ -9,7 +9,7 @@ export function normalizeEvolutionEvent(event: unknown): string {
 
 export function isEvolutionInboxEvent(event: unknown): boolean {
   const name = normalizeEvolutionEvent(event);
-  return name === 'messages.upsert' || name === 'messages.update';
+  return name === 'messages.upsert' || name === 'messages.update' || name === 'messages.reaction';
 }
 
 function asItems(data: unknown): Record<string, unknown>[] {

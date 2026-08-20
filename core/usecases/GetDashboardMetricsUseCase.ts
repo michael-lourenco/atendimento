@@ -3,6 +3,33 @@ import { IConversationRepository } from '../repositories/IConversationRepository
 import { IMessageRepository } from '../repositories/IMessageRepository';
 import { serviceLocator } from '../../infra/adapters/ServiceLocator';
 
+export function conversationsByDepartment(
+  conversations: { departmentName?: string }[]
+): { name: string; count: number }[] {
+  const counts = new Map<string, number>();
+  for (const conversation of conversations) {
+    const name = conversation.departmentName?.trim() || 'Sem setor';
+    counts.set(name, (counts.get(name) ?? 0) + 1);
+  }
+  return [...counts.entries()]
+    .map(([name, count]) => ({ name, count }))
+    .sort((left, right) => right.count - left.count || left.name.localeCompare(right.name));
+}
+
+export function avgAssumeMinutes(
+  conversations: { createdAt: Date; assignedAt?: Date }[]
+): number | null {
+  const assumed = conversations.filter((item) => item.assignedAt);
+  if (assumed.length === 0) {
+    return null;
+  }
+  const totalMs = assumed.reduce(
+    (sum, item) => sum + (item.assignedAt!.getTime() - item.createdAt.getTime()),
+    0
+  );
+  return Math.max(0, Math.round(totalMs / assumed.length / 60000));
+}
+
 export class GetDashboardMetricsUseCase {
   constructor(
     private messages: IMessageRepository = serviceLocator.getMessageRepository(),
@@ -25,6 +52,8 @@ export class GetDashboardMetricsUseCase {
       totalMessages: allMessages.length,
       activeConversations,
       responseRatePercent: incoming === 0 ? 0 : Math.round((outgoing / incoming) * 100),
+      conversationsByDepartment: conversationsByDepartment(allConversations),
+      avgAssumeMinutes: avgAssumeMinutes(allConversations),
     };
   }
 }

@@ -27,11 +27,13 @@ export class AssignConversationUseCase {
     const now = new Date();
     const departmentId = existing?.departmentId ?? input.departmentId?.trim();
     const departmentName = existing?.departmentName ?? input.departmentName?.trim();
+    const assignedAt = existing?.assignedAt ?? now;
     const updated: Conversation = existing
       ? {
           ...existing,
           assignedAgentId: agentId,
           assignedAgentName: agentName,
+          assignedAt,
           departmentId,
           departmentName,
           status: 'waiting',
@@ -44,6 +46,7 @@ export class AssignConversationUseCase {
           contactPhone: conversationId,
           assignedAgentId: agentId,
           assignedAgentName: agentName,
+          assignedAt,
           departmentId,
           departmentName,
           status: 'waiting',

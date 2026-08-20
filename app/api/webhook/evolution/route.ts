@@ -2,7 +2,9 @@ import { NextRequest } from 'next/server';
 import { serverLocator } from '@/infra/adapters/serverLocator';
 import { EvolutionWhatsAppService } from '@/infra/whatsapp/EvolutionWhatsAppService';
 import { hydrateEvolutionMedia } from '@/infra/whatsapp/evolutionMedia';
+import { mapEvolutionReactions } from '@/infra/whatsapp/mapEvolutionIncoming';
 import { isEvolutionInboxEvent, mapEvolutionStatusUpdates } from '@/infra/whatsapp/mapEvolutionStatus';
+import { ApplyMessageReactionUseCase } from '@/core/usecases/ApplyMessageReactionUseCase';
 import { UpdateMessageStatusUseCase } from '@/core/usecases/UpdateMessageStatusUseCase';
 import { apiJson } from '@/infra/http/apiJson';
 import { logApiError } from '@/infra/http/apiLog';
@@ -25,13 +27,19 @@ export async function POST(request: NextRequest) {
     const whatsAppService = serverLocator.getWhatsAppService();
 
     if (whatsAppService instanceof EvolutionWhatsAppService) {
+      const repos = serverLocator.getRepos();
+      const lineName = instanceName || process.env.EVOLUTION_INSTANCE_NAME || 'default';
       const updates = mapEvolutionStatusUpdates({ event, data });
       if (updates.length > 0) {
-        const repos = serverLocator.getRepos();
         const updateStatus = new UpdateMessageStatusUseCase(repos.message, repos.conversation);
         for (const update of updates) {
           await updateStatus.execute(update.id, update.status);
         }
+      }
+
+      const applyReaction = new ApplyMessageReactionUseCase(repos.message);
+      for (const reaction of mapEvolutionReactions({ event, data }, lineName)) {
+        await applyReaction.execute(reaction);
       }
 
       const messages = await whatsAppService.processEvolutionWebhook({

@@ -20,6 +20,7 @@ Runner: Jest + `ts-jest` (`npm test`). Testing Library só quando houver teste d
 - `core/engine/planFlowTurn.test.ts` — primeira sessão, `nextStepId`, `condition` true/false (texto ou **número** da opção), `setDepartment`, `goToFlow`; sessão encerrada não reenvia a abertura
 - `core/engine/resolveQuestionChoice.test.ts` — `1` / `1.` viram a primeira opção; texto livre permanece
 - `core/usecases/ProcessIncomingFlowUseCase.test.ts` — envio via fake + persistência de sessão; pausado não responde; action grava setor da thread; duas linhas = duas sessões
+- `core/usecases/ProcessIncomingFlowUseCase.hours.test.ts` — fora do expediente só avisa; `handoff` acrescenta posição na fila
 - `core/usecases/PauseContactFlowUseCase.test.ts` — pausa e retoma sessão da thread (`contactId` = `Conversation.id`)
 - `core/usecases/DeleteFlowUseCase.test.ts` — excluir fluxo remove sessões daquele roteiro e solta chatbot
 - `core/usecases/TransferConversationUseCase.test.ts` — status transferred
@@ -36,11 +37,20 @@ Runner: Jest + `ts-jest` (`npm test`). Testing Library só quando houver teste d
 - `core/entities/conversationTabs.test.ts` — transferida em Esperando; filtro minhas
 - `core/entities/conversationInbox.test.ts` — nome de exibição; inicial do avatar; href da foto; prévia texto / Você: / Foto / Áudio; Sem mensagens só sem lastMessage; outgoing da lista tem tiques à esquerda
 - `core/usecases/UpdateMessageStatusUseCase.test.ts` — avança sent→delivered; se o id é o lastMessage da conversa, atualiza o snapshot
+- `core/entities/messageReaction.test.ts` — um emoji por remetente; vazio remove; agrupa chips; reload sem `reactions` não apaga o chip da tela
+- `core/usecases/ApplyMessageReactionUseCase.test.ts` — grava no alvo; alvo inexistente retorna null
+- `core/usecases/SendMessageReactionUseCase.test.ts` — envia e persiste; mesmo emoji da linha remove
+- `infra/whatsapp/mapEvolutionIncoming.test.ts` — `reactionMessage` não vira bolha; mapeia alvo + emoji
 - `core/entities/lastMessageForConversation.test.ts` — última mensagem da thread (telefone + linha); ack atualiza o snapshot da prévia
 - `core/entities/conversationThread.test.ts` — `conversationThreadId`; legado vs outra linha; `?contact=` abre a mais recente; `threadsForContactPhone` ordena pela atividade; mensagens filtradas por linha
 - `core/entities/whatsappNumberLine.test.ts` — liga instância/dígitos ao cadastro; linha de envio da conversa; `lineNameOf` usa o `name` do catálogo
 - `core/entities/conversationDepartment.test.ts` — filtro de setor; agentes do mesmo setor; transferência só online
 - `core/usecases/SetConversationDepartmentUseCase.test.ts` — grava e remove setor na conversa da thread (`id`); não grava numa conversa “só telefone” se já existir thread composta
+- `core/usecases/SetConversationTagsUseCase.test.ts` — grava tags da thread
+- `core/entities/businessHours.test.ts` — fora do expediente; dentro no fuso
+- `core/entities/queuePlace.test.ts` — posição na fila do mesmo setor
+- `core/usecases/GetDashboardMetricsUseCase.test.ts` — totais; volume por setor; média até Assumir só com `assignedAt`
+- `ui/lib/messages-matching-query.test.ts` — busca na conversa filtra pelo texto
 - `infra/whatsapp/mapEvolutionIncoming.test.ts` — pushName; MESSAGES_UPSERT; ignora grupo/fromMe; tipo imagem
 - `infra/whatsapp/evolutionMedia.test.ts` — parse base64; hydrate grava no storage fake
 - `core/usecases/SendWhatsAppMessageUseCase.test.ts` — persiste outgoing; mídia vai ao storage fake
@@ -52,6 +62,7 @@ Runner: Jest + `ts-jest` (`npm test`). Testing Library só quando houver teste d
 - `ui/lib/flow-step-outline.test.ts` — condições da pergunta não são blocos soltos; destino da opção em texto
 - `ui/lib/flow-step-copy.test.ts` — rótulo do passo sem expor id; resumo com o bloco recolhido
 - `ui/lib/conversation-thread-body.test.ts` — abrir conversa: carregando até a busca; vazio só sem mensagens; lista quando há mensagens
+- `ui/lib/inbox-realtime-channel.test.ts` — lista e thread compartilham o canal; não registra `postgres_changes` depois do `subscribe`
 - `ui/lib/flow-path-map.test.ts` — ligações Depois / Se sim / Se não
 - `ui/lib/flow-canvas-graph.test.ts` — nós sem condições da pergunta; setas next/opção; `canvasPosition`; ligar/desligar handle
 - `ui/lib/flow-health.test.ts` — bloco solto; pergunta sem opção; goToFlow vazio
@@ -92,6 +103,7 @@ Runner: Jest + `ts-jest` (`npm test`). Testing Library só quando houver teste d
 - `infra/schedules/shouldStartInProcessScheduleCron.test.ts` — não sobe em test / build / Vercel
 - `infra/supabase/missingColumn.test.ts` — PGRST204 de `last_message` é coluna ausente
 - `infra/supabase/mappers/messaging.test.ts` — `conversationToRow` só manda `last_message` se houver snapshot
+- `infra/supabase/mappers/messaging.test.ts` — `messageToRow` grava `reactions` (vazio se ainda não houver)
 - `infra/http/apiLog.test.ts` — formato `[requestId] mensagem: detalhe`; não inclui token, apikey, service_role, JWT, Authorization, base64, nem `error.response.data` completo
 - `infra/http/schemas.test.ts` — login; operators POST/PATCH (papel e/ou senha); Evolution `data` ou `key`; chat-whatsapp `{ event, data }`; Meta `object` + `entry`
 - `app/api/messages/send/parseSendRequest.test.ts` — JSON (Zod) e multipart; máx. 16 MB; JSON inválido → 400; `conversationId` opcional (JSON e multipart)

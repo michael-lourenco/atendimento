@@ -57,6 +57,7 @@ describe('AssignConversationUseCase', () => {
     expect(updated?.status).toBe('waiting');
     expect(updated?.assignedAgentId).toBe('1');
     expect(updated?.assignedAgentName).toBe('Ana Silva');
+    expect(updated?.assignedAt).toBeInstanceOf(Date);
   });
 
   it('copia setor do agente se a conversa não tiver', async () => {

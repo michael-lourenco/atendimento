@@ -91,6 +91,9 @@ export function mapEvolutionIncomingMessages(
     }
 
     const contactPhone = remoteJid.split('@')[0] || '';
+    if (message.reactionMessage) {
+      continue;
+    }
     const { content, type } = readContent(message);
     const timestampValue = item.messageTimestamp;
     const timestamp =
@@ -123,4 +126,66 @@ export function listEvolutionWebhookItems(payload: {
     return [];
   }
   return asItems(payload.data);
+}
+
+export type EvolutionIncomingReaction = {
+  targetId: string;
+  from: string;
+  emoji: string;
+};
+
+function readReactionMessage(message: Record<string, unknown>): { targetId: string; emoji: string } | null {
+  const reaction = message.reactionMessage;
+  if (!reaction || typeof reaction !== 'object') {
+    return null;
+  }
+  const record = reaction as Record<string, unknown>;
+  const inner = record.key && typeof record.key === 'object' ? (record.key as Record<string, unknown>) : {};
+  const targetId = typeof inner.id === 'string' ? inner.id : '';
+  if (!targetId) {
+    return null;
+  }
+  const emoji = typeof record.text === 'string' ? record.text : typeof record.reaction === 'string' ? record.reaction : '';
+  return { targetId, emoji };
+}
+
+export function mapEvolutionReactions(
+  payload: { event?: string; data?: unknown },
+  instanceName: string
+): EvolutionIncomingReaction[] {
+  const event = normalizeEvolutionEvent(payload.event);
+  if (
+    event !== 'messages.upsert' &&
+    event !== 'messages.update' &&
+    event !== 'messages.reaction'
+  ) {
+    return [];
+  }
+  const mapped: EvolutionIncomingReaction[] = [];
+  for (const item of asItems(payload.data)) {
+    const key = item.key && typeof item.key === 'object' ? (item.key as Record<string, unknown>) : {};
+    const message =
+      item.message && typeof item.message === 'object'
+        ? (item.message as Record<string, unknown>)
+        : {};
+    const parsed = readReactionMessage(message);
+    if (!parsed) {
+      continue;
+    }
+    const remoteJid = typeof key.remoteJid === 'string' ? key.remoteJid : '';
+    if (!isDirectContactJid(remoteJid)) {
+      continue;
+    }
+    const fromMe =
+      key.fromMe === true ||
+      key.fromMe === 'true' ||
+      item.fromMe === true ||
+      item.fromMe === 'true';
+    mapped.push({
+      targetId: parsed.targetId,
+      emoji: parsed.emoji,
+      from: fromMe ? instanceName : remoteJid.split('@')[0] || '',
+    });
+  }
+  return mapped;
 }

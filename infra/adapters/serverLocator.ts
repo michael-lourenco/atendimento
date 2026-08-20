@@ -84,7 +84,9 @@ class ServerLocator {
       send,
       setDepartment,
       repos.department,
-      repos.whatsAppNumber
+      repos.whatsAppNumber,
+      repos.chatbot,
+      repos.conversation
     );
     return new HandleIncomingWhatsAppMessageUseCase(
       whatsApp,

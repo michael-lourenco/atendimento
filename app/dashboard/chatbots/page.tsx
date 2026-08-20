@@ -16,6 +16,10 @@ import { useConfirm } from '@/ui/components/confirm-dialog';
 import { CatalogListSkeleton } from '@/ui/components/catalog-list-skeleton';
 import { CatalogSavedNotice } from '@/ui/components/catalog-saved-notice';
 import { useCatalogSavedFlash } from '@/ui/lib/use-catalog-saved-flash';
+import {
+  BusinessHoursFields,
+  DEFAULT_BUSINESS_HOURS,
+} from '@/ui/components/business-hours-fields';
 
 const catalog = () => new ChatbotCatalogUseCase();
 
@@ -24,7 +28,12 @@ export default function ChatbotsPage() {
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState<Chatbot | null>(null);
-  const [form, setForm] = useState({ name: '', description: '', isActive: true });
+  const [form, setForm] = useState({
+    name: '',
+    description: '',
+    isActive: true,
+    hours: DEFAULT_BUSINESS_HOURS,
+  });
   const { confirm, dialog } = useConfirm();
   const { show, markSaved } = useCatalogSavedFlash();
 
@@ -46,7 +55,7 @@ export default function ChatbotsPage() {
   const reset = () => {
     setShowForm(false);
     setEditing(null);
-    setForm({ name: '', description: '', isActive: true });
+    setForm({ name: '', description: '', isActive: true, hours: DEFAULT_BUSINESS_HOURS });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -59,6 +68,7 @@ export default function ChatbotsPage() {
       isActive: form.isActive,
       flowId: editing?.flowId,
       messagesCount: editing?.messagesCount || 0,
+      businessHours: form.hours,
       createdAt: editing?.createdAt || now,
       updatedAt: now,
     });
@@ -135,6 +145,10 @@ export default function ChatbotsPage() {
                 />
                 Ativo
               </label>
+              <BusinessHoursFields
+                value={form.hours}
+                onChange={(hours) => setForm({ ...form, hours })}
+              />
               <div className="flex gap-2">
                 <Button type="submit">Salvar</Button>
                 <Button type="button" variant="outline" onClick={reset}>
@@ -189,6 +203,7 @@ export default function ChatbotsPage() {
                               name: bot.name,
                               description: bot.description || '',
                               isActive: bot.isActive,
+                              hours: bot.businessHours ?? DEFAULT_BUSINESS_HOURS,
                             });
                             setShowForm(true);
                           }}

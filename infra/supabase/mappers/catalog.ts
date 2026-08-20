@@ -45,13 +45,17 @@ export function chatbotFromRow(row: Record<string, unknown>): Chatbot {
     isActive: Boolean(row.is_active),
     flowId: row.flow_id ? String(row.flow_id) : undefined,
     messagesCount: Number(row.messages_count ?? 0),
+    businessHours:
+      row.business_hours && typeof row.business_hours === 'object'
+        ? (row.business_hours as Chatbot['businessHours'])
+        : undefined,
     createdAt: asDate(row.created_at),
     updatedAt: asDate(row.updated_at),
   };
 }
 
 export function chatbotToRow(chatbot: Chatbot) {
-  return {
+  const row: Record<string, unknown> = {
     id: chatbot.id,
     name: chatbot.name,
     description: chatbot.description ?? null,
@@ -61,6 +65,10 @@ export function chatbotToRow(chatbot: Chatbot) {
     created_at: chatbot.createdAt.toISOString(),
     updated_at: chatbot.updatedAt.toISOString(),
   };
+  if (chatbot.businessHours) {
+    row.business_hours = chatbot.businessHours;
+  }
+  return row;
 }
 
 export function agentFromRow(row: Record<string, unknown>): Agent {

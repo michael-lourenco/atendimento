@@ -23,6 +23,7 @@ Bodies JSON das rotas abaixo passam por schema Zod na borda. Inválido → `400 
 | `POST /api/operators` | `{ email, password, name, role?, departmentId? }` |
 | `PATCH /api/operators/{id}` | `{ role?, password? }` (pelo menos um) |
 | `POST /api/messages/send` (JSON) | `{ to, message, conversationId?, type?, templateName?, templateParams? }` (Zod no JSON; hoje `parseSendRequest`) |
+| `POST /api/messages/react` | `{ messageId, emoji }` (`emoji` vazio ou o mesmo da linha remove) |
 | `POST /api/webhook/evolution` | `{ event, data?, instance? }` — compat: se não houver `data` mas houver `key`, o **body inteiro** vale como `data` |
 | `POST /api/webhook/chat-whatsapp` | `{ event, data }` |
 | `POST /api/webhook/whatsapp` | body Meta com `object` + `entry` (schema frouxo / passthrough) |
@@ -40,6 +41,16 @@ Bodies JSON das rotas abaixo passam por schema Zod na borda. Inválido → `400 
 - 401: sem sessão de operador quando o Supabase está configurado
 - 500: falha no provedor
 - Emoji Unicode no `message`, **resposta rápida** (o `body` já está no compositor) e **Reenviar** de outgoing `failed` usam este mesmo POST (mesmo `to` + texto + `conversationId` da thread). Sem rota extra. Sem `/api/quick-replies`: o catálogo no painel usa `QuickReplyCatalogUseCase` no client
+
+`POST /api/messages/react`
+
+- JSON: `{ messageId: string, emoji: string }` (máx. 16 chars; vazio remove a reação da linha)
+- 400 se faltar `messageId`
+- 401: sem sessão de operador quando o Supabase está configurado
+- 404: mensagem inexistente
+- 200: `Message` com `reactions` atualizado
+- 500: falha no provedor (Twilio não envia reação nesta versão)
+- Não pausa o fluxo. Não incrementa não lidas
 
 `GET` / `POST /api/schedules/dispatch`
 

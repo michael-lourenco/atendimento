@@ -36,6 +36,7 @@ import {
   quickReplyToRow,
 } from './mappers';
 import { Flow } from '../../core/entities/Flow';
+import { Chatbot } from '../../core/entities/Chatbot';
 import { Message } from '../../core/entities/Message';
 import { FlowSession } from '../../core/entities/FlowSession';
 import { Conversation } from '../../core/entities/Conversation';
@@ -83,8 +84,7 @@ function createMessageRepository(client: SupabaseClient): IMessageRepository {
       );
     },
     async save(message: Message) {
-      const { error } = await client.from('messages').upsert(messageToRow(message));
-      if (error) throw error;
+      await upsertOmittingMissingColumns(client, 'messages', messageToRow(message), ['reactions']);
     },
     async delete(id: string) {
       const { error } = await client.from('messages').delete().eq('id', id);
@@ -114,9 +114,10 @@ function createSessionRepository(client: SupabaseClient): IFlowSessionRepository
           current_step_id: session.currentStepId,
           paused: session.paused,
           return_stack: session.returnStack ?? [],
+          outside_hours_notified: session.outsideHoursNotified ?? false,
           updated_at: session.updatedAt.toISOString(),
         },
-        ['return_stack']
+        ['return_stack', 'outside_hours_notified']
       );
     },
     async deleteByFlowId(flowId: string) {
@@ -165,7 +166,7 @@ function createConversationRepository(client: SupabaseClient): IConversationRepo
         client,
         'conversations',
         conversationToRow(conversation),
-        ['last_message', 'contact_avatar_url']
+        ['last_message', 'contact_avatar_url', 'assigned_at']
       );
     },
     async delete(id: string) {
@@ -204,6 +205,18 @@ function createInternalMessageRepository(client: SupabaseClient): IInternalMessa
   };
 }
 
+function createChatbotRepository(client: SupabaseClient) {
+  const crud = createSupabaseCrud<Chatbot>(client, 'chatbots', chatbotFromRow, chatbotToRow);
+  const save = (chatbot: Chatbot) =>
+    upsertOmittingMissingColumns(client, 'chatbots', chatbotToRow(chatbot), ['business_hours']);
+  return {
+    getAll: () => crud.getAll(),
+    getById: (id: string) => crud.getById(id),
+    save,
+    delete: (id: string) => crud.delete(id),
+  };
+}
+
 export function createSupabaseDataBag(
   client: SupabaseClient,
   auth: IAuthRepository
@@ -216,7 +229,7 @@ export function createSupabaseDataBag(
     conversation: createConversationRepository(client),
     department: createSupabaseCrud(client, 'departments', departmentFromRow, departmentToRow),
     internalMessage: createInternalMessageRepository(client),
-    chatbot: createSupabaseCrud(client, 'chatbots', chatbotFromRow, chatbotToRow),
+    chatbot: createChatbotRepository(client),
     agent: createSupabaseCrud(client, 'agents', agentFromRow, agentToRow),
     contact: createSupabaseCrud(client, 'contacts', contactFromRow, contactToRow),
     whatsAppNumber: createSupabaseCrud(client, 'whatsapp_numbers', numberFromRow, numberToRow),

@@ -87,6 +87,10 @@ export interface WhatsAppWebhookEntry {
           from: string;
           id: string;
         };
+        reaction?: {
+          message_id: string;
+          emoji?: string;
+        };
       }>;
       statuses?: Array<{
         id: string;
@@ -98,11 +102,21 @@ export interface WhatsAppWebhookEntry {
   }>;
 }
 
+export interface SendReactionParams {
+  to: string;
+  messageId: string;
+  emoji: string;
+  fromMe: boolean;
+  instanceName?: string;
+}
+
 export interface IWhatsAppService {
   /**
    * Envia uma mensagem via WhatsApp
    */
   sendMessage(params: SendMessageParams): Promise<WhatsAppMessageResponse>;
+
+  sendReaction?(params: SendReactionParams): Promise<void>;
 
   fetchProfilePicture(phone: string, instanceName?: string): Promise<StoredMedia | null>;
 

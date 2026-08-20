@@ -1,4 +1,4 @@
-import { mapEvolutionIncomingMessages } from './mapEvolutionIncoming';
+import { mapEvolutionIncomingMessages, mapEvolutionReactions } from './mapEvolutionIncoming';
 
 describe('mapEvolutionIncomingMessages', () => {
   const instance = 'default';
@@ -90,5 +90,24 @@ describe('mapEvolutionIncomingMessages', () => {
     expect(messages).toHaveLength(1);
     expect(messages[0].type).toBe('image');
     expect(messages[0].content).toBe('foto da loja');
+  });
+
+  it('reactionMessage não vira bolha e mapeia o alvo', () => {
+    const payload = {
+      event: 'messages.upsert',
+      data: {
+        key: { id: 'rx', remoteJid: '5511988887777@s.whatsapp.net', fromMe: false },
+        message: {
+          reactionMessage: {
+            key: { id: 'm1', fromMe: true },
+            text: '👍',
+          },
+        },
+      },
+    };
+    expect(mapEvolutionIncomingMessages(payload, 'comercial')).toEqual([]);
+    expect(mapEvolutionReactions(payload, 'comercial')).toEqual([
+      { targetId: 'm1', from: '5511988887777', emoji: '👍' },
+    ]);
   });
 });

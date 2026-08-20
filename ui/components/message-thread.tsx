@@ -5,9 +5,10 @@ import { Message } from '@/core/entities/Message';
 import { Agent } from '@/core/entities/Agent';
 import { Conversation } from '@/core/entities/Conversation';
 import { Department } from '@/core/entities/Department';
+import { Tag } from '@/core/entities/Tag';
 import { User } from '@/core/entities/User';
 import { WhatsAppNumber } from '@/core/entities/WhatsAppNumber';
-import { conversationDisplayName, conversationPhotoUrl, formatInboxTime } from '@/core/entities/conversationInbox';
+import { conversationDisplayName, conversationPhotoUrl } from '@/core/entities/conversationInbox';
 import { GetMessagesByContactUseCase } from '@/core/usecases/GetMessagesByContactUseCase';
 import { GetFlowSessionUseCase } from '@/core/usecases/GetFlowSessionUseCase';
 import { GetConversationByIdUseCase } from '@/core/usecases/GetConversationByIdUseCase';
@@ -15,19 +16,24 @@ import { MarkConversationReadUseCase } from '@/core/usecases/MarkConversationRea
 import { GetCurrentUserUseCase } from '@/core/usecases/GetCurrentUserUseCase';
 import { AgentCatalogUseCase } from '@/core/usecases/AgentCatalogUseCase';
 import { DepartmentCatalogUseCase } from '@/core/usecases/DepartmentCatalogUseCase';
+import { TagCatalogUseCase } from '@/core/usecases/TagCatalogUseCase';
 import { ResumeContactFlowUseCase } from '@/core/usecases/ResumeContactFlowUseCase';
 import { listWhatsAppNumbersCached } from '@/ui/lib/whatsapp-number-cache';
-import { MessageMedia } from '@/ui/components/message-media';
 import { MessageComposer } from '@/ui/components/message-composer';
 import { ConversationActions } from '@/ui/components/conversation-actions';
 import { ConversationSchedulePanel } from '@/ui/components/conversation-schedule-panel';
 import { ConversationThreadHeader } from '@/ui/components/conversation-thread-header';
+import { ConversationTagsControl } from '@/ui/components/conversation-tags-control';
 import { TeamNotes } from '@/ui/components/team-notes';
-import { MessageStatusTicks } from '@/ui/components/message-status-ticks';
 import { Card, CardContent } from '@/ui/components/card';
+import { Input } from '@/ui/components/input';
 import { ChatThreadSkeleton } from '@/ui/components/chat-thread-skeleton';
+import { ChatMessageList } from '@/ui/components/chat-message-list';
 import { conversationThreadBody } from '@/ui/lib/conversation-thread-body';
+import { messagesMatchingQuery } from '@/ui/lib/messages-matching-query';
+import { coalesceMessageList, nextMessageReactions } from '@/core/entities/messageReaction';
 import { DASHBOARD_POLL_MS } from '@/ui/lib/dashboard-poll';
+import { useInboxRealtime } from '@/ui/lib/use-inbox-realtime';
 import { queueToneOf } from '@/ui/lib/status-tone';
 
 type MessageThreadProps = {
@@ -42,6 +48,7 @@ export function MessageThread({ conversationId, onBack, onConversationChanged }:
   const [conversation, setConversation] = useState<Conversation | null>(null);
   const [agents, setAgents] = useState<Agent[]>([]);
   const [departments, setDepartments] = useState<Department[]>([]);
+  const [tags, setTags] = useState<Tag[]>([]);
   const [operator, setOperator] = useState<User | null>(null);
   const [sending, setSending] = useState(false);
   const [pendingSend, setPendingSend] = useState<string | null>(null);
@@ -49,6 +56,7 @@ export function MessageThread({ conversationId, onBack, onConversationChanged }:
   const [messagesReady, setMessagesReady] = useState(false);
   const [lineName, setLineName] = useState('');
   const [scheduleOpen, setScheduleOpen] = useState(false);
+  const [search, setSearch] = useState('');
   const bottomRef = useRef<HTMLDivElement>(null);
 
   const lineRef = useRef<WhatsAppNumber | null>(null);
@@ -63,17 +71,19 @@ export function MessageThread({ conversationId, onBack, onConversationChanged }:
     const conv = await new GetConversationByIdUseCase().execute(conversationId);
     if (isCancelled()) return;
     if (refreshCatalogs) {
-      const [agentList, departmentList, user, numberList] = await Promise.all([
+      const [agentList, departmentList, user, numberList, tagList] = await Promise.all([
         new AgentCatalogUseCase().list(),
         new DepartmentCatalogUseCase().list(),
         new GetCurrentUserUseCase().execute(),
         listWhatsAppNumbersCached(),
+        new TagCatalogUseCase().list(),
       ]);
       if (isCancelled()) return;
       lineRef.current = numberList.find((item) => item.id === conv?.whatsappNumberId) ?? null;
       setLineName(lineRef.current?.name ?? '');
       setAgents(agentList);
       setDepartments(departmentList);
+      setTags(tagList);
       setOperator(user);
     } else if (conv?.whatsappNumberId && lineRef.current?.id !== conv.whatsappNumberId) {
       const numberList = await listWhatsAppNumbersCached();
@@ -87,7 +97,7 @@ export function MessageThread({ conversationId, onBack, onConversationChanged }:
       new GetFlowSessionUseCase().execute(conversationId),
     ]);
     if (isCancelled()) return;
-    setMessages(list);
+    setMessages((prev) => coalesceMessageList(list, prev));
     setPaused(Boolean(session?.paused));
     setConversation(conv);
   };
@@ -105,6 +115,7 @@ export function MessageThread({ conversationId, onBack, onConversationChanged }:
     setMessages([]);
     setPendingSend(null);
     setMessagesReady(false);
+    setSearch('');
     void load(true, isCancelled)
       .catch((err) => {
         if (!cancelled) {
@@ -124,6 +135,10 @@ export function MessageThread({ conversationId, onBack, onConversationChanged }:
       clearInterval(timer);
     };
   }, [conversationId]);
+
+  useInboxRealtime(() => {
+    void load(false);
+  });
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -169,6 +184,35 @@ export function MessageThread({ conversationId, onBack, onConversationChanged }:
     }
   };
 
+  const react = async (messageId: string, emoji: string) => {
+    const current = messages.find((item) => item.id === messageId);
+    if (!current) {
+      return;
+    }
+    const optimistic = { ...current, reactions: nextMessageReactions(current, emoji) };
+    setMessages((prev) => prev.map((item) => (item.id === messageId ? optimistic : item)));
+    try {
+      const response = await fetch('/api/messages/react', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ messageId, emoji }),
+      });
+      const body = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(body.error || 'Falha ao reagir');
+      }
+      if (Array.isArray(body.reactions)) {
+        setMessages((prev) =>
+          prev.map((item) => (item.id === messageId ? { ...item, reactions: body.reactions } : item))
+        );
+      }
+      refresh();
+    } catch (err) {
+      setMessages((prev) => prev.map((item) => (item.id === messageId ? current : item)));
+      setError(err instanceof Error ? err.message : 'Falha ao reagir');
+    }
+  };
+
   const resume = async () => {
     try {
       await new ResumeContactFlowUseCase().execute(conversationId);
@@ -184,6 +228,7 @@ export function MessageThread({ conversationId, onBack, onConversationChanged }:
     messageCount: messages.length,
     hasPending: Boolean(pendingSend),
   });
+  const visibleMessages = messagesMatchingQuery(messages, search);
   const title = conversation ? conversationDisplayName(conversation) : phone;
   const queueTone = conversation ? queueToneOf(conversation) : null;
 
@@ -208,6 +253,14 @@ export function MessageThread({ conversationId, onBack, onConversationChanged }:
           onResume={() => void resume()}
         />
       </ConversationThreadHeader>
+      {conversation ? (
+        <ConversationTagsControl
+          conversationId={conversation.id}
+          selected={conversation.tags}
+          catalog={tags}
+          onChanged={refresh}
+        />
+      ) : null}
       {conversation && scheduleOpen ? (
         <div className="shrink-0 border-b border-border bg-muted px-3 py-2">
           <ConversationSchedulePanel
@@ -219,6 +272,15 @@ export function MessageThread({ conversationId, onBack, onConversationChanged }:
         </div>
       ) : null}
       <CardContent className="flex min-h-0 flex-1 flex-col p-0">
+        {threadBody === 'messages' ? (
+          <div className="border-b border-border px-3 py-2">
+            <Input
+              value={search}
+              placeholder="Buscar na conversa"
+              onChange={(event) => setSearch(event.target.value)}
+            />
+          </div>
+        ) : null}
         <div className="min-h-0 flex-1 overflow-y-auto bg-chat p-4">
           {threadBody === 'loading' ? (
             <ChatThreadSkeleton />
@@ -226,57 +288,19 @@ export function MessageThread({ conversationId, onBack, onConversationChanged }:
             <p className="py-8 text-center text-sm text-muted-foreground">
               Sem mensagens nesta conversa
             </p>
+          ) : visibleMessages.length === 0 ? (
+            <p className="py-8 text-center text-sm text-muted-foreground">
+              Nenhuma mensagem com esse texto
+            </p>
           ) : (
-            <div className="space-y-3">
-              {messages.map((message) => {
-                const incoming = message.direction === 'incoming';
-                return (
-                  <div
-                    key={message.id}
-                    className={`flex ${incoming ? 'justify-start' : 'justify-end'}`}
-                  >
-                    <div
-                      className={`max-w-[75%] rounded-2xl px-3 py-2 shadow-sm ${
-                        incoming
-                          ? 'bg-bubble-in text-bubble-in-foreground'
-                          : 'bg-bubble-out text-bubble-out-foreground'
-                      }`}
-                    >
-                      <MessageMedia
-                        id={message.id}
-                        type={message.type}
-                        content={message.content}
-                      />
-                      <p className="mt-1 flex items-center justify-end gap-1 text-[11px] opacity-70">
-                        <span>{formatInboxTime(message.timestamp)}</span>
-                        <MessageStatusTicks message={message} />
-                      </p>
-                      {!incoming && message.status === 'failed' ? (
-                        <button
-                          type="button"
-                          className="mt-1 text-[11px] underline opacity-80"
-                          onClick={() => void send({ text: message.content, file: null })}
-                        >
-                          Reenviar
-                        </button>
-                      ) : null}
-                    </div>
-                  </div>
-                );
-              })}
-              {pendingSend ? (
-                <div className="flex justify-end">
-                  <div className="max-w-[75%] rounded-2xl bg-bubble-out px-3 py-2 text-bubble-out-foreground shadow-sm">
-                    <p className="whitespace-pre-wrap break-words text-sm">{pendingSend}</p>
-                    <p className="mt-1 flex items-center justify-end gap-1 text-[11px] opacity-70">
-                      <span>agora</span>
-                      <MessageStatusTicks message={{ direction: 'outgoing', status: 'pending' }} />
-                    </p>
-                  </div>
-                </div>
-              ) : null}
-              <div ref={bottomRef} />
-            </div>
+            <ChatMessageList
+              messages={visibleMessages}
+              pendingSend={pendingSend}
+              mineFrom={lineRef.current?.instanceName || lineRef.current?.number || ''}
+              onResend={(text) => void send({ text, file: null })}
+              onReact={(messageId, emoji) => void react(messageId, emoji)}
+              bottomRef={bottomRef}
+            />
           )}
         </div>
         {conversation ? (

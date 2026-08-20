@@ -31,6 +31,7 @@ describe('mapEvolutionStatusUpdates', () => {
   it('só upsert e update entram no inbox do webhook', () => {
     expect(isEvolutionInboxEvent('MESSAGES_UPSERT')).toBe(true);
     expect(isEvolutionInboxEvent('messages.update')).toBe(true);
+    expect(isEvolutionInboxEvent('messages.reaction')).toBe(true);
     expect(isEvolutionInboxEvent('CONNECTION_UPDATE')).toBe(false);
     expect(isEvolutionInboxEvent('presence.update')).toBe(false);
   });

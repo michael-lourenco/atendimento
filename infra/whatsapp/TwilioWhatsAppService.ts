@@ -102,6 +102,9 @@ export class TwilioWhatsAppService implements IWhatsAppService {
 
       if (value.messages) {
         for (const msg of value.messages) {
+          if (msg.type === 'reaction') {
+            continue;
+          }
           let content = '';
           let type: 'text' | 'image' | 'document' | 'audio' | 'video' = 'text';
 

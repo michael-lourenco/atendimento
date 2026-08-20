@@ -73,12 +73,14 @@ function inicioFlow(now: Date): Flow {
         type: 'message',
         content:
           'Oi, aqui é o Michael. Este WhatsApp é o produto: o bot recebe, organiza e o time responde no computador.',
+        delayMs: 600,
         nextStepId: 'menu',
       },
       {
         id: 'menu',
         type: 'question',
         content: 'Como posso te ajudar?',
+        delayMs: 400,
         options: [
           'Quero o sistema para minha empresa',
           'Quero uma demonstração',

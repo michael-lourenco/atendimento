@@ -38,7 +38,7 @@ import { listWhatsAppNumbersCached } from '@/ui/lib/whatsapp-number-cache';
 import { playInboxChime, shouldPlayInboxSound } from '@/ui/lib/inbox-notify';
 import { useInboxDocumentTitle, useInboxShortcuts } from '@/ui/lib/use-inbox-chrome';
 import { queueTabActiveClass } from '@/ui/lib/status-tone';
-import { syncInboxAvatars } from '@/ui/lib/sync-inbox-avatars';
+import { useInboxRealtime } from '@/ui/lib/use-inbox-realtime';
 
 export default function ConversationsPage() {
   const [conversations, setConversations] = useState<Conversation[]>([]);
@@ -68,6 +68,10 @@ export default function ConversationsPage() {
     const timer = setInterval(() => void loadConversations(false, false), DASHBOARD_POLL_MS);
     return () => clearInterval(timer);
   }, []);
+
+  useInboxRealtime(() => {
+    void loadConversations(false, false);
+  });
 
   useInboxDocumentTitle(conversations);
   useInboxShortcuts({

@@ -10,5 +10,6 @@ export interface FlowSession {
   paused: boolean;
   /** Origem após `goToFlow`: quando o destino acaba, retoma `resumeStepId`. */
   returnStack?: FlowReturnFrame[];
+  outsideHoursNotified?: boolean;
   updatedAt: Date;
 }

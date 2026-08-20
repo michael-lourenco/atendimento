@@ -1,5 +1,6 @@
-import { IWhatsAppService, SendMessageParams, WhatsAppMessageResponse, WhatsAppWebhookEntry, assertNoOutgoingMedia } from '../../core/services/IWhatsAppService';
+import { IWhatsAppService, SendMessageParams, SendReactionParams, WhatsAppMessageResponse, WhatsAppWebhookEntry, assertNoOutgoingMedia } from '../../core/services/IWhatsAppService';
 import { Message } from '../../core/entities/Message';
+import { sendMetaReaction } from './metaSendReaction';
 
 export class WhatsAppService implements IWhatsAppService {
   private phoneNumberId: string;
@@ -79,6 +80,13 @@ export class WhatsAppService implements IWhatsAppService {
     }
   }
 
+  async sendReaction(params: SendReactionParams): Promise<void> {
+    if (!this.phoneNumberId || !this.accessToken) {
+      throw new Error('WhatsApp credentials não configuradas. Verifique as variáveis de ambiente.');
+    }
+    await sendMetaReaction(this.baseUrl, this.accessToken, params);
+  }
+
   verifyWebhook(mode: string, token: string, challenge: string): string | null {
     if (mode === 'subscribe' && token === this.verifyToken) {
       return challenge;
@@ -95,6 +103,9 @@ export class WhatsAppService implements IWhatsAppService {
       // Processar mensagens recebidas
       if (value.messages) {
         for (const msg of value.messages) {
+          if (msg.type === 'reaction') {
+            continue;
+          }
           let content = '';
           let type: 'text' | 'image' | 'document' | 'audio' | 'video' = 'text';
 
