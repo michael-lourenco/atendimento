@@ -42,7 +42,7 @@ export default function ContactsPage() {
     try {
       const [contactList, conversationList, numberList] = await Promise.all([
         catalog().list(),
-        new GetAllConversationsUseCase().execute(),
+        new GetAllConversationsUseCase().execute(false),
         listWhatsAppNumbersCached(),
       ]);
       setContacts(contactList);

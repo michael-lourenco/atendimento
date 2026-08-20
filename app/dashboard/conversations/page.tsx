@@ -85,7 +85,7 @@ export default function ConversationsPage() {
       setLoading(true);
     }
     try {
-      const allConversations = await new GetAllConversationsUseCase().execute();
+      const allConversations = await new GetAllConversationsUseCase().execute(false);
       setConversations(allConversations);
       if (shouldPlayInboxSound(previousConversations.current, allConversations)) {
         playInboxChime();

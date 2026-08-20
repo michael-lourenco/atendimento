@@ -12,7 +12,7 @@ export class GetAllConversationsUseCase {
     private numbers: IWhatsAppNumberRepository = serviceLocator.getWhatsAppNumberRepository()
   ) {}
 
-  async execute(persistPreview = true): Promise<Conversation[]> {
+  async execute(persistPreview = false): Promise<Conversation[]> {
     const listed = await this.conversations.getAll();
     if (listed.every((item) => item.lastMessage)) {
       return listed;

@@ -103,18 +103,18 @@ describe('GetAllConversationsUseCase', () => {
       conversations,
       messages,
       new MemoryNumbers()
-    ).execute();
+    ).execute(false);
     expect(listed[0].lastMessage?.content).toBe('preciso de ajuda');
     expect(messageReads).toBe(0);
   });
 
-  it('preenche e grava a prévia quando o snapshot falta', async () => {
+  it('execute(true) preenche e grava a prévia quando o snapshot falta', async () => {
     const conversations = new MemoryConversations([row()]);
     const listed = await new GetAllConversationsUseCase(
       conversations,
       new MemoryMessages([last]),
       new MemoryNumbers()
-    ).execute();
+    ).execute(true);
     expect(listed[0].lastMessage?.content).toBe('preciso de ajuda');
     expect(conversations.items[0].lastMessage?.content).toBe('preciso de ajuda');
   });
@@ -128,11 +128,11 @@ describe('GetAllConversationsUseCase', () => {
       conversations,
       new MemoryMessages([last]),
       new MemoryNumbers()
-    ).execute();
+    ).execute(true);
     expect(listed[0].lastMessage?.content).toBe('preciso de ajuda');
   });
 
-  it('execute(false) preenche a prévia e não grava', async () => {
+  it('lista hidrata a prévia e não grava (padrão / execute(false))', async () => {
     const conversations = new MemoryConversations([row()]);
     let saves = 0;
     conversations.save = async () => {
@@ -142,7 +142,7 @@ describe('GetAllConversationsUseCase', () => {
       conversations,
       new MemoryMessages([last]),
       new MemoryNumbers()
-    ).execute(false);
+    ).execute();
     expect(listed[0].lastMessage?.content).toBe('preciso de ajuda');
     expect(saves).toBe(0);
     expect(conversations.items[0].lastMessage).toBeUndefined();
