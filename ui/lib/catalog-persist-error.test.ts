@@ -51,6 +51,15 @@ describe('catalogPersistErrorMessage', () => {
     ).toContain('023_quick_reply_department');
   });
 
+  it('explica behavior ausente no chatbot', () => {
+    expect(
+      catalogPersistErrorMessage(
+        { code: 'PGRST204', message: "Could not find the 'behavior' column" },
+        'chatbots'
+      )
+    ).toContain('024_bot_behavior');
+  });
+
   it('usa a mensagem do objeto PostgREST', () => {
     expect(catalogPersistErrorMessage({ message: 'payload too large' }, 'flows')).toBe(
       'payload too large'

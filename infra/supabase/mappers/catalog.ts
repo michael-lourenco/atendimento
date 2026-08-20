@@ -49,6 +49,10 @@ export function chatbotFromRow(row: Record<string, unknown>): Chatbot {
       row.business_hours && typeof row.business_hours === 'object'
         ? (row.business_hours as Chatbot['businessHours'])
         : undefined,
+    behavior:
+      row.behavior && typeof row.behavior === 'object'
+        ? (row.behavior as Chatbot['behavior'])
+        : undefined,
     createdAt: asDate(row.created_at),
     updatedAt: asDate(row.updated_at),
   };
@@ -67,6 +71,9 @@ export function chatbotToRow(chatbot: Chatbot) {
   };
   if (chatbot.businessHours) {
     row.business_hours = chatbot.businessHours;
+  }
+  if (chatbot.behavior) {
+    row.behavior = chatbot.behavior;
   }
   return row;
 }

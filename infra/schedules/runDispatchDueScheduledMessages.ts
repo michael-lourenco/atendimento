@@ -1,4 +1,6 @@
 import { DispatchDueScheduledMessagesUseCase } from '@/core/usecases/DispatchDueScheduledMessagesUseCase';
+import { DispatchIdleBotSessionsUseCase } from '@/core/usecases/DispatchIdleBotSessionsUseCase';
+import { CloseConversationUseCase } from '@/core/usecases/CloseConversationUseCase';
 import { PauseContactFlowUseCase } from '@/core/usecases/PauseContactFlowUseCase';
 import { SendWhatsAppMessageUseCase } from '@/core/usecases/SendWhatsAppMessageUseCase';
 import { UpsertContactFromIncomingUseCase } from '@/core/usecases/UpsertContactFromIncomingUseCase';
@@ -29,10 +31,25 @@ export function runDispatchDueScheduledMessages() {
     repos.whatsAppNumber
   );
   const pause = new PauseContactFlowUseCase(repos.flowSession, repos.flow);
-  inFlight = new DispatchDueScheduledMessagesUseCase(repos.scheduledMessage, send, pause)
-    .execute()
-    .finally(() => {
-      inFlight = null;
-    });
+  const idle = new DispatchIdleBotSessionsUseCase(
+    repos.chatbot,
+    repos.conversation,
+    repos.flowSession,
+    repos.message,
+    send,
+    new CloseConversationUseCase(repos.conversation),
+    repos.whatsAppNumber
+  );
+  inFlight = (async () => {
+    const scheduled = await new DispatchDueScheduledMessagesUseCase(
+      repos.scheduledMessage,
+      send,
+      pause
+    ).execute();
+    await idle.execute();
+    return scheduled;
+  })().finally(() => {
+    inFlight = null;
+  });
   return inFlight;
 }

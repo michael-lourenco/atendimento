@@ -17,6 +17,7 @@ import { FlowSession } from '../entities/FlowSession';
 import { SendWhatsAppMessageUseCase } from './SendWhatsAppMessageUseCase';
 import { SetConversationDepartmentUseCase } from './SetConversationDepartmentUseCase';
 import { ProcessIncomingFlowUseCase } from './ProcessIncomingFlowUseCase';
+import { ZERO_BOT_BEHAVIOR } from '../entities/botBehavior';
 
 const now = new Date('2026-08-18T15:00:00Z');
 
@@ -154,6 +155,7 @@ describe('ProcessIncomingFlowUseCase horário e fila', () => {
           messagesCount: 0,
           createdAt: now,
           updatedAt: now,
+          behavior: ZERO_BOT_BEHAVIOR,
           businessHours: {
             enabled: true,
             timezone: 'UTC',

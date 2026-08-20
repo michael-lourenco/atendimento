@@ -11,6 +11,7 @@ import { SupabaseServerAuthRepository } from '../supabase/SupabaseServerAuthRepo
 import { HandleIncomingWhatsAppMessageUseCase } from '../../core/usecases/HandleIncomingWhatsAppMessageUseCase';
 import { ProcessIncomingFlowUseCase } from '../../core/usecases/ProcessIncomingFlowUseCase';
 import { SendWhatsAppMessageUseCase } from '../../core/usecases/SendWhatsAppMessageUseCase';
+import { SendWhatsAppPresenceUseCase } from '../../core/usecases/SendWhatsAppPresenceUseCase';
 import { UpsertConversationFromMessageUseCase } from '../../core/usecases/UpsertConversationFromMessageUseCase';
 import { UpsertContactFromIncomingUseCase } from '../../core/usecases/UpsertContactFromIncomingUseCase';
 import { IWhatsAppService } from '../../core/services/IWhatsAppService';
@@ -89,7 +90,11 @@ class ServerLocator {
       repos.department,
       repos.whatsAppNumber,
       repos.chatbot,
-      repos.conversation
+      repos.conversation,
+      {
+        messages: repos.message,
+        presence: new SendWhatsAppPresenceUseCase(whatsApp),
+      }
     );
     return new HandleIncomingWhatsAppMessageUseCase(
       whatsApp,
@@ -98,7 +103,9 @@ class ServerLocator {
       upsert,
       upsertContact,
       syncAvatar,
-      repos.whatsAppNumber
+      repos.whatsAppNumber,
+      repos.contact,
+      repos.conversation
     );
   }
 

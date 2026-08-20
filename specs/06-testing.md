@@ -107,10 +107,13 @@ Runner: Jest + `ts-jest` (`npm test`). Testing Library só quando houver teste d
 - `core/usecases/SetOperatorPasswordUseCase.test.ts` — só admin; senha curta falha; id inexistente 404
 - `ui/lib/emoji.test.ts` — insere emoji na posição do cursor e substitui a seleção; o mesmo helper insere `body` de resposta rápida (texto Unicode, inclusive com emoji)
 - `core/entities/QuickReply.test.ts` — lista ordenada pelo título; prévia Áudio; válido com texto ou áudio; picker “Envia áudio”; filtro por título/texto; visível no setor da conversa
-- `core/usecases/GetMessageMediaUseCase.test.ts` — cache no Storage; sem download se o provedor não tiver `downloadMedia`
-- `ui/lib/catalog-persist-error.test.ts` — PGRST205 vira aviso de migration; PGRST204 em flows cita 017; `quick_replies` cita 022 (`media_kind`) e 023 (`department_id`); 23503 ao excluir fluxo
+- `core/entities/flowAudience.test.ts` — conhecido exige thread + contato prévios; cadastro sem thread é novo
+- `core/entities/botBehavior.test.ts` — tetos de delay; merge com padrão
+- `core/usecases/DispatchIdleBotSessionsUseCase.test.ts` — fecha na pergunta parada; não fecha se `paused`
+- `core/usecases/ProcessIncomingFlowUseCase.test.ts` — conhecido/reabertura pulam o Olá
+- `ui/lib/catalog-persist-error.test.ts` — PGRST205 vira aviso de migration; PGRST204 em flows cita 017; `quick_replies` cita 022 (`media_kind`) e 023 (`department_id`); `chatbots` cita 024 (`behavior`); 23503 ao excluir fluxo
 - `ui/lib/catalog-load-phase.test.ts` — enquanto carrega não é empty state
-- `ui/lib/sidebar-nav.test.ts` — atendente vê Conversas, Contatos, `/dashboard/quick-replies` **e** `/dashboard/schedules`; `isAdminPath` dessas duas é false; admin vê Configuração. Sem Testing Library obrigatório para esta feature
+- `ui/lib/sidebar-nav.test.ts` — atendente vê Conversas, Contatos, `/dashboard/quick-replies` **e** `/dashboard/schedules`; `isAdminPath` dessas duas é false; admin vê Configuração incluindo `/dashboard/chatbots`. Sem Testing Library obrigatório para esta feature
 - `ui/lib/inbox-href.test.ts` — Contatos: uma thread → `?conversation=`; nenhuma → `?contact=`; várias → `?contact=` (o menu escolhe o id)
 - `ui/lib/catalog-saved.test.ts` — aviso Salvo some depois do TTL
 - `infra/schedules/cronAuth.test.ts` — Bearer `CRON_SECRET`

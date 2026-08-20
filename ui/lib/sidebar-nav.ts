@@ -11,6 +11,7 @@ import {
   Building2,
   Smartphone,
   Reply,
+  Bot,
 } from 'lucide-react';
 
 export interface SidebarItem {
@@ -46,6 +47,7 @@ export const sidebarGroups: SidebarGroup[] = [
     adminOnly: true,
     items: [
       { title: 'Fluxos', href: '/dashboard/flows', icon: Workflow },
+      { title: 'Chatbots', href: '/dashboard/chatbots', icon: Bot },
       { title: 'Agentes', href: '/dashboard/agents', icon: UserCog },
       { title: 'Setores', href: '/dashboard/departments', icon: Building2 },
       { title: 'Números', href: '/dashboard/numbers', icon: Phone },
@@ -66,7 +68,6 @@ export function sidebarGroupsForRole(role: 'admin' | 'user'): SidebarGroup[] {
 
 const extraTitles: { href: string; title: string }[] = [
   { href: '/dashboard/messages', title: 'Mensagens' },
-  { href: '/dashboard/chatbots', title: 'Chatbots' },
   { href: '/dashboard/flows/new', title: 'Novo fluxo' },
 ];
 
@@ -91,6 +92,6 @@ export function isAdminPath(pathname: string): boolean {
   const hrefs = sidebarGroups.flatMap((group) =>
     group.adminOnly ? group.items.map((item) => item.href) : group.items.filter((item) => item.adminOnly).map((item) => item.href)
   );
-  hrefs.push('/dashboard/chatbots', '/dashboard/messages');
+  hrefs.push('/dashboard/messages');
   return hrefs.some((href) => pathname === href || pathname.startsWith(`${href}/`));
 }

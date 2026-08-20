@@ -1,6 +1,7 @@
+import { Chatbot } from '../../../core/entities/Chatbot';
 import { QuickReply } from '../../../core/entities/QuickReply';
 import { ScheduledMessage } from '../../../core/entities/ScheduledMessage';
-import { quickReplyFromRow, quickReplyToRow, scheduleToRow } from './catalog';
+import { chatbotFromRow, chatbotToRow, quickReplyFromRow, quickReplyToRow, scheduleToRow } from './catalog';
 
 const base: ScheduledMessage = {
   id: 's1',
@@ -63,5 +64,39 @@ describe('scheduleToRow', () => {
     expect(scheduleToRow({ ...base, conversationId: '5511999999999:n1' }).conversation_id).toBe(
       '5511999999999:n1'
     );
+  });
+});
+
+describe('chatbotToRow', () => {
+  const bot: Chatbot = {
+    id: '1',
+    name: 'Bot',
+    isActive: true,
+    messagesCount: 0,
+    createdAt: new Date('2026-08-20T12:00:00Z'),
+    updatedAt: new Date('2026-08-20T12:00:00Z'),
+  };
+
+  it('não manda behavior sem valor (evita PGRST204)', () => {
+    expect(chatbotToRow(bot)).not.toHaveProperty('behavior');
+  });
+
+  it('manda e lê behavior', () => {
+    const withBehavior = { ...bot, behavior: { replyDelayMs: 200, idleContactMinutes: 0 } };
+    expect(chatbotToRow(withBehavior).behavior).toEqual({
+      replyDelayMs: 200,
+      idleContactMinutes: 0,
+    });
+    expect(
+      chatbotFromRow({
+        id: '1',
+        name: 'Bot',
+        is_active: true,
+        messages_count: 0,
+        behavior: { replyDelayMs: 200 },
+        created_at: '2026-08-20T12:00:00Z',
+        updated_at: '2026-08-20T12:00:00Z',
+      }).behavior
+    ).toEqual({ replyDelayMs: 200 });
   });
 });

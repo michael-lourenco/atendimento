@@ -15,6 +15,7 @@ describe('sidebarGroupsForRole', () => {
     const hrefs = sidebarGroupsForRole('admin').flatMap((group) => group.items.map((item) => item.href));
     expect(hrefs).toContain('/dashboard/agents');
     expect(hrefs).toContain('/dashboard/whatsapp');
+    expect(hrefs).toContain('/dashboard/chatbots');
   });
 
   it('URLs de configuração são admin', () => {
@@ -25,5 +26,6 @@ describe('sidebarGroupsForRole', () => {
     expect(isAdminPath('/dashboard/schedules')).toBe(false);
     expect(isAdminPath('/dashboard/flows/inicio')).toBe(true);
     expect(isAdminPath('/dashboard/flows/new')).toBe(true);
+    expect(isAdminPath('/dashboard/chatbots')).toBe(true);
   });
 });

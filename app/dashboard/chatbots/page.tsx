@@ -20,6 +20,8 @@ import {
   BusinessHoursFields,
   DEFAULT_BUSINESS_HOURS,
 } from '@/ui/components/business-hours-fields';
+import { BotBehaviorFields, DEFAULT_BOT_BEHAVIOR } from '@/ui/components/bot-behavior-fields';
+import { mergeBotBehavior } from '@/core/entities/botBehavior';
 
 const catalog = clientUseCases.chatbots;
 
@@ -33,6 +35,7 @@ export default function ChatbotsPage() {
     description: '',
     isActive: true,
     hours: DEFAULT_BUSINESS_HOURS,
+    behavior: DEFAULT_BOT_BEHAVIOR,
   });
   const { confirm, dialog } = useConfirm();
   const { show, markSaved } = useCatalogSavedFlash();
@@ -55,7 +58,13 @@ export default function ChatbotsPage() {
   const reset = () => {
     setShowForm(false);
     setEditing(null);
-    setForm({ name: '', description: '', isActive: true, hours: DEFAULT_BUSINESS_HOURS });
+    setForm({
+      name: '',
+      description: '',
+      isActive: true,
+      hours: DEFAULT_BUSINESS_HOURS,
+      behavior: DEFAULT_BOT_BEHAVIOR,
+    });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -69,6 +78,7 @@ export default function ChatbotsPage() {
       flowId: editing?.flowId,
       messagesCount: editing?.messagesCount || 0,
       businessHours: form.hours,
+      behavior: form.behavior,
       createdAt: editing?.createdAt || now,
       updatedAt: now,
     });
@@ -149,6 +159,10 @@ export default function ChatbotsPage() {
                 value={form.hours}
                 onChange={(hours) => setForm({ ...form, hours })}
               />
+              <BotBehaviorFields
+                value={form.behavior}
+                onChange={(behavior) => setForm({ ...form, behavior })}
+              />
               <div className="flex gap-2">
                 <Button type="submit">Salvar</Button>
                 <Button type="button" variant="outline" onClick={reset}>
@@ -204,6 +218,7 @@ export default function ChatbotsPage() {
                               description: bot.description || '',
                               isActive: bot.isActive,
                               hours: bot.businessHours ?? DEFAULT_BUSINESS_HOURS,
+                              behavior: mergeBotBehavior(bot.behavior),
                             });
                             setShowForm(true);
                           }}

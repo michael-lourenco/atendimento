@@ -216,7 +216,10 @@ function createInternalMessageRepository(client: SupabaseClient): IInternalMessa
 function createChatbotRepository(client: SupabaseClient) {
   const crud = createSupabaseCrud<Chatbot>(client, 'chatbots', chatbotFromRow, chatbotToRow);
   const save = (chatbot: Chatbot) =>
-    upsertOmittingMissingColumns(client, 'chatbots', chatbotToRow(chatbot), ['business_hours']);
+    upsertOmittingMissingColumns(client, 'chatbots', chatbotToRow(chatbot), [
+      'business_hours',
+      'behavior',
+    ]);
   return {
     getAll: () => crud.getAll(),
     getById: (id: string) => crud.getById(id),

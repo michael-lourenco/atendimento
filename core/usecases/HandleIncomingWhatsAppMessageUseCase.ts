@@ -1,9 +1,13 @@
 import { IWhatsAppService, WhatsAppWebhookEntry } from '../services/IWhatsAppService';
 import { IMessageRepository } from '../repositories/IMessageRepository';
 import { IWhatsAppNumberRepository } from '../repositories/IWhatsAppNumberRepository';
+import { IContactRepository } from '../repositories/IContactRepository';
+import { IConversationRepository } from '../repositories/IConversationRepository';
 import { Message } from '../entities/Message';
+import { WhatsAppNumber } from '../entities/WhatsAppNumber';
 import { mergeMessageStatus } from '../entities/messageStatus';
 import { lineHintFromMessage, matchWhatsAppNumber } from '../entities/whatsappNumberLine';
+import { incomingFlowHints } from '../entities/flowAudience';
 import { ProcessIncomingFlowUseCase } from './ProcessIncomingFlowUseCase';
 import {
   UpsertConversationFromMessageUseCase,
@@ -20,7 +24,9 @@ export class HandleIncomingWhatsAppMessageUseCase {
     private upsertConversation: UpsertConversationFromMessageUseCase,
     private upsertContact: UpsertContactFromIncomingUseCase,
     private syncAvatar?: SyncContactAvatarUseCase,
-    private numbers?: IWhatsAppNumberRepository
+    private numbers?: IWhatsAppNumberRepository,
+    private contacts?: IContactRepository,
+    private conversations?: IConversationRepository
   ) {}
 
   async execute(entry: WhatsAppWebhookEntry): Promise<Message[]> {
@@ -34,6 +40,7 @@ export class HandleIncomingWhatsAppMessageUseCase {
 
   private async persistAndRunFlow(messages: Message[]): Promise<Message[]> {
     const catalog = this.numbers ? await this.numbers.getAll() : [];
+    const hints = await this.peekFlowHints(messages, catalog);
     for (const message of messages) {
       const existing = await this.messageRepository.getById(message.id);
       if (existing) {
@@ -54,8 +61,33 @@ export class HandleIncomingWhatsAppMessageUseCase {
       await this.upsertConversation.execute(message);
     }
 
-    await this.processIncomingFlow.executeForMessages(messages);
+    await this.processIncomingFlow.executeForMessages(messages, hints);
 
     return messages;
+  }
+
+  private async peekFlowHints(messages: Message[], catalog: WhatsAppNumber[]) {
+    if (!this.contacts || !this.conversations) {
+      return [];
+    }
+    const conversations = await this.conversations.getAll();
+    const existingContactIds = new Set<string>();
+    const seen = new Set<string>();
+    for (const message of messages) {
+      const phone = contactPhoneFromMessage(message);
+      if (!phone || seen.has(phone)) {
+        continue;
+      }
+      seen.add(phone);
+      if (await this.contacts.getById(phone)) {
+        existingContactIds.add(phone);
+      }
+    }
+    return incomingFlowHints({
+      messages,
+      conversations,
+      existingContactIds,
+      catalog,
+    });
   }
 }

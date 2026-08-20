@@ -90,6 +90,7 @@ Bodies JSON das rotas abaixo passam por schema Zod na borda. Inválido → `400 
 - 401: Supabase configurado e nenhum dos dois
 - 500: falha ao ler/gravar agendamentos
 - Lock `inFlight` no processo: chamadas simultâneas no mesmo Node compartilham a execução
+- No mesmo tick: `DispatchIdleBotSessionsUseCase` (silêncio na pergunta do bot)
 - Cron Vercel: `vercel.json` chama `GET` a cada minuto (`CRON_SECRET` no host). `next dev` / `next start` (não Vercel) disparam no processo a cada 60s, sem HTTP
 
 `GET /api/messages/{id}/media`

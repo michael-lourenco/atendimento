@@ -22,5 +22,8 @@ describe('schemaHealth', () => {
         (item) => item.table === 'quick_replies' && item.column === 'department_id'
       )
     ).toBe(true);
+    expect(
+      EXPECTED_SCHEMA_COLUMNS.some((item) => item.table === 'chatbots' && item.column === 'behavior')
+    ).toBe(true);
   });
 });

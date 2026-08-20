@@ -310,4 +310,63 @@ describe('ProcessIncomingFlowUseCase', () => {
     expect(await sessions.getByContactId('5511999999999:n-com')).not.toBeNull();
     expect(await sessions.getByContactId('5511999999999:n-sup')).not.toBeNull();
   });
+
+  it('conhecido sem pergunta à espera pula o Olá', async () => {
+    const { useCase, whatsApp } = createUseCase([sampleFlow]);
+    await useCase.execute({ contactId: '5511999999999', text: 'oi', audience: 'known' });
+    expect(whatsApp.sent.map((item) => item.message)).toEqual(['Qual área?']);
+  });
+
+  it('reabertura conhecida despausa e mostra o menu', async () => {
+    const { useCase, whatsApp, sessions } = createUseCase([sampleFlow]);
+    await sessions.save({
+      contactId: '5511999999999',
+      flowId: 'inicio',
+      currentStepId: 'ask',
+      paused: true,
+      updatedAt: now,
+    });
+    await useCase.execute({
+      contactId: '5511999999999',
+      text: 'oi',
+      audience: 'known',
+      reopened: true,
+    });
+    expect(whatsApp.sent.map((item) => item.message)).toEqual(['Qual área?']);
+    expect((await sessions.getByContactId('5511999999999'))?.paused).toBe(false);
+  });
+
+  it('lote na mesma linha usa só a última mensagem', async () => {
+    const { useCase, whatsApp } = createUseCase([sampleFlow]);
+    const base = {
+      from: '5511999999999',
+      to: 'bot',
+      timestamp: now,
+      type: 'text' as const,
+      direction: 'incoming' as const,
+      status: 'sent' as const,
+    };
+    await useCase.executeForMessages([
+      { ...base, id: 'a', content: 'oi' },
+      { ...base, id: 'b', content: 'oi de novo' },
+    ]);
+    expect(whatsApp.sent.map((item) => item.message)).toEqual(['Olá', 'Qual área?']);
+  });
+
+  it('conhecido com pergunta à espera trata o texto como resposta', async () => {
+    const { useCase, whatsApp, sessions } = createUseCase([sampleFlow]);
+    await sessions.save({
+      contactId: '5511999999999',
+      flowId: 'inicio',
+      currentStepId: 'ask',
+      paused: false,
+      updatedAt: now,
+    });
+    await useCase.execute({
+      contactId: '5511999999999',
+      text: 'Vendas',
+      audience: 'known',
+    });
+    expect(whatsApp.sent.map((item) => item.message)).toEqual(['Obrigado']);
+  });
 });

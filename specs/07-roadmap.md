@@ -68,6 +68,7 @@ Isolamento entre empresas = cópia da stack (`00-vision.md`, `08-supabase.md`).
 - Rascunho de texto por conversa (`sessionStorage`)
 - Finalizar abre a próxima da Entrada (setor/minhas/linha)
 - Clique na imagem da bolha amplia (overlay)
+- Comportamento do bot: delay/digitando; conhecido = thread desta linha + contato já no catálogo; idle só na pergunta; reabertura → menu conhecido
 
 ## Não fazer
 

@@ -11,7 +11,7 @@
 | `Conversation` | Atendimento com contato, setor, agente, tags, status. `assignedAt` opcional (primeiro Assumir). `contactTypingAt` opcional (contato digitando no WhatsApp) |
 | `Department` | Setor (cor, ativos, contagens) |
 | `InternalMessage` | Nota da equipe na conversa |
-| `Chatbot` | Bot cadastrado no painel (pode apontar `flowId`). `businessHours` opcional (expediente do WhatsApp) |
+| `Chatbot` | Bot cadastrado no painel (pode apontar `flowId`). `businessHours` opcional (expediente). `behavior` opcional (`BotBehavior`: delay, digitando, inatividade) |
 | `Agent` | Atendente (`online` \| `offline`) |
 | `Contact` | Contato WhatsApp + etiquetas; `avatarUrl` opcional (foto no Storage, via `/api/contacts/{id}/avatar`) |
 | `WhatsAppNumber` | Número/linha WhatsApp da **mesma** empresa. Na UI o rótulo é `name` (ex. Comercial); `instanceName` é identificador técnico (slug do nome se o admin não preencher) |
@@ -44,7 +44,7 @@ Mensagens: `GetAllMessagesUseCase`, `GetMessagesByContactUseCase`
 WhatsApp: `SendWhatsAppMessageUseCase` (`quotedMessageId` opcional), `HandleIncomingWhatsAppMessageUseCase`, `UpsertConversationFromMessageUseCase`, `UpsertContactFromIncomingUseCase`, `SyncContactAvatarUseCase`, `SyncMissingContactAvatarsUseCase`, `SyncLiveWhatsAppNumberUseCase`, `UpdateMessageStatusUseCase`, `ApplyMessageReactionUseCase`, `SendMessageReactionUseCase`, `SendWhatsAppPresenceUseCase`, `ApplyContactTypingUseCase`  
 Agendamentos: `ScheduledMessageCatalogUseCase`, `DispatchDueScheduledMessagesUseCase` (pendente com `scheduledDate <= agora` → envia, pausa a sessão da thread, marca `sent` ou `failed`)  
 Respostas rápidas: `QuickReplyCatalogUseCase` (`list` / `save` / `delete`; padrão Tag)  
-Motor: `ProcessIncomingFlowUseCase` (incoming texto → respostas do fluxo)  
+Motor: `ProcessIncomingFlowUseCase` (incoming texto → respostas do fluxo; ritmo e ciclo novo/conhecido), `DispatchIdleBotSessionsUseCase` (silêncio na pergunta)  
 Atendimento humano: `PauseContactFlowUseCase`, `ResumeContactFlowUseCase`, `GetFlowSessionUseCase`  
 Operadores: `EnsureOperatorAgentUseCase`, `CreateOperatorUseCase`, `SetOperatorRoleUseCase`, `SetOperatorPasswordUseCase`, `DeleteOperatorUseCase`, `ListOperatorsUseCase`  
 Fila: `AssignConversationUseCase` (assumir → `waiting` + agente), `TransferConversationUseCase` (`transferred`), `CloseConversationUseCase` (`closed`), `MarkConversationReadUseCase` (`unreadCount: 0`), `SetConversationDepartmentUseCase` (`departmentId` / `departmentName`)
@@ -77,8 +77,33 @@ Picker (só cliente): campo **Filtrar** casa `title` e `body` (sem rota nova). �
 5. Use case não chama Axios/Meta/Twilio direto — só `IWhatsAppService`.
 6. Uma sessão por `contactId` da `FlowSession`. Esse `contactId` é o mesmo `Conversation.id` (chave da thread), não o telefone isolado. Duas linhas = duas sessões. Pause/resume/Assumir usam o id da conversa. Sem fluxo ativo: incoming é persistida e **nenhuma** resposta automática é enviada.
 7. No máximo 20 passos por turno (ciclo).
-8. Envio pelo painel (`POST /api/messages/send`) **pausa** a sessão da thread (`paused: true`): com `conversationId`, essa conversa; sem ele, a conversa do telefone (a mais recente se houver várias). Texto ou mídia (imagem/áudio/vídeo/documento). Mídia outgoing é cacheada em `IMediaStorage` (`messages/{id}`). Enquanto pausado, incoming é persistida e o motor **não** responde. `ResumeContactFlowUseCase` volta `paused: false` e zera `currentStepId` (próxima mensagem mostra só a primeira `question`, sem a abertura) na sessão daquela thread. Respostas automáticas do motor **não** pausam.
-9. Agendamento `pending` com `scheduledDate <= agora` é enviado pelo mesmo `SendWhatsAppMessageUseCase` (`to` = telefone do contato). Com `conversationId`, o envio e o pause usam **essa** thread (mesma linha). Sem `conversationId`, resolve pela conversa do telefone (a mais recente se houver várias). Sucesso → `sent` e pausa a sessão; falha do provedor ou texto vazio → `failed`. Futuro permanece `pending`. O disparo **não** depende do painel: cron in-process a cada 60s em `next dev` / `next start` (exceto Vercel serverless); na Vercel, `GET /api/schedules/dispatch` via `vercel.json`. Salvar no painel ainda dispara na hora.
+8. Envio pelo painel (`POST /api/messages/send`) **pausa** a sessão da thread (`paused: true`): com `conversationId`, essa conversa; sem ele, a conversa do telefone (a mais recente se houver várias). Texto ou mídia (imagem/áudio/vídeo/documento). Mídia outgoing é cacheada em `IMediaStorage` (`messages/{id}`). Enquanto pausado, incoming é persistida e o motor **não** responde — **exceto** reabertura de conversa `closed` (ver ciclo novo/conhecido). `ResumeContactFlowUseCase` volta `paused: false` e zera `currentStepId` (próxima mensagem mostra só a primeira `question`, sem a abertura) na sessão daquela thread. Respostas automáticas do motor **não** pausam.
+9. Agendamento `pending` com `scheduledDate <= agora` é enviado pelo mesmo `SendWhatsAppMessageUseCase` (`to` = telefone do contato). Com `conversationId`, o envio e o pause usam **essa** thread (mesma linha). Sem `conversationId`, resolve pela conversa do telefone (a mais recente se houver várias). Sucesso → `sent` e pausa a sessão; falha do provedor ou texto vazio → `failed`. Futuro permanece `pending`. O disparo **não** depende do painel: cron in-process a cada 60s em `next dev` / `next start` (exceto Vercel serverless); na Vercel, `GET /api/schedules/dispatch` via `vercel.json`. O mesmo tick também roda `DispatchIdleBotSessionsUseCase`. Salvar no painel ainda dispara agendamentos na hora.
+
+## Ciclo novo / conhecido / reabertura
+
+`resolveFlowAudience`: **conhecido** só se a thread **desta linha já existia** antes desta mensagem **e** o contato **já estava** no catálogo. Não vale “acabou de criar o Contact no mesmo turno” (todo incoming cria contato). Cadastro no painel sem nenhuma conversa nesta linha = **novo** (triagem com Olá).
+
+- **Novo:** primeira mensagem que **cria** a thread nesta linha → abertura completa (Olá + menu).
+- **Conhecido:** thread já existia + contato no catálogo. Se o bot **não** está à espera de uma `question` (`currentStepId` null ou sem sessão), pula o Olá e vai à **primeira pergunta** (menu). Se já há pergunta à espera, o texto é a resposta (não reinicia o menu).
+- **Reabertura:** incoming em conversa `closed` (o upsert reabre). Se conhecido, o bot **volta** mesmo com sessão `paused`: des pausa, zera `currentStepId`, manda o menu de conhecido (sem Olá). Com humano em conversa **aberta** (`paused`, não closed), o bot continua calado; **finalizar é só o atendente**.
+
+## BotBehavior (`Chatbot.behavior`)
+
+Padrão da empresa no chatbot **ativo** (a tela `/dashboard/chatbots`). Sem catálogo de bots no use case (testes), delays = 0.
+
+| Campo | Padrão | Efeito |
+|-------|--------|--------|
+| `replyDelayMs` | 1000 (0–5000) | Espera depois do incoming antes da 1ª mensagem |
+| `bubbleDelayMs` | 500 (0–8000) | Entre mensagens se o passo não tiver `delayMs` |
+| `sendComposing` | true | Presence `composing` no delay (Evolution) |
+| `waitWhileTyping` | true | Não envia enquanto `contactTypingAt` estiver fresco (`typingIdleMs`) |
+| `typingIdleMs` | 1500 (0–5000) | Margem depois que o composing parou; teto extra 8s |
+| `inboundDebounceMs` | 800 (0–3000) | Espera e usa o **último** incoming da thread no turno (lote + re-leitura) |
+| `idleContactMinutes` | 30 (0 = desliga) | Só com bot à espera de `question` e `paused: false` |
+| `idleCloseMessage` | texto de encerramento | Envia, `CloseConversationUseCase`, sessão `paused` |
+
+Inatividade **não** corre com humano (`paused`). O cron de agendamentos dispara o idle.
 
 ## FlowSession
 
@@ -107,7 +132,8 @@ Planejamento puro em `core/engine` (`planFlowTurn`, `evaluateCondition`, `resolv
 
 ### Turno (`planFlowTurn`)
 
-- **Sem sessão (primeiro contato):** começa no primeiro passo do fluxo (ex. saudação “Olá”). A mensagem do usuário só dispara o fluxo; o texto alimenta `condition` encontradas **antes** de uma `question` no mesmo turno.
+- **Sem sessão / novo nesta linha:** começa no primeiro passo (saudação “Olá”). A mensagem do usuário só dispara o fluxo; o texto alimenta `condition` encontradas **antes** de uma `question` no mesmo turno.
+- **Conhecido sem pergunta à espera / reabertura:** **não** reenvia as mensagens iniciais. Começa na primeira `question`.
 - **Sessão existe e `currentStepId` null** (já houve atendimento neste fluxo): **não** reenvia as mensagens iniciais. Começa na primeira `question` (só o enunciado e as opções).
 - **`currentStepId` em `question`:** o texto é a resposta; se for só o **número** da opção (`1`, `2`, `1.`, `2)`), o motor troca pelo texto daquela linha (1 = primeira opção) e segue `nextStepId` (não reenvia a pergunta). Número inexistente ou texto livre: usa o que a pessoa digitou. Se **não** bater com uma opção (número ou texto igual) e o texto coincidir com `keywords` de outro fluxo ativo, entra nesse fluxo no primeiro passo e zera a pilha.
 - **`message`:** envia `content` se não vazio; se `mediaUrl` http(s) e `mediaKind` `image`/`audio`, tenta enviar a mídia (URL inválida = só o texto). `delayMs` (0–8000, padrão 0) pausa **antes** deste envio. Segue `nextStepId`.
@@ -118,7 +144,7 @@ Planejamento puro em `core/engine` (`planFlowTurn`, `evaluateCondition`, `resolv
 - Passo ou `nextStepId` inexistente → encerra (`currentStepId` null). A próxima mensagem **não** reenvia a abertura: só a primeira `question`. No fluxo `inicio`, o passo `miss` (“Não peguei…”) aponta para `menu` no mesmo turno, para reapresentar as opções sem a saudação. Ramos do menu usam `goToFlow` para `sistema`, `demo`, `cliente` e `comercial` (`salesIntakeFlows`). Comercial, demo e ajuda do cliente usam `handoff` (setor + bot pausa).
 - `question` não valida se a resposta está em `options`. Número da opção só mapeia quando o texto é **só** o número (com `.` ou `)` opcional).
 
-Entrada do motor: só incoming `type === "text"` com conteúdo não vazio. Mídia: persiste, não avança fluxo. Sessão `paused`: persiste, não avança fluxo. **Expediente:** o chatbot ativo com `businessHours.enabled` fora do horário (fuso e dias) envia `closedMessage` e **não** avança o fluxo; sessão `outsideHoursNotified`. Sem sessão pausada. Na volta ao horário, se só houve o aviso (`currentStepId` null), a próxima mensagem começa o fluxo do zero. **Fila:** após `handoff`, o bot acrescenta “Você é o N na fila” (`queuePlace`: mesmo setor, sem atendente, não finalizada). Áudio/imagem/vídeo/documento são reproduzíveis no painel via `GET /api/messages/{id}/media` (cache no Storage; se faltar, a Evolution entrega o base64 pelo `id` da mensagem).
+Entrada do motor: só incoming `type === "text"` com conteúdo não vazio. Mídia: persiste, não avança fluxo. Sessão `paused` em conversa **aberta**: persiste, não avança. Reabertura de `closed` (conhecido): despausa e mostra o menu. **Ritmo:** `BotBehavior` do chatbot ativo (delay, composing, espera digitando, debounce). **Expediente:** o chatbot ativo com `businessHours.enabled` fora do horário (fuso e dias) envia `closedMessage` e **não** avança o fluxo; sessão `outsideHoursNotified`. Sem sessão pausada. Na volta ao horário, se só houve o aviso (`currentStepId` null), a próxima mensagem começa o fluxo do zero. **Fila:** após `handoff`, o bot acrescenta “Você é o N na fila” (`queuePlace`: mesmo setor, sem atendente, não finalizada). Áudio/imagem/vídeo/documento são reproduzíveis no painel via `GET /api/messages/{id}/media` (cache no Storage; se faltar, a Evolution entrega o base64 pelo `id` da mensagem).
 
 ## Testes obrigatórios (escrever; usuário executa)
 
@@ -132,7 +158,9 @@ Entrada do motor: só incoming `type === "text"` com conteúdo não vazio. Mídi
 - `action` `handoff` pausa a sessão (e grava setor se houver) e informa a posição na fila.
 - Fora do expediente o bot só avisa e não avança o fluxo; na volta, a abertura volta.
 - Palavra-chave de outro fluxo ativo inicia esse roteiro.
-- Sessão `paused` não dispara resposta automática.
+- Sessão `paused` em conversa aberta não dispara resposta automática; reabertura conhecida dispara o menu
+- `resolveFlowAudience` — conhecido = thread já existia nesta linha e contato já no catálogo
+- `DispatchIdleBotSessionsUseCase` — silêncio na pergunta fecha; `paused` (humano) não fecha
 - `PauseContactFlowUseCase` / `ResumeContactFlowUseCase` atuam na sessão cujo `contactId` é o id da conversa.
 - Duas linhas WhatsApp = duas conversas e duas sessões; legado (`id` = telefone) não duplica.
 - `AssignConversationUseCase` coloca em Esperando; `CloseConversationUseCase` fecha.

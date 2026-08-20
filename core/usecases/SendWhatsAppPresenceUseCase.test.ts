@@ -41,4 +41,19 @@ describe('SendWhatsAppPresenceUseCase', () => {
     });
     expect(sent[0]).toMatchObject({ presence: 'recording', delayMs: 25000 });
   });
+
+  it('aceita delayMs explícito no composing', async () => {
+    const sent: SendPresenceParams[] = [];
+    const whatsApp = {
+      sendPresence: async (params: SendPresenceParams) => {
+        sent.push(params);
+      },
+    } as unknown as IWhatsAppService;
+    await new SendWhatsAppPresenceUseCase(whatsApp).execute({
+      to: '5511',
+      presence: 'composing',
+      delayMs: 800,
+    });
+    expect(sent[0].delayMs).toBe(800);
+  });
 });
