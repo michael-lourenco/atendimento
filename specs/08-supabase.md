@@ -14,7 +14,7 @@ Replicar para outra empresa:
 
 1. Novo projeto Supabase
 2. Env (`NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY` no **servidor**)
-3. Rodar migrations `001`–`007` nesse projeto
+3. Rodar migrations `001`–`020` **nessa ordem** nesse projeto
 
 Empresa XYZ não lê dados nem config da HZJ: o isolamento é a cópia da stack, não `company_id`.
 
