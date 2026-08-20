@@ -25,6 +25,8 @@ import { ConversationThreadHeader } from '@/ui/components/conversation-thread-he
 import { TeamNotes } from '@/ui/components/team-notes';
 import { MessageStatusTicks } from '@/ui/components/message-status-ticks';
 import { Card, CardContent } from '@/ui/components/card';
+import { ChatThreadSkeleton } from '@/ui/components/chat-thread-skeleton';
+import { conversationThreadBody } from '@/ui/lib/conversation-thread-body';
 import { DASHBOARD_POLL_MS } from '@/ui/lib/dashboard-poll';
 import { queueToneOf } from '@/ui/lib/status-tone';
 
@@ -44,19 +46,22 @@ export function MessageThread({ conversationId, onBack, onConversationChanged }:
   const [sending, setSending] = useState(false);
   const [pendingSend, setPendingSend] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [messagesReady, setMessagesReady] = useState(false);
   const [lineName, setLineName] = useState('');
   const [scheduleOpen, setScheduleOpen] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
 
   const lineRef = useRef<WhatsAppNumber | null>(null);
 
-  const load = async (refreshCatalogs: boolean) => {
+  const load = async (refreshCatalogs: boolean, isCancelled: () => boolean = () => false) => {
     try {
       await new MarkConversationReadUseCase().execute(conversationId);
     } catch {
       // zerar não lidas não pode esconder o chat
     }
+    if (isCancelled()) return;
     const conv = await new GetConversationByIdUseCase().execute(conversationId);
+    if (isCancelled()) return;
     if (refreshCatalogs) {
       const [agentList, departmentList, user, numberList] = await Promise.all([
         new AgentCatalogUseCase().list(),
@@ -64,6 +69,7 @@ export function MessageThread({ conversationId, onBack, onConversationChanged }:
         new GetCurrentUserUseCase().execute(),
         listWhatsAppNumbersCached(),
       ]);
+      if (isCancelled()) return;
       lineRef.current = numberList.find((item) => item.id === conv?.whatsappNumberId) ?? null;
       setLineName(lineRef.current?.name ?? '');
       setAgents(agentList);
@@ -71,6 +77,7 @@ export function MessageThread({ conversationId, onBack, onConversationChanged }:
       setOperator(user);
     } else if (conv?.whatsappNumberId && lineRef.current?.id !== conv.whatsappNumberId) {
       const numberList = await listWhatsAppNumbersCached();
+      if (isCancelled()) return;
       lineRef.current = numberList.find((item) => item.id === conv.whatsappNumberId) ?? null;
       setLineName(lineRef.current?.name ?? '');
     }
@@ -79,6 +86,7 @@ export function MessageThread({ conversationId, onBack, onConversationChanged }:
       new GetMessagesByContactUseCase().execute(phone, lineRef.current),
       new GetFlowSessionUseCase().execute(conversationId),
     ]);
+    if (isCancelled()) return;
     setMessages(list);
     setPaused(Boolean(session?.paused));
     setConversation(conv);
@@ -89,14 +97,32 @@ export function MessageThread({ conversationId, onBack, onConversationChanged }:
   };
 
   useEffect(() => {
+    let cancelled = false;
+    const isCancelled = () => cancelled;
     lineRef.current = null;
     setLineName('');
     setScheduleOpen(false);
-    load(true).catch((err) => console.error('Erro ao carregar conversa:', err));
+    setMessages([]);
+    setPendingSend(null);
+    setMessagesReady(false);
+    void load(true, isCancelled)
+      .catch((err) => {
+        if (!cancelled) {
+          console.error('Erro ao carregar conversa:', err);
+        }
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setMessagesReady(true);
+        }
+      });
     const timer = setInterval(() => {
-      load(false).catch((err) => console.error('Erro ao atualizar conversa:', err));
+      load(false, isCancelled).catch((err) => console.error('Erro ao atualizar conversa:', err));
     }, DASHBOARD_POLL_MS);
-    return () => clearInterval(timer);
+    return () => {
+      cancelled = true;
+      clearInterval(timer);
+    };
   }, [conversationId]);
 
   useEffect(() => {
@@ -153,9 +179,12 @@ export function MessageThread({ conversationId, onBack, onConversationChanged }:
     }
   };
 
-  const title = conversation
-    ? conversationDisplayName(conversation)
-    : phone;
+  const threadBody = conversationThreadBody({
+    ready: messagesReady,
+    messageCount: messages.length,
+    hasPending: Boolean(pendingSend),
+  });
+  const title = conversation ? conversationDisplayName(conversation) : phone;
   const queueTone = conversation ? queueToneOf(conversation) : null;
 
   return (
@@ -191,9 +220,11 @@ export function MessageThread({ conversationId, onBack, onConversationChanged }:
       ) : null}
       <CardContent className="flex min-h-0 flex-1 flex-col p-0">
         <div className="min-h-0 flex-1 overflow-y-auto bg-chat p-4">
-          {messages.length === 0 && !pendingSend ? (
+          {threadBody === 'loading' ? (
+            <ChatThreadSkeleton />
+          ) : threadBody === 'empty' ? (
             <p className="py-8 text-center text-sm text-muted-foreground">
-              Nenhuma mensagem neste contato
+              Sem mensagens nesta conversa
             </p>
           ) : (
             <div className="space-y-3">

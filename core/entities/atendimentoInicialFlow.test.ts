@@ -59,7 +59,7 @@ describe('salesIntakeFlows', () => {
       flowId: INTAKE_FLOW_SISTEMA,
       currentStepId: 'ask_size',
     });
-    expect(afterSize.replies.some((reply) => reply.content.includes('Cabe no seu caso'))).toBe(
+    expect(afterSize.replies.some((reply) => reply.content.includes('encaixa no seu time'))).toBe(
       true
     );
     expect(afterSize.nextSession.currentStepId).toBe('ask_next');
@@ -73,6 +73,7 @@ describe('salesIntakeFlows', () => {
     expect(hire.replies[0].content).toContain('comercial');
     expect(hire.nextSession.flowId).toBe(INTAKE_FLOW_COMERCIAL);
     expect(hire.nextSession.currentStepId).toBeNull();
+    expect(hire.nextSession.paused).toBe(true);
   });
 
   it('demonstração e falar com pessoa definem setor via fluxos ligados', () => {
@@ -84,6 +85,7 @@ describe('salesIntakeFlows', () => {
       { type: 'setDepartment', departmentId: INTAKE_DEPARTMENT_DEMO },
     ]);
     expect(demo.nextSession.flowId).toBe(INTAKE_FLOW_DEMO);
+    expect(demo.nextSession.paused).toBe(true);
     const human = turn('Falar com uma pessoa', {
       flowId: INTAKE_FLOW_INICIO,
       currentStepId: 'menu',
@@ -92,6 +94,7 @@ describe('salesIntakeFlows', () => {
       { type: 'setDepartment', departmentId: INTAKE_DEPARTMENT_COMERCIAL },
     ]);
     expect(human.nextSession.flowId).toBe(INTAKE_FLOW_COMERCIAL);
+    expect(human.nextSession.paused).toBe(true);
   });
 
   it('cliente que pede ajuda vai ao setor Cliente', () => {
@@ -108,6 +111,21 @@ describe('salesIntakeFlows', () => {
     expect(help.effects).toEqual([
       { type: 'setDepartment', departmentId: INTAKE_DEPARTMENT_CLIENTE },
     ]);
+    expect(help.nextSession.paused).toBe(true);
+  });
+
+  it('depois do FAQ pergunta se ainda precisa de alguém', () => {
+    const faq = turn('Como o painel funciona', {
+      flowId: INTAKE_FLOW_CLIENTE,
+      currentStepId: 'faq',
+    });
+    expect(faq.nextSession.currentStepId).toBe('ask_more');
+    const done = turn('Era só isso, obrigado', {
+      flowId: INTAKE_FLOW_CLIENTE,
+      currentStepId: 'ask_more',
+    });
+    expect(done.replies.some((reply) => reply.content.includes('Combinado'))).toBe(true);
+    expect(done.nextSession.paused).toBe(false);
   });
 
   it('número da opção no menu segue o mesmo ramo que o texto', () => {
@@ -118,15 +136,15 @@ describe('salesIntakeFlows', () => {
       turn('2', { flowId: INTAKE_FLOW_INICIO, currentStepId: 'menu' }).effects
     ).toEqual([{ type: 'setDepartment', departmentId: INTAKE_DEPARTMENT_DEMO }]);
     const size = turn('3', { flowId: INTAKE_FLOW_SISTEMA, currentStepId: 'ask_size' });
-    expect(size.replies.some((reply) => reply.content.includes('Cabe no seu caso'))).toBe(true);
+    expect(size.replies.some((reply) => reply.content.includes('encaixa no seu time'))).toBe(true);
     expect(size.nextSession.currentStepId).toBe('ask_next');
   });
 
   it('opção inválida no menu envia miss e o menu, sem Olá', () => {
     const plan = turn('asdfgh', { flowId: INTAKE_FLOW_INICIO, currentStepId: 'menu' });
     expect(plan.replies.map((reply) => reply.stepId)).toEqual(['miss', 'menu']);
-    expect(plan.replies[0].content).toContain('Não identifiquei');
-    expect(plan.replies[1].content).toContain('Como posso ajudar');
+    expect(plan.replies[0].content).toContain('Não peguei');
+    expect(plan.replies[1].content).toContain('Como posso te ajudar');
     expect(plan.replies.some((reply) => reply.content.includes('Olá'))).toBe(false);
     expect(plan.nextSession.flowId).toBe(INTAKE_FLOW_INICIO);
     expect(plan.nextSession.currentStepId).toBe('menu');

@@ -51,7 +51,7 @@ Runner: Jest + `ts-jest` (`npm test`). Testing Library só quando houver teste d
 - `ui/lib/flow-option-paths.test.ts` — cadeia de condições; destinos setor/mensagem/fluxo; chave estável das opções
 - `ui/lib/flow-step-outline.test.ts` — condições da pergunta não são blocos soltos; destino da opção em texto
 - `ui/lib/flow-step-copy.test.ts` — rótulo do passo sem expor id; resumo com o bloco recolhido
-- `ui/lib/inbox-notify.test.ts` — som só após a primeira carga, se não lidas sobem
+- `ui/lib/conversation-thread-body.test.ts` — abrir conversa: carregando até a busca; vazio só sem mensagens; lista quando há mensagens
 - `ui/lib/flow-path-map.test.ts` — ligações Depois / Se sim / Se não
 - `ui/lib/flow-canvas-graph.test.ts` — nós sem condições da pergunta; setas next/opção; `canvasPosition`; ligar/desligar handle
 - `ui/lib/flow-health.test.ts` — bloco solto; pergunta sem opção; goToFlow vazio
@@ -68,7 +68,7 @@ Runner: Jest + `ts-jest` (`npm test`). Testing Library só quando houver teste d
 - `core/usecases/DispatchDueScheduledMessagesUseCase.test.ts` — vencido envia; futuro não; vazio/provedor → failed; com `conversationId` o send/pause usam a thread
 - `core/entities/schedulesForConversation.test.ts` — lista da thread: `conversationId` bate; sem id, mesmo telefone
 - `core/entities/scheduleOutgoingLine.test.ts` — coluna Linha: `conversationId` fixa a thread; sem id, a mais recente do telefone
-- `core/entities/atendimentoInicialFlow.test.ts` — menu no `inicio`; saltos `goToFlow` para sistema/demo/cliente/comercial; contratar → Comercial; opção inválida → miss + menu sem Olá; **número** da opção no menu
+- `core/entities/atendimentoInicialFlow.test.ts` — menu no `inicio`; saltos `goToFlow`; contratar e demo pausam (`handoff`); FAQ do cliente pergunta se ainda precisa de alguém; opção inválida → miss + menu sem saudação; **número** da opção no menu
 - `core/entities/inboxFilterHint.test.ts` — quantas a aba tem vs o filtro
 - `core/engine/previewFlowOpening.test.ts` — primeiro “oi” vira bolhas da prévia (opções numeradas); salto `goToFlow`
 - `core/entities/assignmentFromOperator.test.ts` — e-mail liga agente; senão linked false

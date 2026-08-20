@@ -34,11 +34,20 @@ function goto(id: string, flowId: string): FlowStep {
   };
 }
 
+function handoff(id: string, departmentId: string, content: string): FlowStep {
+  return {
+    id,
+    type: 'action',
+    content,
+    action: { type: 'handoff', departmentId },
+  };
+}
+
 function miss(id: string, nextStepId: string, hint: string): FlowStep {
   return {
     id,
     type: 'message',
-    content: `Não identifiquei essa opção. Envie o número da linha (1, 2, 3…) ou o texto (ou parte dele), por exemplo: ${hint}.`,
+    content: `Não peguei essa opção. Responda com o número (1, 2 ou 3) ou com o texto da linha, tipo: ${hint}.`,
     nextStepId,
   };
 }
@@ -57,19 +66,19 @@ function inicioFlow(now: Date): Flow {
   return makeFlow(
     INTAKE_FLOW_INICIO,
     'Atendimento Inicial',
-    'Menu de entrada. Os ramos saltam para fluxos menores (sistema, demo, cliente, comercial).',
+    'Menu de entrada. Os ramos saltam para sistema, demo, cliente e comercial.',
     [
       {
         id: 'welcome',
         type: 'message',
         content:
-          'Olá! Aqui é o atendimento automático do Michael: chatbot + painel para o time responder WhatsApp no computador, com triagem por setor.',
+          'Oi, aqui é o Michael. Este WhatsApp é o produto: o bot recebe, organiza e o time responde no computador.',
         nextStepId: 'menu',
       },
       {
         id: 'menu',
         type: 'question',
-        content: 'Como posso ajudar?',
+        content: 'Como posso te ajudar?',
         options: [
           'Quero o sistema para minha empresa',
           'Quero uma demonstração',
@@ -96,21 +105,13 @@ function comercialFlow(now: Date): Flow {
   return makeFlow(
     INTAKE_FLOW_COMERCIAL,
     'Falar com o comercial',
-    'Define o setor Comercial e avisa que um especialista assume.',
+    'Pausa o bot e chama o setor Comercial.',
     [
-      {
-        id: 'set_comercial',
-        type: 'action',
-        content: '',
-        nextStepId: 'msg_humano',
-        action: { type: 'setDepartment', departmentId: INTAKE_DEPARTMENT_COMERCIAL },
-      },
-      {
-        id: 'msg_humano',
-        type: 'message',
-        content:
-          'Encaminhei você ao comercial. Em instantes um especialista assume esta conversa no painel — o bot para aqui para não misturar com o atendimento humano.',
-      },
+      handoff(
+        'msg_humano',
+        INTAKE_DEPARTMENT_COMERCIAL,
+        'Pronto, chamei o comercial. Alguém assume esta conversa daqui a pouco. Pode ir escrevendo o que você precisa.'
+      ),
     ],
     now
   );
@@ -120,21 +121,13 @@ function demoFlow(now: Date): Flow {
   return makeFlow(
     INTAKE_FLOW_DEMO,
     'Demonstração',
-    'Define o setor Demonstração e pede dia e horário.',
+    'Pausa o bot e chama o setor Demonstração.',
     [
-      {
-        id: 'set_demo',
-        type: 'action',
-        content: '',
-        nextStepId: 'msg_demo',
-        action: { type: 'setDepartment', departmentId: INTAKE_DEPARTMENT_DEMO },
-      },
-      {
-        id: 'msg_demo',
-        type: 'message',
-        content:
-          'A conversa foi para o setor Demonstração. Envie um dia e um horário (ex.: quinta 14h). Abrimos o painel com você: Assumir, setores e o fluxo ao vivo.',
-      },
+      handoff(
+        'msg_demo',
+        INTAKE_DEPARTMENT_DEMO,
+        'Vamos marcar uma demonstração ao vivo no computador. Me envia um dia e um horário, tipo quinta 14h. Aí eu te mostro o painel funcionando nesta conversa.'
+      ),
     ],
     now
   );
@@ -144,7 +137,7 @@ function clienteFlow(now: Date): Flow {
   return makeFlow(
     INTAKE_FLOW_CLIENTE,
     'Já sou cliente',
-    'FAQ do painel ou setor Cliente.',
+    'Tira dúvida do painel ou chama o setor Cliente.',
     [
       {
         id: 'faq',
@@ -154,27 +147,35 @@ function clienteFlow(now: Date): Flow {
         nextStepId: 'c_faq_painel',
       },
       cond('c_faq_painel', 'painel', 'msg_faq', 'c_faq_ajuda'),
-      cond('c_faq_ajuda', 'ajuda', 'set_cliente', 'miss'),
+      cond('c_faq_ajuda', 'ajuda', 'msg_cliente', 'miss'),
       {
         id: 'msg_faq',
         type: 'message',
         content:
-          'No painel: Conversas (Assumir, Transferir, Finalizar), Fluxos para o roteiro do WhatsApp, e WhatsApp só para o QR. Quando o atendente responde, o bot pausa. Se precisar de alguém, envie: Preciso de ajuda agora.',
+          'No computador você vê todas as conversas, assume quando quiser e o bot para de responder sozinho. O roteiro do WhatsApp fica em Fluxos. Se ainda precisar de alguém, é só pedir.',
+        nextStepId: 'ask_more',
       },
       {
-        id: 'set_cliente',
-        type: 'action',
-        content: '',
-        nextStepId: 'msg_cliente',
-        action: { type: 'setDepartment', departmentId: INTAKE_DEPARTMENT_CLIENTE },
+        id: 'ask_more',
+        type: 'question',
+        content: 'Quer falar com o time agora?',
+        options: ['Era só isso, obrigado', 'Preciso de ajuda agora'],
+        nextStepId: 'c_more_ajuda',
       },
+      cond('c_more_ajuda', 'ajuda', 'msg_cliente', 'c_more_ok'),
+      cond('c_more_ok', 'obrigado', 'msg_ok', 'miss_more'),
       {
-        id: 'msg_cliente',
+        id: 'msg_ok',
         type: 'message',
-        content:
-          'Você está no setor Cliente. Um atendente assume esta conversa. Enquanto isso, descreva o que está acontecendo.',
+        content: 'Combinado. Qualquer coisa é só chamar.',
       },
+      handoff(
+        'msg_cliente',
+        INTAKE_DEPARTMENT_CLIENTE,
+        'Passei você para o time de clientes. Enquanto alguém assume, descreve o que está acontecendo.'
+      ),
       miss('miss', 'faq', 'painel ou ajuda'),
+      miss('miss_more', 'ask_more', 'obrigado ou ajuda'),
     ],
     now
   );
@@ -184,12 +185,12 @@ function sistemaFlow(now: Date): Flow {
   return makeFlow(
     INTAKE_FLOW_SISTEMA,
     'Sistema para empresa',
-    'Tamanho do time, pitch e próximo passo (valores, demo ou comercial).',
+    'Tamanho do time, como funciona e próximo passo (valores, demo ou comercial).',
     [
       {
         id: 'ask_size',
         type: 'question',
-        content: 'Perfeito. Quantas pessoas vão atender no painel?',
+        content: 'Quantas pessoas da sua equipe vão atender pelo painel?',
         options: ['1 atendente', '2 a 5 atendentes', '6 ou mais'],
         nextStepId: 'c_size6',
       },
@@ -200,13 +201,13 @@ function sistemaFlow(now: Date): Flow {
         id: 'pitch',
         type: 'message',
         content:
-          'Cabe no seu caso: o bot filtra, a conversa cai no setor certo e o atendente assume no computador. Fluxos, fila e histórico no mesmo painel — sem depender do WhatsApp Web.',
+          'Isso encaixa no seu time. O bot faz a triagem, a conversa cai no setor certo e o atendente assume no computador. Fila, histórico e roteiro ficam no mesmo lugar, sem ficar preso no celular.',
         nextStepId: 'ask_next',
       },
       {
         id: 'ask_next',
         type: 'question',
-        content: 'Qual o próximo passo?',
+        content: 'O que você prefere agora?',
         options: ['Ver valores e prazo', 'Agendar demo no computador', 'Quero contratar'],
         nextStepId: 'c_valor',
       },
@@ -217,13 +218,13 @@ function sistemaFlow(now: Date): Flow {
         id: 'msg_preco',
         type: 'message',
         content:
-          'Implantação para PME, com o painel que você está usando agora. Valores e prazo fechamos na conversa — sem número genérico. Posso te colocar na fila comercial.',
+          'Valores e prazo combinamos juntos, conforme o tamanho do time. Posso te passar para o comercial nesta conversa.',
         nextStepId: 'ask_after',
       },
       {
         id: 'ask_after',
         type: 'question',
-        content: 'Como prefere seguir?',
+        content: 'Como você quer seguir?',
         options: ['Agendar conversa', 'Só estou pesquisando'],
         nextStepId: 'c_agendar',
       },
@@ -233,7 +234,7 @@ function sistemaFlow(now: Date): Flow {
         id: 'msg_frio',
         type: 'message',
         content:
-          'Tudo bem. Quando quiser, é só chamar de novo e escolher uma opção. Se preferir, deixe seu nome e cidade nesta conversa.',
+          'Sem problema. Quando quiser avançar, é só chamar de novo. Se preferir, deixa seu nome e cidade aqui que eu guardo.',
       },
       goto('to_demo', INTAKE_FLOW_DEMO),
       goto('to_comercial', INTAKE_FLOW_COMERCIAL),

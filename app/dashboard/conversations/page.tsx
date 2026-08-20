@@ -301,6 +301,7 @@ export default function ConversationsPage() {
         <section className={threadOpen ? 'min-h-0' : 'hidden min-h-0 lg:block'}>
           {selectedConversation ? (
             <MessageThread
+              key={selectedConversation.id}
               conversationId={selectedConversation.id}
               onBack={() => router.push('/dashboard/conversations')}
               onConversationChanged={() => loadConversations()}
