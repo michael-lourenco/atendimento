@@ -36,6 +36,7 @@ import { DASHBOARD_POLL_MS } from '@/ui/lib/dashboard-poll';
 import { useInboxRealtime } from '@/ui/lib/use-inbox-realtime';
 import { queueToneOf } from '@/ui/lib/status-tone';
 import { postThreadMessage } from '@/ui/lib/post-thread-message';
+import { notifyWhatsAppRead } from '@/ui/lib/notify-whatsapp-read';
 
 type MessageThreadProps = {
   conversationId: string;
@@ -69,6 +70,7 @@ export function MessageThread({ conversationId, onBack, onConversationChanged }:
     } catch {
       // zerar não lidas não pode esconder o chat
     }
+    notifyWhatsAppRead(conversationId);
     if (isCancelled()) return;
     const conv = await new GetConversationByIdUseCase().execute(conversationId);
     if (isCancelled()) return;

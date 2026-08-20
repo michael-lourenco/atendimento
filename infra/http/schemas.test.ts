@@ -7,6 +7,7 @@ import {
   loginBodySchema,
   metaWebhookSchema,
   reactMessageBodySchema,
+  readMessagesBodySchema,
   setOperatorRoleBodySchema,
 } from './schemas';
 
@@ -68,5 +69,11 @@ describe('schemas HTTP', () => {
     expect(reactMessageBodySchema.safeParse({ messageId: 'm1', emoji: '👍' }).success).toBe(true);
     expect(reactMessageBodySchema.safeParse({ messageId: '', emoji: '👍' }).success).toBe(false);
     expect(reactMessageBodySchema.safeParse({ messageId: 'm1', emoji: '' }).success).toBe(true);
+  });
+
+  it('visto exige conversationId', () => {
+    expect(readMessagesBodySchema.safeParse({ conversationId: 'c1' }).success).toBe(true);
+    expect(readMessagesBodySchema.safeParse({ conversationId: '' }).success).toBe(false);
+    expect(readMessagesBodySchema.safeParse({}).success).toBe(false);
   });
 });

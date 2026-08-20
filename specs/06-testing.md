@@ -26,6 +26,9 @@ Runner: Jest + `ts-jest` (`npm test`). Testing Library só quando houver teste d
 - `core/usecases/TransferConversationUseCase.test.ts` — status transferred
 - `core/usecases/AssignConversationUseCase.test.ts` — assumir (waiting) e finalizar (closed)
 - `core/usecases/MarkConversationReadUseCase.test.ts` — zera unreadCount
+- `core/usecases/MarkWhatsAppMessagesReadUseCase.test.ts` — envia ids incoming; no-op sem `markMessagesRead`; conversa inexistente
+- `infra/whatsapp/evolutionMarkMessagesRead.test.ts` — payload `readMessages`
+- `ui/lib/ptt-file.test.ts` — arquivo a partir dos blobs; sem MediaRecorder o PTT não quebra
 - `core/usecases/LoginUseCase.test.ts` — porta de auth (senha obrigatória); agente `offline` recusa
 - `core/usecases/GetCurrentUserUseCase.test.ts` — agente `offline` faz logout
 - `core/usecases/GetAllConversationsUseCase.test.ts` — lista o catálogo; com snapshot não relê mensagens; `execute(true)` preenche e grava a prévia; se gravar falhar ainda devolve a prévia; padrão / `execute(false)` hidrata e não grava
@@ -41,7 +44,7 @@ Runner: Jest + `ts-jest` (`npm test`). Testing Library só quando houver teste d
 - `core/usecases/ApplyMessageReactionUseCase.test.ts` — grava no alvo; alvo inexistente retorna null
 - `core/usecases/SendMessageReactionUseCase.test.ts` — envia e persiste; mesmo emoji da linha remove
 - `infra/whatsapp/mapEvolutionIncoming.test.ts` — `reactionMessage` não vira bolha; mapeia alvo + emoji; `contextInfo` vira citação
-- `core/entities/lastMessageForConversation.test.ts` — última mensagem da thread (telefone + linha); ack atualiza o snapshot da prévia
+- `core/entities/lastMessageForConversation.test.ts` — última mensagem da thread (telefone + linha); ack atualiza o snapshot da prévia; busca pelo texto
 - `core/entities/conversationThread.test.ts` — `conversationThreadId`; legado vs outra linha; `?contact=` abre a mais recente; `threadsForContactPhone` ordena pela atividade; mensagens filtradas por linha
 - `core/entities/whatsappNumberLine.test.ts` — liga instância/dígitos ao cadastro; linha de envio da conversa; `lineNameOf` usa o `name` do catálogo
 - `core/entities/conversationDepartment.test.ts` — filtro de setor; agentes do mesmo setor; transferência só online
@@ -86,7 +89,7 @@ Runner: Jest + `ts-jest` (`npm test`). Testing Library só quando houver teste d
 - `core/entities/schedulesForConversation.test.ts` — lista da thread: `conversationId` bate; sem id, mesmo telefone
 - `core/entities/scheduleOutgoingLine.test.ts` — coluna Linha: `conversationId` fixa a thread; sem id, a mais recente do telefone
 - `core/entities/atendimentoInicialFlow.test.ts` — menu no `inicio`; saltos `goToFlow`; contratar e demo pausam (`handoff`); FAQ do cliente pergunta se ainda precisa de alguém; opção inválida → miss + menu sem saudação; **número** da opção no menu
-- `core/entities/inboxFilterHint.test.ts` — quantas a aba tem vs o filtro
+- `core/entities/inboxFilterHint.test.ts` — quantas a aba tem vs o filtro; busca casa conteúdo da thread
 - `core/engine/previewFlowOpening.test.ts` — primeiro “oi” vira bolhas da prévia (opções numeradas); salto `goToFlow`
 - `core/entities/assignmentFromOperator.test.ts` — e-mail liga agente; senão linked false
 - `core/entities/operatorRole.test.ts` — admin; último admin não rebaixa nem exclui
@@ -112,7 +115,7 @@ Runner: Jest + `ts-jest` (`npm test`). Testing Library só quando houver teste d
 - `infra/supabase/mappers/messaging.test.ts` — `conversationToRow` só manda `last_message` se houver snapshot
 - `infra/supabase/mappers/messaging.test.ts` — `messageToRow` grava `reactions` (vazio se ainda não houver)
 - `infra/http/apiLog.test.ts` — formato `[requestId] mensagem: detalhe`; não inclui token, apikey, service_role, JWT, Authorization, base64, nem `error.response.data` completo
-- `infra/http/schemas.test.ts` — login; operators POST/PATCH (papel e/ou senha); Evolution `data` ou `key`; chat-whatsapp `{ event, data }`; Meta `object` + `entry`
+- `infra/http/schemas.test.ts` — login; operators POST/PATCH (papel e/ou senha); Evolution `data` ou `key`; chat-whatsapp `{ event, data }`; Meta `object` + `entry`; `POST /api/messages/read` exige `conversationId`
 - `app/api/messages/send/parseSendRequest.test.ts` — JSON (Zod) e multipart; máx. 16 MB; JSON inválido → 400; `conversationId` opcional (JSON e multipart)
 - `core/entities/inboxFilterHint.test.ts` — filtro de linha esconde as outras; “Ver todas” via hiddenCount
 - `ui/lib/inbox-notify.test.ts` — `document.title` `(N) Conversas` com não lidas

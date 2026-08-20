@@ -7,8 +7,11 @@ import { Button } from '@/ui/components/button';
 import { Textarea } from '@/ui/components/textarea';
 import { EmojiPicker } from '@/ui/components/emoji-picker';
 import { QuickReplyPicker } from '@/ui/components/quick-reply-picker';
+import { PttButton } from '@/ui/components/ptt-button';
 import { insertEmojiAtCursor } from '@/ui/lib/emoji';
 import { MAX_OUTGOING_MEDIA_BYTES } from '@/core/services/IMediaStorage';
+import { PTT_MAX_MS } from '@/ui/lib/ptt-file';
+import { usePttRecorder } from '@/ui/lib/use-ptt-recorder';
 
 type MessageComposerProps = {
   disabled?: boolean;
@@ -20,6 +23,8 @@ type MessageComposerProps = {
   conversationId?: string;
   onSend: (input: { text: string; file: File | null; quotedMessageId?: string }) => Promise<void>;
 };
+
+type ComposerPresence = 'composing' | 'recording' | 'paused';
 
 export function MessageComposer({
   disabled,
@@ -37,11 +42,14 @@ export function MessageComposer({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const textRef = useRef<HTMLTextAreaElement>(null);
   const lastPresence = useRef<string>('');
+  const finishingPtt = useRef(false);
+  const ptt = usePttRecorder();
   const busy = sending || disabled;
   const canSend = Boolean(draft.trim() || file) && !busy;
+  const showMic = ptt.supported && !draft.trim() && !file && !busy;
 
-  const sendPresence = (presence: 'composing' | 'paused') => {
-    if (!presenceTo || busy) {
+  const sendPresence = (presence: ComposerPresence) => {
+    if (!presenceTo || (busy && presence !== 'paused')) {
       return;
     }
     if (lastPresence.current === presence) {
@@ -56,7 +64,7 @@ export function MessageComposer({
   };
 
   useEffect(() => {
-    if (!presenceTo || busy) {
+    if (!presenceTo || busy || ptt.recording) {
       return;
     }
     if (!draft.trim()) {
@@ -65,7 +73,7 @@ export function MessageComposer({
     }
     const timer = setTimeout(() => sendPresence('composing'), 400);
     return () => clearTimeout(timer);
-  }, [draft, presenceTo, busy, conversationId]);
+  }, [draft, presenceTo, busy, conversationId, ptt.recording]);
 
   useEffect(
     () => () => {
@@ -77,6 +85,7 @@ export function MessageComposer({
           body: JSON.stringify({ to: presenceTo, presence: 'paused', conversationId }),
         });
       }
+      ptt.cancel();
     },
     [presenceTo, conversationId]
   );
@@ -126,6 +135,48 @@ export function MessageComposer({
     }
   };
 
+  const finishPtt = async (sendIt: boolean) => {
+    if (finishingPtt.current) {
+      return;
+    }
+    finishingPtt.current = true;
+    sendPresence('paused');
+    try {
+      const audio = sendIt ? await ptt.stop() : (ptt.cancel(), null);
+      if (!audio || audio.size === 0) {
+        return;
+      }
+      if (audio.size > MAX_OUTGOING_MEDIA_BYTES) {
+        setSizeError('Arquivo maior que 16 MB');
+        return;
+      }
+      await onSend({ text: '', file: audio, quotedMessageId: replyTo?.id });
+    } catch {
+      setSizeError('Não foi possível enviar o áudio');
+    } finally {
+      finishingPtt.current = false;
+    }
+  };
+
+  const startPtt = async () => {
+    setSizeError(null);
+    try {
+      const started = await ptt.start();
+      if (started) {
+        lastPresence.current = '';
+        sendPresence('recording');
+      }
+    } catch {
+      setSizeError('Microfone indisponível');
+    }
+  };
+
+  useEffect(() => {
+    if (ptt.recording && ptt.elapsedMs >= PTT_MAX_MS) {
+      void finishPtt(true);
+    }
+  }, [ptt.recording, ptt.elapsedMs]);
+
   const onSubmit = (event: FormEvent) => {
     event.preventDefault();
     void submit();
@@ -140,7 +191,13 @@ export function MessageComposer({
       event.preventDefault();
       onCancelReply?.();
     }
+    if (event.key === 'Escape' && ptt.recording) {
+      event.preventDefault();
+      void finishPtt(false);
+    }
   };
+
+  const seconds = Math.max(1, Math.ceil(ptt.elapsedMs / 1000));
 
   return (
     <form onSubmit={onSubmit} className="bg-muted">
@@ -173,38 +230,54 @@ export function MessageComposer({
           className="hidden"
           accept="image/*,audio/*,video/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.zip"
           onChange={onFileChange}
-          disabled={busy}
+          disabled={busy || ptt.recording}
         />
-        <EmojiPicker compact disabled={busy} onPick={insertText} />
-        <QuickReplyPicker compact disabled={busy} onPick={insertText} />
+        <EmojiPicker compact disabled={busy || ptt.recording} onPick={insertText} />
+        <QuickReplyPicker compact disabled={busy || ptt.recording} onPick={insertText} />
         <button
           type="button"
           className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-muted-foreground hover:bg-background disabled:opacity-50"
           aria-label="Anexar"
           onClick={() => fileInputRef.current?.click()}
-          disabled={busy}
+          disabled={busy || ptt.recording}
         >
           <Paperclip className="h-5 w-5" />
         </button>
-        <Textarea
-          ref={textRef}
-          value={draft}
-          onChange={(event) => setDraft(event.target.value)}
-          onKeyDown={onKeyDown}
-          placeholder="Mensagem"
-          title="Enter envia. Shift+Enter quebra a linha."
-          rows={1}
-          disabled={busy}
-          className="min-h-10 max-h-24 flex-1 resize-none rounded-3xl border-0 bg-card px-4 py-2.5 shadow-sm focus-visible:ring-1"
-        />
-        <button
-          type="submit"
-          className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-sm hover:bg-primary/90 disabled:opacity-40"
-          aria-label={sending ? 'Enviando' : 'Enviar'}
-          disabled={!canSend}
-        >
-          <Send className="h-5 w-5" />
-        </button>
+        {ptt.recording ? (
+          <p className="min-h-10 flex-1 px-4 py-2.5 text-sm text-destructive">
+            Gravando… {seconds}s · solte para enviar
+          </p>
+        ) : (
+          <Textarea
+            ref={textRef}
+            value={draft}
+            onChange={(event) => setDraft(event.target.value)}
+            onKeyDown={onKeyDown}
+            placeholder="Mensagem"
+            title="Enter envia. Shift+Enter quebra a linha."
+            rows={1}
+            disabled={busy}
+            className="min-h-10 max-h-24 flex-1 resize-none rounded-3xl border-0 bg-card px-4 py-2.5 shadow-sm focus-visible:ring-1"
+          />
+        )}
+        {showMic || ptt.recording ? (
+          <PttButton
+            recording={ptt.recording}
+            disabled={Boolean(busy && !ptt.recording)}
+            onHoldStart={() => void startPtt()}
+            onHoldEnd={() => void finishPtt(true)}
+            onHoldCancel={() => void finishPtt(false)}
+          />
+        ) : (
+          <button
+            type="submit"
+            className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-sm hover:bg-primary/90 disabled:opacity-40"
+            aria-label={sending ? 'Enviando' : 'Enviar'}
+            disabled={!canSend}
+          >
+            <Send className="h-5 w-5" />
+          </button>
+        )}
       </div>
     </form>
   );

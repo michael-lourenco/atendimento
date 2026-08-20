@@ -1,6 +1,7 @@
-import { IWhatsAppService, SendMessageParams, SendReactionParams, WhatsAppMessageResponse, WhatsAppWebhookEntry, assertNoOutgoingMedia } from '../../core/services/IWhatsAppService';
+import { IWhatsAppService, MarkMessagesReadParams, SendMessageParams, SendReactionParams, WhatsAppMessageResponse, WhatsAppWebhookEntry, assertNoOutgoingMedia } from '../../core/services/IWhatsAppService';
 import { Message } from '../../core/entities/Message';
 import { sendMetaReaction } from './metaSendReaction';
+import { sendMetaMarkMessagesRead } from './metaMarkMessagesRead';
 
 export class WhatsAppService implements IWhatsAppService {
   private phoneNumberId: string;
@@ -89,6 +90,13 @@ export class WhatsAppService implements IWhatsAppService {
       throw new Error('WhatsApp credentials não configuradas. Verifique as variáveis de ambiente.');
     }
     await sendMetaReaction(this.baseUrl, this.accessToken, params);
+  }
+
+  async markMessagesRead(params: MarkMessagesReadParams): Promise<void> {
+    if (!this.phoneNumberId || !this.accessToken) {
+      throw new Error('WhatsApp credentials não configuradas. Verifique as variáveis de ambiente.');
+    }
+    await sendMetaMarkMessagesRead(this.baseUrl, this.accessToken, params);
   }
 
   verifyWebhook(mode: string, token: string, challenge: string): string | null {

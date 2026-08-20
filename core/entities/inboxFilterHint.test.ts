@@ -1,5 +1,6 @@
 import { Conversation } from './Conversation';
 import { inboxHiddenCount } from './inboxFilterHint';
+import { Message } from './Message';
 
 const row = (overrides: Partial<Conversation> = {}): Conversation => ({
   id: '1',
@@ -47,5 +48,28 @@ describe('inboxHiddenCount', () => {
     ];
     expect(inboxHiddenCount(withLines, 'incoming', false, 'me', 'all', '', 'n1')).toBe(1);
     expect(inboxHiddenCount(withLines, 'incoming', false, 'me', 'all', '', 'all')).toBe(0);
+  });
+
+  it('busca também o texto da thread', () => {
+    const withPreview = [
+      row({
+        id: 'a',
+        contactPhone: '1',
+        status: 'open',
+        lastMessage: {
+          id: 'm1',
+          from: '1',
+          to: 'linha',
+          content: 'Quero fechar contrato',
+          type: 'text',
+          timestamp: new Date('2026-08-19'),
+          direction: 'incoming',
+          status: 'delivered',
+        } satisfies Message,
+      }),
+      row({ id: 'b', contactPhone: '2', contactName: 'Bruno', status: 'open' }),
+    ];
+    expect(inboxHiddenCount(withPreview, 'incoming', false, 'me', 'all', 'contrato')).toBe(1);
+    expect(inboxHiddenCount(withPreview, 'incoming', false, 'me', 'all', 'bruno')).toBe(1);
   });
 });

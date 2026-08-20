@@ -8,14 +8,14 @@ function contactPhoneOf(message: Message): string {
   return digitsPhone(phone) || phone;
 }
 
-export function lastMessageForConversation(
+export function messagesForConversation(
   messages: Message[],
   conversation: Conversation,
   line?: WhatsAppNumber | null
-): Message | undefined {
+): Message[] {
   const phone = digitsPhone(conversation.contactPhone);
   if (!phone) {
-    return undefined;
+    return [];
   }
   const ofContact = messages.filter((item) => {
     const other = contactPhoneOf(item);
@@ -25,10 +25,37 @@ export function lastMessageForConversation(
       item.to === conversation.contactPhone
     );
   });
-  const onLine = messagesOnWhatsAppLine(ofContact, line);
+  return messagesOnWhatsAppLine(ofContact, line);
+}
+
+export function lastMessageForConversation(
+  messages: Message[],
+  conversation: Conversation,
+  line?: WhatsAppNumber | null
+): Message | undefined {
+  const onLine = messagesForConversation(messages, conversation, line);
   return [...onLine].sort(
     (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
   )[0];
+}
+
+export function conversationMatchesMessageText(
+  conversation: Conversation,
+  query: string,
+  messages: Message[] = [],
+  numbers: WhatsAppNumber[] = []
+): boolean {
+  const needle = query.trim().toLowerCase();
+  if (!needle) {
+    return true;
+  }
+  if (conversation.lastMessage?.content.toLowerCase().includes(needle)) {
+    return true;
+  }
+  const line = numbers.find((item) => item.id === conversation.whatsappNumberId);
+  return messagesForConversation(messages, conversation, line).some((item) =>
+    item.content.toLowerCase().includes(needle)
+  );
 }
 
 export function attachMissingLastMessages(

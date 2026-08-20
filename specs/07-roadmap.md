@@ -55,6 +55,9 @@ Isolamento entre empresas = cópia da stack (`00-vision.md`, `08-supabase.md`).
 - Citação de mensagem
 - Presence / digitando (Evolution)
 - SLA na inbox de relatórios (1ª resposta humana + fila sem dono)
+- PTT no compositor (áudio via send existente)
+- Recibo de leitura ao abrir a thread (`POST /api/messages/read`)
+- Busca da inbox e do histórico pelo texto das mensagens
 
 ## Não fazer
 

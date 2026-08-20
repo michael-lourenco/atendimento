@@ -1,4 +1,4 @@
-import { IWhatsAppService, SendMessageParams, SendPresenceParams, SendReactionParams, WhatsAppMessageResponse, WhatsAppWebhookEntry } from '../../core/services/IWhatsAppService';
+import { IWhatsAppService, MarkMessagesReadParams, SendMessageParams, SendPresenceParams, SendReactionParams, WhatsAppMessageResponse, WhatsAppWebhookEntry } from '../../core/services/IWhatsAppService';
 import { Message } from '../../core/entities/Message';
 import axios, { AxiosInstance } from 'axios';
 import { mapEvolutionIncomingMessages } from './mapEvolutionIncoming';
@@ -7,6 +7,7 @@ import { StoredMedia } from '../../core/services/IMediaStorage';
 import { evolutionSendEnvelope, sendEvolutionMedia } from './evolutionSendMedia';
 import { sendEvolutionReaction } from './evolutionSendReaction';
 import { sendEvolutionPresence } from './evolutionSendPresence';
+import { sendEvolutionMarkMessagesRead } from './evolutionMarkMessagesRead';
 import { evolutionQuotedBody } from './evolutionQuoted';
 
 /**
@@ -104,6 +105,14 @@ export class EvolutionWhatsAppService implements IWhatsAppService {
       const errorMessage = err.response?.data?.message || err.message || 'Erro desconhecido';
       throw new Error(`Erro ao enviar presence via Evolution API: ${errorMessage}`);
     }
+  }
+
+  async markMessagesRead(params: MarkMessagesReadParams): Promise<void> {
+    const instanceName = params.instanceName?.trim() || this.instanceName;
+    if (!this.apiKey || !instanceName) {
+      throw new Error('Credenciais Evolution API não configuradas.');
+    }
+    await sendEvolutionMarkMessagesRead(this.axiosClient, instanceName, params);
   }
 
   verifyWebhook(mode: string, token: string, challenge: string): string | null {

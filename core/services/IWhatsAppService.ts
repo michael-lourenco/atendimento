@@ -45,6 +45,12 @@ export interface SendPresenceParams {
   instanceName?: string;
 }
 
+export interface MarkMessagesReadParams {
+  to: string;
+  messageIds: string[];
+  instanceName?: string;
+}
+
 export function assertNoOutgoingMedia(params: SendMessageParams): void {
   if (params.media) {
     throw new Error(
@@ -136,6 +142,8 @@ export interface IWhatsAppService {
   sendReaction?(params: SendReactionParams): Promise<void>;
 
   sendPresence?(params: SendPresenceParams): Promise<void>;
+
+  markMessagesRead?(params: MarkMessagesReadParams): Promise<void>;
 
   fetchProfilePicture(phone: string, instanceName?: string): Promise<StoredMedia | null>;
 

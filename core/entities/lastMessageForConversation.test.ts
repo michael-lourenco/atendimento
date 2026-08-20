@@ -4,6 +4,7 @@ import { WhatsAppNumber } from './WhatsAppNumber';
 import {
   applyLastMessageStatus,
   attachMissingLastMessages,
+  conversationMatchesMessageText,
   lastMessageForConversation,
 } from './lastMessageForConversation';
 
@@ -78,6 +79,28 @@ describe('lastMessageForConversation', () => {
       comercial
     );
     expect(last).toBeUndefined();
+  });
+});
+
+describe('conversationMatchesMessageText', () => {
+  it('casa a prévia sem varrer o histórico', () => {
+    const withPreview: Conversation = {
+      ...conversation,
+      lastMessage: msg({ content: 'Quero uma demo' }),
+    };
+    expect(conversationMatchesMessageText(withPreview, 'DEMO')).toBe(true);
+    expect(conversationMatchesMessageText(withPreview, 'pedido')).toBe(false);
+  });
+
+  it('casa uma mensagem antiga da mesma linha', () => {
+    expect(
+      conversationMatchesMessageText(
+        conversation,
+        'orçamento',
+        [msg({ id: 'old', content: 'Segue o orçamento' })],
+        [comercial]
+      )
+    ).toBe(true);
   });
 });
 

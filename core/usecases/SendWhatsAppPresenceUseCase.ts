@@ -12,7 +12,8 @@ export class SendWhatsAppPresenceUseCase {
       to: input.to,
       presence: input.presence,
       instanceName: input.instanceName,
-      delayMs: input.presence === 'paused' ? 0 : 2000,
+      delayMs:
+        input.presence === 'paused' ? 0 : input.presence === 'recording' ? 25000 : 2000,
     });
   }
 }

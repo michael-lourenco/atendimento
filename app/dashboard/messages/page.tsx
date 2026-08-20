@@ -2,17 +2,21 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { Search } from 'lucide-react';
 import { GetAllMessagesUseCase } from '@/core/usecases/GetAllMessagesUseCase';
 import { Message } from '@/core/entities/Message';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/ui/components/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/ui/components/table';
 import { MessageMedia } from '@/ui/components/message-media';
 import { Badge } from '@/ui/components/badge';
+import { Input } from '@/ui/components/input';
 import { DASHBOARD_POLL_MS } from '@/ui/lib/dashboard-poll';
 import { CatalogListSkeleton } from '@/ui/components/catalog-list-skeleton';
+import { messagesMatchingQuery } from '@/ui/lib/messages-matching-query';
 
 export default function MessagesPage() {
   const [messages, setMessages] = useState<Message[]>([]);
+  const [filter, setFilter] = useState('');
   const [loading, setLoading] = useState(true);
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -56,7 +60,7 @@ export default function MessagesPage() {
     return 'muted' as const;
   };
 
-  const visible = messages;
+  const visible = messagesMatchingQuery(messages, filter);
 
   if (contactFilter) {
     return <div className="py-8 text-center text-muted-foreground">Abrindo conversa...</div>;
@@ -77,6 +81,16 @@ export default function MessagesPage() {
     <div>
       <div className="mb-6">
         <p className="text-muted-foreground">Histórico geral. O atendimento fica em Conversas.</p>
+      </div>
+
+      <div className="relative mb-4">
+        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+        <Input
+          placeholder="Buscar no histórico"
+          className="bg-background pl-10"
+          value={filter}
+          onChange={(event) => setFilter(event.target.value)}
+        />
       </div>
 
       <Card>

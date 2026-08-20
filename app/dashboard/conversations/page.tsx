@@ -39,6 +39,7 @@ import { playInboxChime, shouldPlayInboxSound } from '@/ui/lib/inbox-notify';
 import { useInboxDocumentTitle, useInboxShortcuts } from '@/ui/lib/use-inbox-chrome';
 import { queueTabActiveClass } from '@/ui/lib/status-tone';
 import { useInboxRealtime } from '@/ui/lib/use-inbox-realtime';
+import { useInboxMessageSearch } from '@/ui/lib/use-inbox-message-search';
 
 export default function ConversationsPage() {
   const [conversations, setConversations] = useState<Conversation[]>([]);
@@ -61,6 +62,7 @@ export default function ConversationsPage() {
   const selectedPhone = searchParams.get('contact') ?? '';
   const previousConversations = useRef<Conversation[] | null>(null);
   const avatarsTried = useRef(false);
+  const { searchCorpus, loadSearchMessages } = useInboxMessageSearch(filter, numbers);
 
   useEffect(() => {
     setMounted(true);
@@ -87,6 +89,7 @@ export default function ConversationsPage() {
     try {
       const allConversations = await new GetAllConversationsUseCase().execute(false);
       setConversations(allConversations);
+      await loadSearchMessages();
       if (shouldPlayInboxSound(previousConversations.current, allConversations)) {
         playInboxChime();
       }
@@ -158,7 +161,8 @@ export default function ConversationsPage() {
       operatorAgentId,
       departmentFilter,
       filter,
-      lineFilter
+      lineFilter,
+      searchCorpus
     )
   );
   const hiddenCount = inboxHiddenCount(
@@ -168,7 +172,8 @@ export default function ConversationsPage() {
     operatorAgentId,
     departmentFilter,
     filter,
-    lineFilter
+    lineFilter,
+    searchCorpus
   );
   const onTabCount = conversations.filter((conv) => conversationOnQueueTab(conv, tab)).length;
 
@@ -227,7 +232,7 @@ export default function ConversationsPage() {
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <Input
                 ref={searchRef}
-                placeholder="Nome ou telefone"
+                placeholder="Nome, telefone ou mensagem"
                 className="bg-background pl-10"
                 value={filter}
                 onChange={(event) => setFilter(event.target.value)}

@@ -1,4 +1,7 @@
 import { Conversation } from './Conversation';
+import { Message } from './Message';
+import { WhatsAppNumber } from './WhatsAppNumber';
+import { conversationMatchesMessageText } from './lastMessageForConversation';
 import { DepartmentFilter, QueueTab, matchesDepartmentFilter } from './conversationDepartment';
 import {
   isClosedTab,
@@ -22,6 +25,11 @@ export function conversationOnQueueTab(
 
 export type LineFilter = 'all' | string;
 
+export type InboxSearchCorpus = {
+  messages: Message[];
+  numbers: WhatsAppNumber[];
+};
+
 export function matchesLineFilter(
   conversation: Conversation,
   lineFilter: LineFilter
@@ -39,7 +47,8 @@ export function conversationMatchesInboxFilters(
   operatorAgentId: string | undefined,
   departmentFilter: DepartmentFilter,
   search: string,
-  lineFilter: LineFilter = 'all'
+  lineFilter: LineFilter = 'all',
+  corpus?: InboxSearchCorpus
 ): boolean {
   if (!conversationOnQueueTab(conversation, tab)) {
     return false;
@@ -57,11 +66,19 @@ export function conversationMatchesInboxFilters(
   if (!term) {
     return true;
   }
-  return (
+  if (
     conversation.contactName.toLowerCase().includes(term) ||
     conversation.contactPhone.includes(term) ||
     (conversation.departmentName?.toLowerCase().includes(term) ?? false) ||
     (conversation.assignedAgentName?.toLowerCase().includes(term) ?? false)
+  ) {
+    return true;
+  }
+  return conversationMatchesMessageText(
+    conversation,
+    term,
+    corpus?.messages ?? [],
+    corpus?.numbers ?? []
   );
 }
 
@@ -72,7 +89,8 @@ export function inboxHiddenCount(
   operatorAgentId: string | undefined,
   departmentFilter: DepartmentFilter,
   search: string,
-  lineFilter: LineFilter = 'all'
+  lineFilter: LineFilter = 'all',
+  corpus?: InboxSearchCorpus
 ): number {
   const onTab = conversations.filter((item) => conversationOnQueueTab(item, tab)).length;
   const visible = conversations.filter((item) =>
@@ -83,7 +101,8 @@ export function inboxHiddenCount(
       operatorAgentId,
       departmentFilter,
       search,
-      lineFilter
+      lineFilter,
+      corpus
     )
   ).length;
   return Math.max(0, onTab - visible);

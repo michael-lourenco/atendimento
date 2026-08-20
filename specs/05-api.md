@@ -25,6 +25,7 @@ Bodies JSON das rotas abaixo passam por schema Zod na borda. Inválido → `400 
 | `POST /api/messages/send` (JSON) | `{ to, message, conversationId?, quotedMessageId?, type?, templateName?, templateParams? }` (Zod no JSON; hoje `parseSendRequest`) |
 | `POST /api/messages/react` | `{ messageId, emoji }` (`emoji` vazio ou o mesmo da linha remove) |
 | `POST /api/messages/presence` | `{ to, presence: composing\|recording\|paused, conversationId? }` |
+| `POST /api/messages/read` | `{ conversationId }` |
 | `POST /api/webhook/evolution` | `{ event, data?, instance? }` — compat: se não houver `data` mas houver `key`, o **body inteiro** vale como `data` |
 | `POST /api/webhook/chat-whatsapp` | `{ event, data }` |
 | `POST /api/webhook/whatsapp` | body Meta com `object` + `entry` (schema frouxo / passthrough) |
@@ -61,6 +62,17 @@ Bodies JSON das rotas abaixo passam por schema Zod na borda. Inválido → `400 
 - 401: sem sessão de operador quando o Supabase está configurado
 - 204: enviado (ou no-op se o provedor não implementar `sendPresence`)
 - Não persiste mensagem. Não pausa o fluxo
+
+`POST /api/messages/read`
+
+- JSON: `{ conversationId: string }`
+- 400 se faltar `conversationId`
+- 401: sem sessão de operador quando o Supabase está configurado
+- 404: conversa inexistente
+- 200: `{ marked: number }` (quantas incoming passaram a `read` no provedor + local)
+- Falha do provedor: 200 `{ marked: 0 }` (não esconde o chat; retry no poll)
+- Twilio / provedor sem `markMessagesRead`: 200 e atualiza o status local das incoming
+- Não pausa o fluxo. Não incrementa não lidas
 
 `GET /api/admin/schema-health`
 

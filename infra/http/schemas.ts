@@ -60,6 +60,10 @@ export const presenceBodySchema = z.object({
   conversationId: z.string().trim().min(1).optional(),
 });
 
+export const readMessagesBodySchema = z.object({
+  conversationId: z.string().trim().min(1, 'Campo obrigatório: conversationId'),
+});
+
 export const evolutionWebhookSchema = z
   .object({
     event: z.string().min(1, 'Formato de webhook inválido'),
