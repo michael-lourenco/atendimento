@@ -47,6 +47,15 @@ export const flowCanvasNodeBorder: Record<string, string> = {
   handoff: 'border-amber-600',
 };
 
+export const flowPaletteChipFill: Record<string, string> = {
+  message: 'bg-sky-500/15',
+  question: 'bg-amber-500/15',
+  condition: 'bg-violet-500/15',
+  action: 'bg-emerald-500/15',
+  goToFlow: 'bg-sky-400/15',
+  handoff: 'bg-amber-600/15',
+};
+
 export const flowPathLabelClass: Record<string, string> = {
   'Se sim': 'text-emerald-700 dark:text-emerald-400',
   'Se não': 'text-amber-700 dark:text-amber-400',
