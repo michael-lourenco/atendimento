@@ -26,6 +26,7 @@ import { useCatalogSavedFlash } from '@/ui/lib/use-catalog-saved-flash';
 import { runCatalogSave } from '@/ui/lib/run-catalog-save';
 import { catalogMatchesQuery } from '@/ui/lib/catalog-filter';
 import { CatalogSearchField } from '@/ui/components/catalog-search-field';
+import { whatsappConnectHref } from '@/ui/lib/whatsapp-line-href';
 const catalog = clientUseCases.whatsAppNumbers;
 
 export default function NumbersPage() {
@@ -131,7 +132,9 @@ export default function NumbersPage() {
       {dialog}
       <CatalogSavedNotice show={showSaved} kind={kind} message={message} />
       <div className="mb-6 flex justify-between items-center">
-        <p className="text-muted-foreground">Linhas do WhatsApp da empresa</p>
+        <p className="text-muted-foreground">
+          Cadastro da linha. A conexão (QR) fica em WhatsApp.
+        </p>
         <Button onClick={() => setShowForm(true)}>
           <Plus className="h-4 w-4 mr-2" />
           Adicionar linha
@@ -195,16 +198,18 @@ export default function NumbersPage() {
       <Card>
         <CardHeader>
           <CardTitle>Linhas</CardTitle>
-          <CardDescription>Nome visível no atendimento; cada linha tem o próprio QR</CardDescription>
+          <CardDescription>
+            Aqui cadastra o nome. Para o QR, use Conectar esta linha.
+          </CardDescription>
         </CardHeader>
         <CardContent>
           {loading ? (
             <CatalogListSkeleton />
           ) : numbers.length === 0 ? (
             <div className="flex flex-col items-center gap-3 py-8 text-center text-muted-foreground">
-              <p>Nenhuma linha cadastrada. Escaneie o QR do WhatsApp para aparecer aqui.</p>
-              <Link href="/dashboard/whatsapp" className={cn(buttonVariants())}>
-                Conectar WhatsApp
+              <p>Nenhuma linha cadastrada. Dê um nome (ex. Comercial) e depois conecte o QR.</p>
+              <Link href={whatsappConnectHref()} className={cn(buttonVariants({ variant: 'outline' }))}>
+                Ir para conexão
               </Link>
             </div>
           ) : (
@@ -243,14 +248,10 @@ export default function NumbersPage() {
                       <div className="flex gap-2">
                         {isLiveWhatsAppNumber(num.id) || num.instanceName ? (
                           <Link
-                            href={
-                              num.instanceName
-                                ? `/dashboard/whatsapp?instance=${encodeURIComponent(num.instanceName)}`
-                                : '/dashboard/whatsapp'
-                            }
+                            href={whatsappConnectHref(num.instanceName)}
                             className={cn(buttonVariants({ variant: 'outline', size: 'sm' }))}
                           >
-                            QR / conexão
+                            Conectar esta linha
                           </Link>
                         ) : null}
                         {isLiveWhatsAppNumber(num.id) ? null : (

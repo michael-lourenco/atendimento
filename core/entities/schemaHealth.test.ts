@@ -19,6 +19,11 @@ describe('schemaHealth', () => {
     expect(EXPECTED_SCHEMA_COLUMNS.some((item) => item.column === 'contact_typing_at')).toBe(true);
     expect(
       EXPECTED_SCHEMA_COLUMNS.some(
+        (item) => item.table === 'conversations' && item.column === 'viewer_at'
+      )
+    ).toBe(true);
+    expect(
+      EXPECTED_SCHEMA_COLUMNS.some(
         (item) => item.table === 'quick_replies' && item.column === 'department_id'
       )
     ).toBe(true);

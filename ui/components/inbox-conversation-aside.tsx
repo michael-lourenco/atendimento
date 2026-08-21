@@ -33,6 +33,8 @@ type InboxConversationAsideProps = {
   departments: Department[];
   numbers: WhatsAppNumber[];
   selectedId?: string;
+  focusedId?: string;
+  myAgentId?: string;
   mounted: boolean;
   onSelect: (conversation: Conversation) => void;
   onClearFilters: () => void;
@@ -56,6 +58,8 @@ export function InboxConversationAside({
   departments,
   numbers,
   selectedId,
+  focusedId,
+  myAgentId,
   mounted,
   onSelect,
   onClearFilters,
@@ -134,6 +138,8 @@ export function InboxConversationAside({
               departments={departments}
               numbers={numbers}
               selectedId={selectedId}
+              focusedId={focusedId}
+              myAgentId={myAgentId}
               mounted={mounted}
               onSelect={onSelect}
             />

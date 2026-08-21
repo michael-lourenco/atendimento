@@ -1,4 +1,4 @@
-import { conversationAvatarLetter, conversationDisplayName, conversationPhotoUrl, conversationPreview, conversationPreviewIsOutgoing, formatInboxTime } from './conversationInbox';
+import { conversationAvatarLetter, conversationDisplayName, conversationPhotoUrl, conversationPreview, conversationPreviewFailed, conversationPreviewIsOutgoing, formatInboxTime } from './conversationInbox';
 import { Message } from './Message';
 
 const text = (overrides: Partial<Message> = {}): Message => ({
@@ -53,6 +53,24 @@ describe('conversationInbox', () => {
     expect(conversationPreviewIsOutgoing({ lastMessage: text({ direction: 'outgoing' }) })).toBe(true);
     expect(conversationPreviewIsOutgoing({ lastMessage: text({ direction: 'incoming' }) })).toBe(false);
     expect(conversationPreviewIsOutgoing({})).toBe(false);
+  });
+
+  it('outgoing failed vira selo na lista', () => {
+    expect(
+      conversationPreviewFailed({ lastMessage: text({ direction: 'outgoing', status: 'failed' }) })
+    ).toBe(true);
+    expect(
+      conversationPreviewFailed({ lastMessage: text({ direction: 'outgoing', status: 'sent' }) })
+    ).toBe(false);
+    expect(
+      conversationPreviewFailed({ lastMessage: text({ direction: 'incoming', status: 'failed' }) })
+    ).toBe(false);
+    expect(
+      conversationPreviewFailed({
+        lastMessage: text({ direction: 'outgoing', status: 'failed' }),
+        contactTypingAt: new Date('2026-08-20T12:00:00Z'),
+      }, new Date('2026-08-20T12:00:05Z'))
+    ).toBe(false);
   });
 
   it('digitando cobre a prévia', () => {

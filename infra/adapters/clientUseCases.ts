@@ -37,6 +37,7 @@ import { SetOperatorRoleUseCase } from '../../core/usecases/SetOperatorRoleUseCa
 import { SyncLiveWhatsAppNumberUseCase } from '../../core/usecases/SyncLiveWhatsAppNumberUseCase';
 import { TagCatalogUseCase } from '../../core/usecases/TagCatalogUseCase';
 import { TransferConversationUseCase } from '../../core/usecases/TransferConversationUseCase';
+import { TouchConversationViewerUseCase } from '../../core/usecases/TouchConversationViewerUseCase';
 import { UpsertContactFromIncomingUseCase } from '../../core/usecases/UpsertContactFromIncomingUseCase';
 import { WhatsAppNumberCatalogUseCase } from '../../core/usecases/WhatsAppNumberCatalogUseCase';
 import { serviceLocator } from './ServiceLocator';
@@ -106,6 +107,8 @@ export const clientUseCases = {
   markConversationRead: () =>
     new MarkConversationReadUseCase(serviceLocator.getConversationRepository()),
   assignConversation: () => new AssignConversationUseCase(serviceLocator.getConversationRepository()),
+  touchConversationViewer: () =>
+    new TouchConversationViewerUseCase(serviceLocator.getConversationRepository()),
   closeConversation: () => new CloseConversationUseCase(serviceLocator.getConversationRepository()),
   transferConversation: () =>
     new TransferConversationUseCase(serviceLocator.getConversationRepository()),

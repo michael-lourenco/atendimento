@@ -21,6 +21,9 @@ import { messagesMatchingQuery } from '@/ui/lib/messages-matching-query';
 import { queueToneOf } from '@/ui/lib/status-tone';
 import { CatalogSavedNotice } from '@/ui/components/catalog-saved-notice';
 import { useCatalogSavedFlash } from '@/ui/lib/use-catalog-saved-flash';
+import { useConversationViewer } from '@/ui/lib/use-conversation-viewer';
+import { assignmentFromOperator } from '@/core/entities/assignmentFromOperator';
+import { conversationViewerName } from '@/core/entities/conversationViewer';
 import { useEffect, useRef, useState } from 'react';
 
 type MessageThreadProps = {
@@ -84,6 +87,12 @@ export function MessageThread({
     return () => window.removeEventListener('keydown', onKeyDown);
   }, []);
 
+  const assignment = operator ? assignmentFromOperator(operator, agents) : null;
+  useConversationViewer(conversationId, assignment?.agentId, assignment?.agentName);
+  const viewerName = conversation
+    ? conversationViewerName(conversation, assignment?.agentId)
+    : null;
+
   const threadBody = conversationThreadBody({
     ready: messagesReady,
     messageCount: messages.length,
@@ -103,6 +112,7 @@ export function MessageThread({
         typing={conversation ? conversationIsTyping(conversation) : false}
         queueTone={queueTone}
         notesCount={notesCount}
+        viewerName={viewerName}
         onBack={onBack}
       >
         <ConversationActions

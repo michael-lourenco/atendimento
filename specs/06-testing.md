@@ -42,7 +42,7 @@ Runner: Jest + `ts-jest` (`npm test`). Testing Library só quando houver teste d
 - `core/entities/contactAvatarBackfill.test.ts` — threads sem foto; um alvo por telefone; lote
 - `core/usecases/SyncMissingContactAvatarsUseCase.test.ts` — copia href já existente; busca só quem ainda não tem; respeita o lote
 - `core/entities/conversationTabs.test.ts` — transferida em Esperando; filtro minhas
-- `core/entities/conversationInbox.test.ts` — nome de exibição; inicial do avatar; href da foto; prévia texto / Você: / Foto / Áudio; Sem mensagens só sem lastMessage; outgoing da lista tem tiques à esquerda; digitando cobre a prévia
+- `core/entities/conversationInbox.test.ts` — nome de exibição; inicial do avatar; href da foto; prévia texto / Você: / Foto / Áudio; Sem mensagens só sem lastMessage; outgoing da lista tem tiques à esquerda; digitando cobre a prévia; outgoing `failed` = `conversationPreviewFailed`
 - `core/usecases/UpdateMessageStatusUseCase.test.ts` — avança sent→delivered; se o id é o lastMessage da conversa, atualiza o snapshot
 - `core/entities/messageReaction.test.ts` — um emoji por remetente; vazio remove; agrupa chips; reload sem `reactions` não apaga o chip da tela
 - `core/usecases/ApplyMessageReactionUseCase.test.ts` — grava no alvo; alvo inexistente retorna null
@@ -131,7 +131,8 @@ Runner: Jest + `ts-jest` (`npm test`). Testing Library só quando houver teste d
 - `infra/http/schemas.test.ts` — login; operators POST/PATCH (papel e/ou senha); Evolution `data` ou `key`; chat-whatsapp `{ event, data }`; Meta `object` + `entry`; `POST /api/messages/read` exige `conversationId`
 - `app/api/messages/send/parseSendRequest.test.ts` — JSON (Zod) e multipart; máx. 16 MB; JSON inválido → 400; `conversationId` opcional (JSON e multipart)
 - `core/entities/inboxFilterHint.test.ts` — filtro de linha esconde as outras; “Ver todas” via hiddenCount
-- `ui/lib/inbox-notify.test.ts` — `document.title` `(N) Conversas` com não lidas; primeiro chime do dia
+- `ui/lib/inbox-notify.test.ts` — `document.title` `(N) Conversas` com não lidas; primeiro chime do dia; `isInboxChimeMuted`
+- `ui/lib/whatsapp-line-href.test.ts` — `whatsappConnectHref` com e sem instância
 - `ui/lib/messages-matching-query.test.ts` — busca na conversa filtra pelo texto; `highlightQueryMatches` marca o trecho
 - `core/entities/reportCsv.test.ts` — Baixar gera CSV com colunas em português; `reportDownloadFilename` usa tipo + data
 - `ui/lib/catalog-filter.test.ts` — `catalogMatchesQuery` casa nome
@@ -149,6 +150,11 @@ Runner: Jest + `ts-jest` (`npm test`). Testing Library só quando houver teste d
 - `ui/lib/chatbot-draft.test.ts` — snapshot do Vale para; dirty se o formulário mudou; troca sem rascunho não é dirty
 - `ui/lib/flow-step-media.test.ts` — `flowStepMediaPreviewSrc` usa GET autenticado no path do Storage e URL `http(s)` pública
 - `ui/lib/flow-keywords.test.ts` — Enter/vírgula/colar vira chips; trim; vazio e duplicata (case) ignorados; remover por índice
+- `core/entities/historyThread.test.ts` — clique no Histórico abre a thread da linha; senão `?contact=`
+- `ui/lib/history-href.test.ts` — href da linha do Histórico
+- `ui/lib/inbox-keyboard.test.ts` — j/k/setas movem; Enter abre; Esc volta
+- `core/entities/conversationViewer.test.ts` — selo só se outro agente e `viewerAt` fresco
+- `core/usecases/TouchConversationViewerUseCase.test.ts` — grava viewer; limpa só o próprio; não mexe em lastActivity
 
 ## Próximos
 

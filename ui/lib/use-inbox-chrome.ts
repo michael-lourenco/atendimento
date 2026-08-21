@@ -3,6 +3,8 @@
 import { RefObject, useEffect } from 'react';
 import { Conversation } from '@/core/entities/Conversation';
 import { inboxDocumentTitle, inboxUnreadTotal } from '@/ui/lib/inbox-notify';
+import { inboxListKeyAction } from '@/ui/lib/inbox-keyboard';
+import { isTypingTarget } from '@/ui/lib/use-catalog-search-shortcut';
 
 export function useInboxDocumentTitle(conversations: Conversation[]) {
   useEffect(() => {
@@ -15,32 +17,53 @@ export function useInboxDocumentTitle(conversations: Conversation[]) {
 }
 
 export function useInboxShortcuts(input: {
-  searchRef: RefObject<HTMLInputElement>;
-  selectedPhone: string;
+  searchRef: RefObject<HTMLInputElement | null>;
+  threadOpen: boolean;
+  focusedIndex: number;
+  listLength: number;
   onBack: () => void;
+  onFocusIndex: (index: number) => void;
+  onOpenIndex: (index: number) => void;
 }) {
-  const { searchRef, selectedPhone, onBack } = input;
+  const { searchRef, threadOpen, focusedIndex, listLength, onBack, onFocusIndex, onOpenIndex } =
+    input;
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
-      const target = event.target as HTMLElement | null;
-      const typing =
-        target instanceof HTMLInputElement ||
-        target instanceof HTMLTextAreaElement ||
-        target?.isContentEditable;
-      if (event.key === '/' && !typing) {
-        event.preventDefault();
+      const action = inboxListKeyAction({
+        key: event.key,
+        typing: isTypingTarget(event.target),
+        modified: event.ctrlKey || event.metaKey || event.altKey,
+        threadOpen,
+        focusedIndex,
+        listLength,
+      });
+      if (!action) {
+        return;
+      }
+      event.preventDefault();
+      if (action.type === 'focus-search') {
         searchRef.current?.focus();
         return;
       }
-      if (
-        event.key === 'Escape' &&
-        selectedPhone &&
-        window.matchMedia('(max-width: 1023px)').matches
-      ) {
+      if (action.type === 'back') {
         onBack();
+        return;
       }
+      if (action.type === 'move') {
+        onFocusIndex(action.index);
+        return;
+      }
+      onOpenIndex(action.index);
     };
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
-  }, [onBack, searchRef, selectedPhone]);
+  }, [
+    focusedIndex,
+    listLength,
+    onBack,
+    onFocusIndex,
+    onOpenIndex,
+    searchRef,
+    threadOpen,
+  ]);
 }

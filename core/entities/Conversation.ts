@@ -19,5 +19,8 @@ export interface Conversation {
   contactAvatarUrl?: string;
   assignedAt?: Date;
   contactTypingAt?: Date;
+  viewerAgentId?: string;
+  viewerAgentName?: string;
+  viewerAt?: Date;
 }
 

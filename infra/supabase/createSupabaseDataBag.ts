@@ -175,7 +175,7 @@ function createConversationRepository(client: SupabaseClient): IConversationRepo
         client,
         'conversations',
         conversationToRow(conversation),
-        ['last_message', 'contact_avatar_url', 'assigned_at', 'whatsapp_number_id', 'contact_typing_at']
+        ['last_message', 'contact_avatar_url', 'assigned_at', 'whatsapp_number_id', 'contact_typing_at', 'viewer_agent_id', 'viewer_agent_name', 'viewer_at']
       );
     },
     async delete(id: string) {

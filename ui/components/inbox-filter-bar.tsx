@@ -5,6 +5,7 @@ import { DepartmentFilter } from '@/core/entities/conversationDepartment';
 import { LineFilter } from '@/core/entities/inboxFilterHint';
 import { WhatsAppNumber } from '@/core/entities/WhatsAppNumber';
 import { Button } from '@/ui/components/button';
+import { InboxChimeToggle } from '@/ui/components/inbox-chime-toggle';
 
 type InboxFilterBarProps = {
   numbers: WhatsAppNumber[];
@@ -78,6 +79,7 @@ export function InboxFilterBar({
       >
         {mineOnly ? 'Ver o time' : 'Só as minhas'}
       </Button>
+      <InboxChimeToggle />
     </div>
   );
 }

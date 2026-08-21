@@ -1,9 +1,14 @@
 import { Conversation } from '@/core/entities/Conversation';
 
 export const INBOX_CHIME_BOOST_KEY = 'inbox-chime-boost-date';
+export const INBOX_CHIME_MUTE_KEY = 'inbox-chime-muted';
 
 export function shouldBoostInboxChime(today: string, stored: string | null): boolean {
   return stored !== today;
+}
+
+export function isInboxChimeMuted(stored: string | null): boolean {
+  return stored === '1';
 }
 
 export function shouldPlayInboxSound(
@@ -38,6 +43,9 @@ export function playInboxChime(now = new Date()): void {
     return;
   }
   try {
+    if (isInboxChimeMuted(window.localStorage.getItem(INBOX_CHIME_MUTE_KEY))) {
+      return;
+    }
     const today = now.toISOString().slice(0, 10);
     let boost = false;
     try {

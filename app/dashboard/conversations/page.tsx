@@ -49,6 +49,7 @@ export default function ConversationsPage() {
   const [filter, setFilter] = useState('');
   const [mounted, setMounted] = useState(false);
   const [activeTab, setActiveTab] = useState('incoming');
+  const [focusedIndex, setFocusedIndex] = useState(0);
   const searchRef = useRef<HTMLInputElement>(null);
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -70,11 +71,6 @@ export default function ConversationsPage() {
   });
 
   useInboxDocumentTitle(conversations);
-  useInboxShortcuts({
-    searchRef,
-    selectedPhone: selectedConversationId || selectedPhone,
-    onBack: () => router.push('/dashboard/conversations'),
-  });
 
   const loadConversations = async (showLoading = false, refreshCatalogs = false) => {
     if (showLoading) {
@@ -167,6 +163,26 @@ export default function ConversationsPage() {
     searchCorpus
   );
   const onTabCount = conversations.filter((conv) => conversationOnQueueTab(conv, tab)).length;
+  const focusIndex =
+    filteredConversations.length === 0
+      ? 0
+      : Math.min(focusedIndex, filteredConversations.length - 1);
+
+  useInboxShortcuts({
+    searchRef,
+    threadOpen,
+    focusedIndex: focusIndex,
+    listLength: filteredConversations.length,
+    onBack: () => router.push('/dashboard/conversations'),
+    onFocusIndex: setFocusedIndex,
+    onOpenIndex: (index) => {
+      const item = filteredConversations[index];
+      if (item) {
+        setFocusedIndex(index);
+        openConversation(item);
+      }
+    },
+  });
 
   const countTab = (queue: QueueTab) =>
     conversations.filter((conv) =>
@@ -246,8 +262,16 @@ export default function ConversationsPage() {
           departments={departments}
           numbers={numbers}
           selectedId={selectedConversation?.id}
+          focusedId={filteredConversations[focusIndex]?.id}
+          myAgentId={operatorAgentId}
           mounted={mounted}
-          onSelect={openConversation}
+          onSelect={(conversation) => {
+            const index = filteredConversations.findIndex((item) => item.id === conversation.id);
+            if (index >= 0) {
+              setFocusedIndex(index);
+            }
+            openConversation(conversation);
+          }}
           onClearFilters={clearInboxFilters}
         />
 

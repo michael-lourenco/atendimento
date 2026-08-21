@@ -1,5 +1,5 @@
 import { Conversation } from '@/core/entities/Conversation';
-import { shouldPlayInboxSound, inboxDocumentTitle, inboxUnreadTotal, shouldBoostInboxChime } from './inbox-notify';
+import { shouldPlayInboxSound, inboxDocumentTitle, inboxUnreadTotal, shouldBoostInboxChime, isInboxChimeMuted } from './inbox-notify';
 
 const conv = (phone: string, unreadCount: number): Conversation => ({
   id: phone,
@@ -53,5 +53,13 @@ describe('shouldBoostInboxChime', () => {
 
   it('não reforça de novo no mesmo dia', () => {
     expect(shouldBoostInboxChime('2026-08-20', '2026-08-20')).toBe(false);
+  });
+});
+
+describe('isInboxChimeMuted', () => {
+  it('silencia só com 1', () => {
+    expect(isInboxChimeMuted('1')).toBe(true);
+    expect(isInboxChimeMuted('0')).toBe(false);
+    expect(isInboxChimeMuted(null)).toBe(false);
   });
 });

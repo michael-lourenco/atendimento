@@ -125,6 +125,9 @@ export function conversationFromRow(row: Record<string, unknown>): Conversation 
     contactAvatarUrl: row.contact_avatar_url ? String(row.contact_avatar_url) : undefined,
     assignedAt: row.assigned_at ? asDate(row.assigned_at) : undefined,
     contactTypingAt: row.contact_typing_at ? asDate(row.contact_typing_at) : undefined,
+    viewerAgentId: row.viewer_agent_id ? String(row.viewer_agent_id) : undefined,
+    viewerAgentName: row.viewer_agent_name ? String(row.viewer_agent_name) : undefined,
+    viewerAt: row.viewer_at ? asDate(row.viewer_at) : undefined,
   };
 }
 
@@ -159,6 +162,9 @@ export function conversationToRow(conversation: Conversation) {
   row.contact_typing_at = conversation.contactTypingAt
     ? conversation.contactTypingAt.toISOString()
     : null;
+  row.viewer_agent_id = conversation.viewerAgentId ?? null;
+  row.viewer_agent_name = conversation.viewerAgentName ?? null;
+  row.viewer_at = conversation.viewerAt ? conversation.viewerAt.toISOString() : null;
   return row;
 }
 

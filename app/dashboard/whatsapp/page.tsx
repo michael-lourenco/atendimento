@@ -7,8 +7,10 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { WhatsAppNumber } from '@/core/entities/WhatsAppNumber';
 import { defaultEvolutionInstanceName } from '@/core/entities/whatsappNumberLine';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/ui/components/card';
-import { Button } from '@/ui/components/button';
+import { Button, buttonVariants } from '@/ui/components/button';
 import { RefreshCw, CheckCircle2, XCircle, Loader2 } from 'lucide-react';
+import { cn } from '@/ui/lib/utils';
+import { NUMBERS_CATALOG_HREF } from '@/ui/lib/whatsapp-line-href';
 
 type QRCodeData = {
   qr: string | null;
@@ -104,11 +106,21 @@ export default function WhatsAppPage() {
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <p className="text-muted-foreground">Conecte cada número da empresa com o QR do celular.</p>
-        <Button onClick={() => void loadData()} disabled={refreshing} variant="outline">
-          <RefreshCw className={`mr-2 h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
-          Atualizar
-        </Button>
+        <p className="text-muted-foreground">
+          Aqui conecta o QR. O nome da linha se cadastra em Números.
+        </p>
+        <div className="flex flex-wrap gap-2">
+          <Link
+            href={NUMBERS_CATALOG_HREF}
+            className={cn(buttonVariants({ variant: numbers.length === 0 ? 'default' : 'outline' }))}
+          >
+            Cadastrar linha
+          </Link>
+          <Button onClick={() => void loadData()} disabled={refreshing} variant="outline">
+            <RefreshCw className={`mr-2 h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
+            Atualizar
+          </Button>
+        </div>
       </div>
 
       {lines.length > 0 ? (

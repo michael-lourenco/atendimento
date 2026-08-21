@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect } from 'react';
 import { Conversation } from '@/core/entities/Conversation';
 import { Department } from '@/core/entities/Department';
 import { WhatsAppNumber } from '@/core/entities/WhatsAppNumber';
@@ -8,6 +9,7 @@ import {
   conversationPhotoUrl,
   conversationPreview,
   conversationPreviewIsOutgoing,
+  conversationPreviewFailed,
   conversationIsTyping,
   departmentColorOf,
   formatInboxTime,
@@ -15,6 +17,7 @@ import {
 import { cn } from '@/ui/lib/utils';
 import { queueToneBar, queueToneOf } from '@/ui/lib/status-tone';
 import { queueWaitLabel } from '@/core/entities/slaMetrics';
+import { conversationViewerName } from '@/core/entities/conversationViewer';
 import { MessageStatusTicks } from '@/ui/components/message-status-ticks';
 import { ConversationAvatar } from '@/ui/components/conversation-avatar';
 
@@ -23,6 +26,8 @@ type ConversationInboxListProps = {
   departments: Department[];
   numbers?: WhatsAppNumber[];
   selectedId?: string;
+  focusedId?: string;
+  myAgentId?: string;
   mounted: boolean;
   onSelect: (conversation: Conversation) => void;
 };
@@ -32,9 +37,17 @@ export function ConversationInboxList({
   departments,
   numbers = [],
   selectedId,
+  focusedId,
+  myAgentId,
   mounted,
   onSelect,
 }: ConversationInboxListProps) {
+  useEffect(() => {
+    if (!focusedId) {
+      return;
+    }
+    document.getElementById(`inbox-row-${focusedId}`)?.scrollIntoView({ block: 'nearest' });
+  }, [focusedId]);
   if (conversations.length === 0) {
     return (
       <p className="px-3 py-8 text-center text-sm text-muted-foreground">
@@ -50,15 +63,20 @@ export function ConversationInboxList({
         const color = departmentColorOf(departments, conversation.departmentId);
         const tone = queueToneOf(conversation);
         const wait = queueWaitLabel(conversation);
+        const failed = conversationPreviewFailed(conversation);
+        const focused = focusedId === conversation.id;
+        const viewer = conversationViewerName(conversation, myAgentId);
         const lineName = numbers.find((item) => item.id === conversation.whatsappNumberId)?.name;
         return (
           <li key={conversation.id}>
             <button
               type="button"
+              id={`inbox-row-${conversation.id}`}
               onClick={() => onSelect(conversation)}
               className={cn(
                 'relative flex w-full items-center gap-3 py-2 pl-4 pr-3 text-left transition-colors',
-                selected ? 'bg-muted' : 'hover:bg-muted/70'
+                selected ? 'bg-muted' : 'hover:bg-muted/70',
+                focused && !selected ? 'bg-muted/60' : null
               )}
             >
               <span className={cn('absolute inset-y-0 left-0 w-1', queueToneBar[tone])} />
@@ -82,12 +100,18 @@ export function ConversationInboxList({
                   <span
                     className={cn(
                       'truncate',
-                      conversationIsTyping(conversation) && 'italic text-primary'
+                      conversationIsTyping(conversation) && 'italic text-primary',
+                      failed && 'text-red-600 dark:text-red-400'
                     )}
                   >
                     {conversationPreview(conversation)}
                   </span>
                 </p>
+                {viewer ? (
+                  <p className="truncate text-xs text-sky-700 dark:text-sky-300">
+                    {viewer} está nesta conversa
+                  </p>
+                ) : null}
                 <div className="flex items-center justify-between gap-2">
                   {conversation.departmentName ? (
                     <span className="inline-flex items-center gap-1.5 truncate text-xs text-muted-foreground">
@@ -102,6 +126,11 @@ export function ConversationInboxList({
                     <span className="text-xs text-muted-foreground">{lineName || 'Sem setor'}</span>
                   )}
                   <span className="flex shrink-0 items-center gap-1">
+                    {failed ? (
+                      <span className="rounded-full bg-red-500/15 px-1.5 py-0.5 text-[10px] font-medium text-red-700 dark:text-red-300">
+                        Falhou
+                      </span>
+                    ) : null}
                     {tone === 'incoming' && wait ? (
                       <span
                         className={cn(

@@ -38,6 +38,20 @@ describe('conversationToRow', () => {
     });
     expect(row.last_message).toMatchObject({ content: 'oi', from_address: '5515996507651' });
   });
+
+  it('manda viewer_at nulo sem viewer e preenche quando há', () => {
+    expect(conversationToRow(base).viewer_at).toBeNull();
+    expect(conversationToRow(base).viewer_agent_id).toBeNull();
+    const row = conversationToRow({
+      ...base,
+      viewerAgentId: 'a1',
+      viewerAgentName: 'João',
+      viewerAt: new Date('2026-08-20T12:00:00Z'),
+    });
+    expect(row.viewer_agent_id).toBe('a1');
+    expect(row.viewer_agent_name).toBe('João');
+    expect(row.viewer_at).toBe('2026-08-20T12:00:00.000Z');
+  });
 });
 
 describe('messageToRow', () => {

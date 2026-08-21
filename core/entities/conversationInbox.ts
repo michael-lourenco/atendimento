@@ -90,6 +90,16 @@ export function conversationPreviewIsOutgoing(
   return conversation.lastMessage?.direction === 'outgoing';
 }
 
+export function conversationPreviewFailed(
+  conversation: Pick<Conversation, 'lastMessage' | 'contactTypingAt'>,
+  now = new Date()
+): boolean {
+  if (!conversationPreviewIsOutgoing(conversation, now)) {
+    return false;
+  }
+  return conversation.lastMessage?.status === 'failed';
+}
+
 export function formatInboxTime(value: Date, now = new Date()): string {
   const date = value instanceof Date ? value : new Date(value);
   if (date.toDateString() === now.toDateString()) {
