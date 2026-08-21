@@ -95,7 +95,8 @@ Runner: Jest + `ts-jest` (`npm test`). Testing Library só quando houver teste d
 - `core/entities/atendimentoInicialFlow.test.ts` — menu no `inicio`; saltos `goToFlow`; contratar e demo pausam (`handoff`); FAQ do cliente pergunta se ainda precisa de alguém; opção inválida → miss + menu sem saudação; **número** da opção no menu
 - `core/entities/inboxFilterHint.test.ts` — quantas a aba tem vs o filtro; busca casa conteúdo da thread; `nextIncomingQueueConversation` (próxima da Entrada; última; vazia)
 - `ui/lib/composer-draft.test.ts` — grava/lê/apaga rascunho por `conversationId`; vazio remove; teto de 8000 chars
-- `core/engine/previewFlowOpening.test.ts` — primeiro “oi” vira `FlowReply[]` (opções numeradas); salto `goToFlow`; mídia no passo Mensagem; `known` começa na pergunta (sem Olá); `previewFlowTurn` deixa `currentStepId` na pergunta
+- `core/engine/previewFlowOpening.test.ts` — primeiro “oi” vira `FlowReply[]` (opções numeradas); salto `goToFlow`; mídia no passo Mensagem; `known` começa na pergunta (sem Olá); `previewFlowTurn` deixa `currentStepId` na pergunta; `simulateFlowIncoming` após `handoff` não responde; depois do `goToFlow` a opção seguinte continua no destino (não reabre o fluxo do editor)
+- `ui/lib/flow-sim-canvas.test.ts` — quadro da simulação troca para os passos do destino e fica somente leitura
 - `core/entities/assignmentFromOperator.test.ts` — e-mail liga agente; senão linked false
 - `core/entities/operatorRole.test.ts` — admin; último admin não rebaixa nem exclui
 - `core/entities/uniqueAgentEmail.test.ts` — e-mail de agente único (trim + lower); ignora o próprio id

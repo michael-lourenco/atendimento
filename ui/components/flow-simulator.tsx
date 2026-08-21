@@ -3,13 +3,14 @@
 import { Flow, FlowStep } from '@/core/entities/Flow';
 import { FlowAudience } from '@/core/entities/flowAudience';
 import { FlowSession } from '@/core/entities/FlowSession';
-import { previewFlowTurn } from '@/core/engine/previewFlowOpening';
-import { FlowReply, planFlowTurn } from '@/core/engine/planFlowTurn';
+import { previewFlowTurn, simulateFlowIncoming } from '@/core/engine/previewFlowOpening';
+import { FlowReply } from '@/core/engine/planFlowTurn';
 import { Button } from '@/ui/components/button';
 import { FlowSimBubble } from '@/ui/components/flow-sim-bubble';
 import { Input } from '@/ui/components/input';
 import { Label } from '@/ui/components/label';
-import { useMemo, useState } from 'react';
+import { FlowSimCursor } from '@/ui/lib/flow-sim-canvas';
+import { useLayoutEffect, useMemo, useState } from 'react';
 
 type Bubble = {
   direction: 'in' | 'out';
@@ -24,18 +25,8 @@ type FlowSimulatorProps = {
   steps: FlowStep[];
   flows?: Flow[];
   flowId?: string;
+  onCursor?: (cursor: FlowSimCursor) => void;
 };
-
-function previewFlow(steps: FlowStep[], flowId: string, now: Date): Flow {
-  return {
-    id: flowId,
-    name: 'preview',
-    isActive: true,
-    steps,
-    createdAt: now,
-    updatedAt: now,
-  };
-}
 
 function outgoingBubbles(replies: FlowReply[]): Bubble[] {
   return replies.map((reply) => ({
@@ -48,7 +39,22 @@ function outgoingBubbles(replies: FlowReply[]): Bubble[] {
   }));
 }
 
-export function FlowSimulator({ steps, flows = [], flowId = 'preview' }: FlowSimulatorProps) {
+function lastOutgoingStepId(bubbles: Bubble[]): string | null {
+  for (let index = bubbles.length - 1; index >= 0; index -= 1) {
+    const bubble = bubbles[index];
+    if (bubble.direction === 'out' && bubble.stepId) {
+      return bubble.stepId;
+    }
+  }
+  return null;
+}
+
+export function FlowSimulator({
+  steps,
+  flows = [],
+  flowId = 'preview',
+  onCursor,
+}: FlowSimulatorProps) {
   const now = useMemo(() => new Date(0), []);
   const [audience, setAudience] = useState<FlowAudience>('new');
   const start = useMemo(
@@ -61,6 +67,12 @@ export function FlowSimulator({ steps, flows = [], flowId = 'preview' }: FlowSim
 
   const visible = bubbles ?? outgoingBubbles(start.replies);
   const currentSession = bubbles ? session : start.nextSession;
+  const cursorFlowId = currentSession?.flowId ?? flowId;
+  const cursorStepId = currentSession?.currentStepId ?? lastOutgoingStepId(visible);
+
+  useLayoutEffect(() => {
+    onCursor?.({ flowId: cursorFlowId, stepId: cursorStepId });
+  }, [cursorFlowId, cursorStepId, onCursor]);
 
   const restart = (nextAudience = audience) => {
     setAudience(nextAudience);
@@ -71,24 +83,23 @@ export function FlowSimulator({ steps, flows = [], flowId = 'preview' }: FlowSim
 
   const send = () => {
     const incoming = text.trim();
-    if (!incoming || steps.length === 0) {
-      return;
-    }
-    const flow = previewFlow(steps, flowId, now);
-    const plan = planFlowTurn({
-      flow,
-      flows: [flow, ...flows.filter((item) => item.id !== flowId)],
+    const turn = simulateFlowIncoming({
+      steps,
+      catalog: flows,
+      flowId,
       session: currentSession,
-      contactId: 'preview',
       incomingText: incoming,
       now,
     });
+    if (!turn) {
+      return;
+    }
     setBubbles([
       ...visible,
       { direction: 'in', text: incoming },
-      ...outgoingBubbles(plan.replies),
+      ...outgoingBubbles(turn.replies),
     ]);
-    setSession(plan.nextSession);
+    setSession(turn.nextSession);
     setText('');
   };
 
@@ -125,7 +136,9 @@ export function FlowSimulator({ steps, flows = [], flowId = 'preview' }: FlowSim
             <FlowSimBubble key={`${index}-${bubble.text.slice(0, 20)}`} {...bubble} />
           ))}
           {currentSession?.paused ? (
-            <p className="text-xs text-amber-700 dark:text-amber-300">Passou para o time.</p>
+            <p className="text-xs text-amber-700 dark:text-amber-300">
+              Passou para o time. O bot não responde. Recomeçar para simular de novo.
+            </p>
           ) : null}
         </div>
       )}

@@ -77,9 +77,10 @@ Isolamento entre empresas = cópia da stack (`00-vision.md`, `08-supabase.md`).
 - Pausa do bloco Mensagem na tela em segundos (0–8); grava `delayMs` (0–8000) com `msToSeconds` / `secondsToMs`
 - Chatbot: atalho **Editar este fluxo** no `EntryFlowSelect` (empresa e linha) → `/dashboard/flows/{flowId}`; sem fluxo escolhido, **Abrir Fluxos** na lista
 - Menu e header: rótulo **Chatbot** (singular); URL permanece `/dashboard/chatbots`
-- Simulador do fluxo: bolhas com mídia (`image`/`audio`) e seletor **Novo** / **Conhecido**
+- Simulador do fluxo: bolhas com mídia (`image`/`audio`) e seletor **Novo** / **Conhecido**; após `handoff` o bot não responde
 - Chatbot: confirmar antes de trocar **Vale para** com rascunho; expediente e ritmo nascem recolhidos
 - Palavras-chave do fluxo no editor em chips (Enter/vírgula/colar; X tira)
+- Simulador: depois de `goToFlow` o turno seguinte fica no destino; o quadro acompanha o fluxo da sessão e destaca o passo atual
 
 ## Não fazer
 

@@ -143,7 +143,7 @@ Upload **não** cria fluxo nem passo: o `flowId` e o `stepId` precisam já exist
 
 ## Motor de fluxos (Fase 2)
 
-Planejamento puro em `core/engine` (`planFlowTurn`, `evaluateCondition`, `resolveActiveFlow`). I/O no use case: persistir sessão e enviar via `SendWhatsAppMessageUseCase`. `previewFlowOpening` / `previewFlowTurn` (só o painel): devolve `FlowReply[]` / o plano do primeiro turno (`oi`); `audience` `new` (sessão null) ou `known` (`sessionForKnownMenu`). Inclui `mediaUrl`/`mediaKind` quando o passo Mensagem tem mídia. Motor de envio inalterado.
+Planejamento puro em `core/engine` (`planFlowTurn`, `evaluateCondition`, `resolveActiveFlow`). I/O no use case: persistir sessão e enviar via `SendWhatsAppMessageUseCase`. `previewFlowOpening` / `previewFlowTurn` (só o painel): devolve `FlowReply[]` / o plano do primeiro turno (`oi`); `audience` `new` (sessão null) ou `known` (`sessionForKnownMenu`). Inclui `mediaUrl`/`mediaKind` quando o passo Mensagem tem mídia. `simulateFlowIncoming` é o turno seguinte no simulador: sessão `paused` (handoff) **não** gera resposta (`shouldSkipPausedSession`). O fluxo do turno é o da sessão (`resolveActiveFlow` com `sessionFlowId`), não o do editor aberto; o catálogo leva os passos não salvos do fluxo em edição (`overlayEditorOnCatalog`). Depois de um `goToFlow`, a opção seguinte continua no destino. Motor de envio inalterado.
 
 ### Resolver fluxo
 

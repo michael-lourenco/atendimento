@@ -9,6 +9,7 @@ export type FlowCanvasNodeData = {
   isStart: boolean;
   kind: string;
   warning: boolean;
+  highlight?: boolean;
   handles: { id: string; label: string }[];
 };
 
@@ -17,12 +18,15 @@ export type FlowCanvasRfNode = Node<FlowCanvasNodeData, 'flowStep'>;
 export function FlowCanvasNode({ data, selected }: NodeProps<FlowCanvasRfNode>) {
   const border = flowCanvasNodeBorder[data.kind] ?? 'border-border';
   const multi = data.handles.length > 1;
+  const ring = data.highlight
+    ? 'ring-2 ring-amber-500 ring-offset-2 ring-offset-background'
+    : selected
+      ? 'ring-2 ring-primary ring-offset-2 ring-offset-background'
+      : '';
 
   return (
     <div
-      className={`w-[240px] rounded-lg border-2 bg-card shadow-sm ${border} ${
-        selected ? 'ring-2 ring-primary ring-offset-2 ring-offset-background' : ''
-      }`}
+      className={`w-[240px] rounded-lg border-2 bg-card shadow-sm ${border} ${ring}`}
     >
       <Handle type="target" position={Position.Left} id="in" className="!h-3 !w-3 !bg-primary" />
       <div className="px-3 py-2">

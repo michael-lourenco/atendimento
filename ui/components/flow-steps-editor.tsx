@@ -2,9 +2,10 @@
 
 import { Flow, FlowStep } from '@/core/entities/Flow';
 import { Department } from '@/core/entities/Department';
+import { overlayEditorOnCatalog, previewFlowTurn } from '@/core/engine/previewFlowOpening';
 import { Button } from '@/ui/components/button';
 import { Label } from '@/ui/components/label';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   addFlowKind,
   duplicateVisibleFlowStep,
@@ -19,6 +20,11 @@ import { FlowSimulator } from '@/ui/components/flow-simulator';
 import { FlowStepInspector } from '@/ui/components/flow-step-inspector';
 import { FlowCanvasBoard } from '@/ui/components/flow-canvas-board';
 import { FlowCanvasPalette } from '@/ui/components/flow-canvas-palette';
+import {
+  FlowSimCursor,
+  isSimCanvasReadOnly,
+  stepsForSimCanvas,
+} from '@/ui/lib/flow-sim-canvas';
 
 type FlowStepsEditorProps = {
   steps: FlowStep[];
@@ -47,11 +53,43 @@ export function FlowStepsEditor({
   const jumpTargets = flows.filter(
     (item) => item.isActive && item.id !== currentFlowId && item.id !== 'preview'
   );
+  const simCatalog = useMemo(
+    () => overlayEditorOnCatalog(flows, currentFlowId || 'preview', steps),
+    [flows, currentFlowId, steps]
+  );
   const visible = visibleFlowSteps(steps);
   const issues = flowHealthIssues(steps, jumpTargets);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [simulateOpen, setSimulateOpen] = useState(false);
+  const [simCursor, setSimCursor] = useState<FlowSimCursor | null>(null);
   const [focusToken, setFocusToken] = useState(0);
+
+  const onSimCursor = useCallback((cursor: FlowSimCursor) => {
+    setSimCursor((current) =>
+      current?.flowId === cursor.flowId && current?.stepId === cursor.stepId
+        ? current
+        : cursor
+    );
+  }, []);
+
+  const seedCursor = useMemo((): FlowSimCursor | null => {
+    if (!simulateOpen || steps.length === 0) {
+      return null;
+    }
+    const plan = previewFlowTurn(steps, new Date(0), simCatalog, 'new', currentFlowId || 'preview');
+    const last = plan.replies[plan.replies.length - 1];
+    return { flowId: plan.nextSession.flowId, stepId: plan.nextSession.currentStepId ?? last?.stepId ?? null };
+  }, [simulateOpen, steps, simCatalog, currentFlowId]);
+
+  const liveCursor = simulateOpen ? simCursor ?? seedCursor : null;
+  const canvasSteps = stepsForSimCanvas(steps, currentFlowId, flows, liveCursor);
+  const canvasReadOnly = isSimCanvasReadOnly(currentFlowId, liveCursor);
+  const canvasFlowId = liveCursor?.flowId ?? currentFlowId;
+  const canvasJumpTargets = flows.filter(
+    (item) => item.isActive && item.id !== canvasFlowId && item.id !== 'preview'
+  );
+  const simFlowName =
+    flows.find((item) => item.id === liveCursor?.flowId)?.name ?? liveCursor?.flowId;
 
   useEffect(() => {
     if (selectedId && !steps.some((step) => step.id === selectedId)) {
@@ -64,8 +102,27 @@ export function FlowStepsEditor({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentFlowId]);
 
+  useEffect(() => {
+    if (!simulateOpen) {
+      setSimCursor(null);
+    }
+  }, [simulateOpen]);
+
+  useEffect(() => {
+    if (canvasReadOnly) {
+      setSelectedId(null);
+    }
+  }, [canvasReadOnly]);
+
+  useEffect(() => {
+    if (!simulateOpen || !liveCursor?.stepId) {
+      return;
+    }
+    setFocusToken((token) => token + 1);
+  }, [simulateOpen, liveCursor?.flowId, liveCursor?.stepId]);
+
   const selectedIndex = steps.findIndex((step) => step.id === selectedId);
-  const selected = selectedIndex >= 0 ? steps[selectedIndex] : null;
+  const selected = !canvasReadOnly && selectedIndex >= 0 ? steps[selectedIndex] : null;
   const selectedIssues = issues.filter((issue) => issue.stepId === selectedId);
 
   const patch = (index: number, next: FlowStep) => {
@@ -97,14 +154,27 @@ export function FlowStepsEditor({
           setFocusToken((token) => token + 1);
         }}
       />
-      <FlowCanvasPalette onAdd={add} />
+      {canvasReadOnly ? null : <FlowCanvasPalette onAdd={add} />}
+      {canvasReadOnly ? (
+        <div className="flex flex-wrap items-center gap-2 rounded-md border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-sm">
+          <p className="flex-1 text-foreground">
+            Simulando: <span className="font-medium">{simFlowName}</span>. O quadro mostra esse
+            fluxo (somente leitura).
+          </p>
+          {liveCursor && onOpenFlow ? (
+            <Button type="button" variant="outline" size="sm" onClick={() => onOpenFlow(liveCursor.flowId)}>
+              Editar este fluxo
+            </Button>
+          ) : null}
+        </div>
+      ) : null}
       <div className="flex flex-wrap gap-2">
         <Button
           type="button"
           variant="outline"
           size="sm"
           onClick={() => onChange(applyCanvasLayout(steps, true))}
-          disabled={visible.length === 0}
+          disabled={visible.length === 0 || canvasReadOnly}
         >
           Organizar
         </Button>
@@ -143,14 +213,16 @@ export function FlowStepsEditor({
       </div>
       <div className="relative">
         <FlowCanvasBoard
-          steps={steps}
+          steps={canvasSteps}
           departments={activeDepartments}
-          flows={jumpTargets}
+          flows={canvasJumpTargets}
           selectedId={selectedId}
-          fitSeed={currentFlowId || 'new'}
-          focusNodeId={selectedId}
+          highlightId={simulateOpen ? liveCursor?.stepId : null}
+          readOnly={canvasReadOnly}
+          fitSeed={`${currentFlowId || 'new'}:${canvasFlowId || 'edit'}:${simulateOpen ? 'sim' : 'edit'}`}
+          focusNodeId={simulateOpen ? liveCursor?.stepId : selectedId}
           focusToken={focusToken}
-          onChange={onChange}
+          onChange={canvasReadOnly ? () => undefined : onChange}
           onSelect={setSelectedId}
         />
         {selected || simulateOpen ? (
@@ -174,8 +246,9 @@ export function FlowStepsEditor({
             {simulateOpen ? (
               <FlowSimulator
                 steps={steps}
-                flows={jumpTargets}
+                flows={simCatalog}
                 flowId={currentFlowId || 'preview'}
+                onCursor={onSimCursor}
               />
             ) : null}
             {selected && selectedIndex >= 0 ? (

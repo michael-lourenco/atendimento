@@ -36,6 +36,8 @@ type FlowCanvasBoardProps = {
   departments: Department[];
   flows: { id: string; name: string; isActive?: boolean }[];
   selectedId: string | null;
+  highlightId?: string | null;
+  readOnly?: boolean;
   fitSeed: string;
   focusNodeId?: string | null;
   focusToken?: number;
@@ -67,7 +69,8 @@ function toNodes(
   steps: FlowStep[],
   departments: Department[],
   flows: { id: string; name: string }[],
-  selectedId: string | null
+  selectedId: string | null,
+  highlightId?: string | null
 ): FlowCanvasRfNode[] {
   const issues = flowHealthIssues(steps, flows);
   return visibleFlowSteps(steps).map(({ step }, index) => ({
@@ -81,6 +84,7 @@ function toNodes(
       isStart: steps[0]?.id === step.id,
       kind: nodeKind(step),
       warning: issuesForStep(issues, step.id).length > 0,
+      highlight: step.id === highlightId,
       handles: sourceHandlesFor(step),
     },
   }));
@@ -104,6 +108,8 @@ function FlowCanvasBoardInner({
   departments,
   flows,
   selectedId,
+  highlightId,
+  readOnly = false,
   fitSeed,
   focusNodeId,
   focusToken,
@@ -113,8 +119,8 @@ function FlowCanvasBoardInner({
   const { theme } = useTheme();
   const { screenToFlowPosition, fitView } = useReactFlow();
   const derived = useMemo(
-    () => toNodes(steps, departments, flows, selectedId),
-    [steps, departments, flows, selectedId]
+    () => toNodes(steps, departments, flows, selectedId, highlightId),
+    [steps, departments, flows, selectedId, highlightId]
   );
   const [nodes, setNodes] = useState<FlowCanvasRfNode[]>(derived);
   const edges = useMemo(() => toEdges(steps), [steps]);
@@ -153,17 +159,23 @@ function FlowCanvasBoardInner({
   const onNodesChange = useCallback(
     (changes: NodeChange<FlowCanvasRfNode>[]) => {
       setNodes((current) => applyNodeChanges(changes, current));
+      if (readOnly) {
+        return;
+      }
       for (const change of changes) {
         if (change.type === 'position' && change.dragging === false && change.position) {
           onChange(setCanvasPosition(steps, change.id, change.position));
         }
       }
     },
-    [onChange, steps]
+    [onChange, readOnly, steps]
   );
 
   const onNodesDelete = useCallback(
     (deleted: Node[]) => {
+      if (readOnly) {
+        return;
+      }
       let next = steps;
       for (const node of deleted) {
         next = removeVisibleFlowStep(next, node.id);
@@ -171,28 +183,31 @@ function FlowCanvasBoardInner({
       onChange(next);
       onSelect(null);
     },
-    [onChange, onSelect, steps]
+    [onChange, onSelect, readOnly, steps]
   );
 
   const onConnect = useCallback(
     (connection: Connection) => {
-      if (!connection.source || !connection.target || !connection.sourceHandle) {
+      if (readOnly || !connection.source || !connection.target || !connection.sourceHandle) {
         return;
       }
       onChange(setStepLink(steps, connection.source, connection.sourceHandle, connection.target));
     },
-    [onChange, steps]
+    [onChange, readOnly, steps]
   );
 
   const onEdgesDelete = useCallback(
     (deleted: Edge[]) => {
+      if (readOnly) {
+        return;
+      }
       let next = steps;
       for (const edge of deleted) {
         next = setStepLink(next, edge.source, edge.sourceHandle ?? 'next', '');
       }
       onChange(next);
     },
-    [onChange, steps]
+    [onChange, readOnly, steps]
   );
 
   const addAt = useCallback(
@@ -207,13 +222,16 @@ function FlowCanvasBoardInner({
   const onDrop = useCallback(
     (event: DragEvent) => {
       event.preventDefault();
+      if (readOnly) {
+        return;
+      }
       const kind = event.dataTransfer.getData(FLOW_KIND_MIME) as FlowAddKind;
       if (!kind) {
         return;
       }
       addAt(kind, screenToFlowPosition({ x: event.clientX, y: event.clientY }));
     },
-    [addAt, screenToFlowPosition]
+    [addAt, readOnly, screenToFlowPosition]
   );
 
   return (
@@ -230,15 +248,24 @@ function FlowCanvasBoardInner({
         onNodesDelete={onNodesDelete}
         onConnect={onConnect}
         onEdgesDelete={onEdgesDelete}
-        onNodeClick={(_, node) => onSelect(node.id)}
-        onPaneClick={() => onSelect(null)}
+        onNodeClick={(_, node) => {
+          if (!readOnly) {
+            onSelect(node.id);
+          }
+        }}
+        onPaneClick={() => {
+          if (!readOnly) {
+            onSelect(null);
+          }
+        }}
         connectionMode={ConnectionMode.Loose}
         isValidConnection={(connection) => connection.source !== connection.target}
         colorMode={theme === 'dark' ? 'dark' : 'light'}
         defaultEdgeOptions={{ type: 'smoothstep' }}
-        deleteKeyCode={['Backspace', 'Delete']}
-        nodesConnectable
-        elementsSelectable
+        deleteKeyCode={readOnly ? null : ['Backspace', 'Delete']}
+        nodesDraggable={!readOnly}
+        nodesConnectable={!readOnly}
+        elementsSelectable={!readOnly}
         style={{ width: '100%', height: '100%' }}
       >
         <Background gap={18} />
