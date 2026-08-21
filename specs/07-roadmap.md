@@ -81,6 +81,7 @@ Isolamento entre empresas = cópia da stack (`00-vision.md`, `08-supabase.md`).
 - Chatbot: confirmar antes de trocar **Vale para** com rascunho; expediente e ritmo nascem recolhidos
 - Palavras-chave do fluxo no editor em chips (Enter/vírgula/colar; X tira)
 - Simulador: depois de `goToFlow` o turno seguinte fica no destino; o quadro acompanha o fluxo da sessão e destaca o passo atual
+- Presence do compositor: não dispara `paused` ao abrir/sair com campo vazio; `POST /api/messages/presence` devolve 204 se a Evolution falhar
 
 ## Não fazer
 

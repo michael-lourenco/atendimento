@@ -1,5 +1,9 @@
 export type ComposerPresence = 'composing' | 'recording' | 'paused';
 
+export function isActiveComposerPresence(presence: string): boolean {
+  return presence === 'composing' || presence === 'recording';
+}
+
 export function postComposerPresence(
   to: string | undefined,
   conversationId: string | undefined,
@@ -12,5 +16,6 @@ export function postComposerPresence(
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ to, presence, conversationId }),
+    keepalive: true,
   });
 }

@@ -62,7 +62,8 @@ Runner: Jest + `ts-jest` (`npm test`). Testing Library só quando houver teste d
 - `core/usecases/GetSchemaHealthUseCase.test.ts` — probe marca coluna ausente
 - `infra/whatsapp/mapEvolutionPresence.test.ts` — composing/paused; ignora grupo
 - `core/usecases/ApplyContactTypingUseCase.test.ts` — grava `contactTypingAt`; paused zera
-- `core/usecases/SendWhatsAppPresenceUseCase.test.ts` — no-op se o serviço não tiver `sendPresence`
+- `core/usecases/SendWhatsAppPresenceUseCase.test.ts` — no-op se o serviço não tiver `sendPresence`; falha do provedor não rejeita
+- `ui/lib/composer-presence.test.ts` — `paused` só depois de `composing`/`recording`
 - `ui/lib/messages-matching-query.test.ts` — busca na conversa filtra pelo texto
 - `infra/whatsapp/mapEvolutionIncoming.test.ts` — pushName; MESSAGES_UPSERT; ignora grupo/fromMe; tipo imagem
 - `infra/whatsapp/evolutionMedia.test.ts` — parse base64; hydrate grava no storage fake

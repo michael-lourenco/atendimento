@@ -60,7 +60,7 @@ Bodies JSON das rotas abaixo passam por schema Zod na borda. Inválido → `400 
 - JSON: `{ to: string, presence: "composing"|"recording"|"paused", conversationId?: string }`
 - 400 se faltar `to` ou `presence` inválido
 - 401: sem sessão de operador quando o Supabase está configurado
-- 204: enviado (ou no-op se o provedor não implementar `sendPresence`)
+- 204: enviado, provedor sem `sendPresence`, **ou falha da Evolution/linha** (best-effort; log no servidor, sem 500)
 - Não persiste mensagem. Não pausa o fluxo
 
 `POST /api/messages/read`

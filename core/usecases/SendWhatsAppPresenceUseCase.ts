@@ -9,13 +9,17 @@ export class SendWhatsAppPresenceUseCase {
     instanceName?: string;
     delayMs?: number;
   }): Promise<void> {
-    await this.whatsApp.sendPresence?.({
-      to: input.to,
-      presence: input.presence,
-      instanceName: input.instanceName,
-      delayMs:
-        input.delayMs ??
-        (input.presence === 'paused' ? 0 : input.presence === 'recording' ? 25000 : 2000),
-    });
+    try {
+      await this.whatsApp.sendPresence?.({
+        to: input.to,
+        presence: input.presence,
+        instanceName: input.instanceName,
+        delayMs:
+          input.delayMs ??
+          (input.presence === 'paused' ? 0 : input.presence === 'recording' ? 25000 : 2000),
+      });
+    } catch {
+      return;
+    }
   }
 }

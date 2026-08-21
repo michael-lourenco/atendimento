@@ -96,7 +96,7 @@ Padrão da empresa no chatbot **ativo** (a tela `/dashboard/chatbots`). Só um a
 |-------|--------|--------|
 | `replyDelayMs` | 1000 (0–5000) | Espera depois do incoming antes da 1ª mensagem (tela: segundos) |
 | `bubbleDelayMs` | 500 (0–8000) | Entre mensagens se o passo não tiver `delayMs` (tela: segundos) |
-| `sendComposing` | true | Presence `composing` no delay (Evolution) |
+| `sendComposing` | true | Presence `composing` no delay (Evolution). `SendWhatsAppPresenceUseCase`: falha do provedor é no-op |
 | `waitWhileTyping` | true | Não envia enquanto `contactTypingAt` estiver fresco (`typingIdleMs`) |
 | `typingIdleMs` | 1500 (0–5000) | Margem depois que o composing parou; teto extra 8s |
 | `inboundDebounceMs` | 800 (0–3000) | Espera e usa o **último** incoming da thread no turno (lote + re-leitura) |

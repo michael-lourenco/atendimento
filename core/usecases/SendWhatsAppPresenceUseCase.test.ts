@@ -13,6 +13,17 @@ describe('SendWhatsAppPresenceUseCase', () => {
     ).resolves.toBeUndefined();
   });
 
+  it('falha do provedor não rejeita', async () => {
+    const whatsApp = {
+      sendPresence: async () => {
+        throw new Error('Evolution offline');
+      },
+    } as unknown as IWhatsAppService;
+    await expect(
+      new SendWhatsAppPresenceUseCase(whatsApp).execute({ to: '5511', presence: 'paused' })
+    ).resolves.toBeUndefined();
+  });
+
   it('envia composing', async () => {
     const sent: SendPresenceParams[] = [];
     const whatsApp = {

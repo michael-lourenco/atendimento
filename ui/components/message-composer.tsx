@@ -12,7 +12,7 @@ import { insertEmojiAtCursor } from '@/ui/lib/emoji';
 import { MAX_OUTGOING_MEDIA_BYTES } from '@/core/services/IMediaStorage';
 import { PTT_MAX_MS } from '@/ui/lib/ptt-file';
 import { usePttRecorder } from '@/ui/lib/use-ptt-recorder';
-import { ComposerPresence, postComposerPresence } from '@/ui/lib/composer-presence';
+import { ComposerPresence, isActiveComposerPresence, postComposerPresence } from '@/ui/lib/composer-presence';
 import { isQuickReplyPickerOpenKey } from '@/ui/lib/quick-reply-picker-keys';
 import { useComposerDraft } from '@/ui/lib/use-composer-draft';
 type MessageComposerProps = {
@@ -56,6 +56,10 @@ export function MessageComposer({
     if (!presenceTo || (busy && presence !== 'paused') || lastPresence.current === presence) {
       return;
     }
+    if (presence === 'paused' && !isActiveComposerPresence(lastPresence.current)) {
+      lastPresence.current = 'paused';
+      return;
+    }
     lastPresence.current = presence;
     postComposerPresence(presenceTo, conversationId, presence);
   };
@@ -74,8 +78,10 @@ export function MessageComposer({
 
   useEffect(
     () => () => {
+      if (isActiveComposerPresence(lastPresence.current)) {
+        postComposerPresence(presenceTo, conversationId, 'paused');
+      }
       lastPresence.current = '';
-      postComposerPresence(presenceTo, conversationId, 'paused');
       ptt.cancel();
     },
     [presenceTo, conversationId]
