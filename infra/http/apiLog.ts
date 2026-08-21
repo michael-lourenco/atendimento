@@ -1,7 +1,7 @@
 const REDACTED = '[redacted]';
 
 const SECRET_PATTERN =
-  /bearer\s+\S+|authorization\s*[:=]\s*\S+|api[_-]?key\s*[:=]\s*\S+|apikey\s*[:=]\s*\S+|service_role|eyJ[a-zA-Z0-9_-]{10,}\.[a-zA-Z0-9_-]+\.[a-zA-Z0-9_-]+/gi;
+  /bearer\s+\S+|authorization\s*[:=]\s*\S+|api[_-]?key\s*[:=]\s*\S+|apikey\s*[:=]\s*\S+|password\s*[:=]\s*\S+|cookie\s*[:=]\s*\S+|cron[_-]?secret\s*[:=]\s*\S+|service_role|eyJ[a-zA-Z0-9_-]{10,}\.[a-zA-Z0-9_-]+\.[a-zA-Z0-9_-]+/gi;
 
 function sanitizeString(text: string): string {
   let out = text.replace(/data:[^;]+;base64,[a-zA-Z0-9+/=]+/gi, REDACTED);
@@ -29,6 +29,9 @@ export function sanitizeLogDetail(error: unknown): string {
 }
 
 export function formatApiErrorLog(requestId: string, message: string, error?: unknown): string {
+  if (error === undefined) {
+    return `[${requestId}] ${message}`;
+  }
   return `[${requestId}] ${message}: ${sanitizeLogDetail(error)}`;
 }
 

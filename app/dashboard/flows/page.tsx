@@ -44,8 +44,8 @@ export default function FlowsPage() {
       } catch {
         setEntryFlowIds(fallbackId ? [fallbackId] : []);
       }
-    } catch (loadError) {
-      console.error('Erro ao carregar fluxos:', loadError);
+    } catch {
+      /* ignore */
     } finally {
       setLoading(false);
     }
@@ -64,7 +64,6 @@ export default function FlowsPage() {
       setError(null);
       loadFlows();
     } catch (deleteError) {
-      console.error('Erro ao excluir fluxo:', deleteError);
       setError(catalogPersistErrorMessage(deleteError, 'flows'));
     }
   };
@@ -75,7 +74,6 @@ export default function FlowsPage() {
       markSaved();
       loadFlows();
     } catch (dupError) {
-      console.error('Erro ao duplicar fluxo:', dupError);
       setError(catalogPersistErrorMessage(dupError, 'flows'));
     }
   };

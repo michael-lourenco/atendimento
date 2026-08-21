@@ -70,8 +70,8 @@ export default function WhatsAppPage() {
       if (statusResponse.ok) {
         setStatus(await statusResponse.json());
       }
-    } catch (error) {
-      console.error('Erro ao carregar dados:', error);
+    } catch {
+      /* ignore */
     } finally {
       setLoading(false);
       setRefreshing(false);

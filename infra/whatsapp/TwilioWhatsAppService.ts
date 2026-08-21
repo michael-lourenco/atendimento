@@ -37,8 +37,8 @@ export class TwilioWhatsAppService implements IWhatsAppService {
         // eslint-disable-next-line @typescript-eslint/no-var-requires
         const twilio = require('twilio');
         this.twilioClient = twilio(this.accountSid, this.authToken);
-      } catch (error) {
-        console.warn('Twilio SDK não instalado. Execute: npm install twilio');
+      } catch {
+        this.twilioClient = undefined;
       }
     }
   }
@@ -76,7 +76,6 @@ export class TwilioWhatsAppService implements IWhatsAppService {
         }],
       };
     } catch (error: any) {
-      console.error('Erro ao enviar mensagem via Twilio');
       throw new Error(`Erro ao enviar mensagem WhatsApp via Twilio: ${error.message}`);
     }
   }
@@ -137,12 +136,6 @@ export class TwilioWhatsAppService implements IWhatsAppService {
           };
 
           messages.push(message);
-        }
-      }
-
-      if (value.statuses) {
-        for (const status of value.statuses) {
-          console.log(`Status atualizado: ${status.id} -> ${status.status}`);
         }
       }
     }

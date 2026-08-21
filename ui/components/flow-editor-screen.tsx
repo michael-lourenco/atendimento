@@ -102,8 +102,7 @@ export function FlowEditorScreen({ flowId, fromFlowId }: FlowEditorScreenProps) 
           });
           setSavedSnap(empty);
         }
-      } catch (loadError) {
-        console.error('Erro ao carregar fluxo:', loadError);
+      } catch {
         setError('Não foi possível carregar o fluxo.');
       } finally {
         setLoading(false);
@@ -149,7 +148,6 @@ export function FlowEditorScreen({ flowId, fromFlowId }: FlowEditorScreenProps) 
       }
       return flow;
     } catch (saveError) {
-      console.error('Erro ao salvar fluxo:', saveError);
       setError(catalogPersistErrorMessage(saveError, 'flows'));
       return null;
     }

@@ -92,18 +92,14 @@ export function useMessageThread(conversationId: string, onConversationChanged?:
     setMessagesReady(false);
     setSearch('');
     void load(true, isCancelled)
-      .catch((err) => {
-        if (!cancelled) {
-          console.error('Erro ao carregar conversa:', err);
-        }
-      })
+      .catch(() => undefined)
       .finally(() => {
         if (!cancelled) {
           setMessagesReady(true);
         }
       });
     const timer = setInterval(() => {
-      load(false, isCancelled).catch((err) => console.error('Erro ao atualizar conversa:', err));
+      load(false, isCancelled).catch(() => undefined);
     }, DASHBOARD_POLL_MS);
     return () => {
       cancelled = true;
@@ -179,8 +175,7 @@ export function useMessageThread(conversationId: string, onConversationChanged?:
     try {
       await clientUseCases.resumeContactFlow().execute(conversationId);
       setPaused(false);
-    } catch (err) {
-      console.error('Erro ao retomar chatbot:', err);
+    } catch {
       setError('Não foi possível retomar o chatbot');
     }
   };

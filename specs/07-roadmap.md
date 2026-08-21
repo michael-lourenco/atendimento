@@ -35,7 +35,7 @@ Spec: `08-supabase.md`.
 
 - Validação Zod nos POST/PATCH JSON de `app/api/**` (login, operators, send JSON, webhooks). `400 { error: string }`. GET sem Zod
 - Header `x-request-id` em todo `/api/**`
-- Logs sanitizados: `[requestId] mensagem: detalhe` sem secrets, JWT, Authorization, mídia/base64, payload completo de webhook, QR
+- Logs sanitizados: `[requestId] mensagem: detalhe` sem secrets, JWT, Authorization, senha, cookie, mídia/base64, payload completo de webhook, QR; painel sem `console.*` de erro
 - Webhooks: ACK 200 sem `message` de stack
 - Dica de login na UI: só `NEXT_PUBLIC_SUPABASE_URL` + `NEXT_PUBLIC_SUPABASE_ANON_KEY` (nunca `SUPABASE_SERVICE_ROLE_KEY`)
 - Pasta `infra/http` (request id, log, schemas). Sem porta nova em `core`. Zod já no `package.json`
@@ -82,6 +82,7 @@ Isolamento entre empresas = cópia da stack (`00-vision.md`, `08-supabase.md`).
 - Palavras-chave do fluxo no editor em chips (Enter/vírgula/colar; X tira)
 - Simulador: depois de `goToFlow` o turno seguinte fica no destino; o quadro acompanha o fluxo da sessão e destaca o passo atual
 - Presence do compositor: não dispara `paused` ao abrir/sair com campo vazio; `POST /api/messages/presence` devolve 204 se a Evolution falhar
+- Logs: só `logApiError` na borda HTTP; sem `console` no painel nem status/QR/mídia nos provedores
 
 ## Não fazer
 

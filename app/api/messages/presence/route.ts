@@ -27,8 +27,8 @@ export async function POST(request: NextRequest) {
         const conversation = await repos.conversation.getById(body.conversationId);
         const catalog = await repos.whatsAppNumber.getAll();
         instanceName = outgoingWhatsAppLine(conversation, catalog).instanceName;
-      } catch (error) {
-        logApiError(requestIdFrom(request), 'Linha da presence ignorada', error);
+      } catch {
+        /* ignore */
       }
     }
     await new SendWhatsAppPresenceUseCase(serverLocator.getWhatsAppService()).execute({

@@ -162,7 +162,6 @@ export class ProcessIncomingFlowUseCase {
     session = planned.session;
 
     if (!flow) {
-      console.warn('[ProcessIncomingFlow] Nenhum fluxo ativo; sem resposta automática.');
       return;
     }
 
@@ -287,7 +286,6 @@ export class ProcessIncomingFlowUseCase {
     }
     const department = await this.departments.getById(departmentId);
     if (!department?.isActive) {
-      console.warn('[ProcessIncomingFlow] Setor do fluxo não encontrado ou inativo:', departmentId);
       return;
     }
     await this.setDepartment.execute({

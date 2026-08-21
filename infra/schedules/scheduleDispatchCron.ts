@@ -1,3 +1,4 @@
+import { logApiError } from '@/infra/http/apiLog';
 import { runDispatchDueScheduledMessages } from './runDispatchDueScheduledMessages';
 import {
   SCHEDULE_DISPATCH_INTERVAL_MS,
@@ -12,7 +13,7 @@ export function startScheduleDispatchCron(): void {
   }
   const tick = () => {
     void runDispatchDueScheduledMessages().catch(() => {
-      console.error('Cron de agendamentos falhou');
+      logApiError('cron', 'Agendamentos falhou');
     });
   };
   setTimeout(tick, FIRST_TICK_MS);

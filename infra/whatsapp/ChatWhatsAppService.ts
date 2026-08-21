@@ -97,8 +97,7 @@ export class ChatWhatsAppService {
         }
         throw newEndpointError;
       }
-    } catch (error: any) {
-      console.error('Erro ao obter QR Code do chat-whatsapp');
+    } catch {
       throw new Error('Erro ao obter QR Code do chat-whatsapp');
     }
   }
@@ -153,8 +152,7 @@ export class ChatWhatsAppService {
         }
         throw newEndpointError;
       }
-    } catch (error) {
-      console.error('Erro ao obter status do chat-whatsapp');
+    } catch {
       throw new Error('Erro ao obter status do chat-whatsapp');
     }
   }
@@ -179,7 +177,6 @@ export class ChatWhatsAppService {
           offset
         };
       }
-      console.error('Erro ao obter mensagens do chat-whatsapp');
       throw new Error('Erro ao obter mensagens do chat-whatsapp');
     }
   }
@@ -193,8 +190,7 @@ export class ChatWhatsAppService {
         `/api/messages/${userId}`
       );
       return response.data;
-    } catch (error) {
-      console.error('Erro ao obter mensagens do usuário no chat-whatsapp');
+    } catch {
       throw new Error('Erro ao obter mensagens do usuário');
     }
   }
@@ -209,8 +205,7 @@ export class ChatWhatsAppService {
         { to, message }
       );
       return response.data;
-    } catch (error) {
-      console.error('Erro ao enviar mensagem via chat-whatsapp');
+    } catch {
       throw new Error('Erro ao enviar mensagem via chat-whatsapp');
     }
   }

@@ -94,7 +94,7 @@ export class SendWhatsAppMessageUseCase {
           mimeType: input.media.mimeType.split(';')[0],
         });
       } catch {
-        console.error('Falha ao cachear mídia enviada');
+        /* ignore */
       }
     }
     await this.upsertContact?.execute(contactPhoneFromMessage(message), message.contactName);

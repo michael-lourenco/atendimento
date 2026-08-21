@@ -24,7 +24,7 @@ export function TeamNotes({ conversationId, operator }: TeamNotesProps) {
   };
 
   useEffect(() => {
-    void load().catch((error) => console.error('Erro ao carregar notas:', error));
+    void load().catch(() => undefined);
   }, [conversationId]);
 
   const submit = async (event: FormEvent) => {
@@ -46,8 +46,8 @@ export function TeamNotes({ conversationId, operator }: TeamNotesProps) {
       });
       setDraft('');
       await load();
-    } catch (error) {
-      console.error('Erro ao salvar nota:', error);
+    } catch {
+      /* ignore */
     } finally {
       setSaving(false);
     }

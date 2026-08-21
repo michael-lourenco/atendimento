@@ -11,7 +11,7 @@ Todo response de `/api/**` inclui o header `x-request-id`:
 - Se o cliente mandar `x-request-id` com comprimento `<= 128` chars, ecoar esse valor
 - Senão, gerar um UUID
 
-Erros de servidor logam `[requestId] mensagem: detalhe`. **Não** logar: token, apikey, `service_role`, JWT, `Authorization`, body de mídia/base64, `error.response.data` completo. Webhooks **não** logam payload completo nem QR. Não vazar stack no JSON de resposta.
+Erros de servidor logam `[requestId] mensagem: detalhe` via `logApiError`. **Não** logar: token, apikey, `service_role`, JWT, `Authorization`, senha, cookie, body de mídia/base64, `error.response.data` completo, stack. Webhooks **não** logam payload completo nem QR. Não vazar stack no JSON de resposta. O painel **não** escreve falhas no `console` do browser. Falha esperada (cache de mídia, linha da presence, fluxo inativo) não gera log.
 
 ## Validação Zod (POST/PATCH com JSON)
 
@@ -60,7 +60,7 @@ Bodies JSON das rotas abaixo passam por schema Zod na borda. Inválido → `400 
 - JSON: `{ to: string, presence: "composing"|"recording"|"paused", conversationId?: string }`
 - 400 se faltar `to` ou `presence` inválido
 - 401: sem sessão de operador quando o Supabase está configurado
-- 204: enviado, provedor sem `sendPresence`, **ou falha da Evolution/linha** (best-effort; log no servidor, sem 500)
+- 204: enviado, provedor sem `sendPresence`, **ou falha da Evolution/linha** (best-effort; **sem** log nem 500)
 - Não persiste mensagem. Não pausa o fluxo
 
 `POST /api/messages/read`

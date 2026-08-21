@@ -38,8 +38,8 @@ export default function DepartmentsPage() {
     try {
       const allDepartments = await clientUseCases.departments().list();
       setDepartments(allDepartments);
-    } catch (error) {
-      console.error('Erro ao carregar setores:', error);
+    } catch {
+      /* ignore */
     } finally {
       setLoading(false);
     }
@@ -69,8 +69,8 @@ export default function DepartmentsPage() {
       setFormData({ name: '', description: '', color: '#3b82f6', isActive: true });
       markSaved();
       loadDepartments();
-    } catch (error) {
-      console.error('Erro ao salvar setor:', error);
+    } catch {
+      /* ignore */
     }
   };
 
@@ -81,8 +81,8 @@ export default function DepartmentsPage() {
     try {
       await clientUseCases.departments().delete(id);
       loadDepartments();
-    } catch (error) {
-      console.error('Erro ao excluir setor:', error);
+    } catch {
+      /* ignore */
     }
   };
 

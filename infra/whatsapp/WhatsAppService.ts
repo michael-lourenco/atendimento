@@ -60,29 +60,21 @@ export class WhatsAppService implements IWhatsAppService {
       payload.context = { message_id: params.quoted.messageId };
     }
 
-    try {
-      const response = await fetch(this.baseUrl, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${this.accessToken}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(payload),
-      });
+    const response = await fetch(this.baseUrl, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${this.accessToken}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(payload),
+    });
 
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(
-          `Erro ao enviar mensagem WhatsApp: ${response.status} - ${JSON.stringify(errorData)}`
-        );
-      }
-
-      const data: WhatsAppMessageResponse = await response.json();
-      return data;
-    } catch (error) {
-      console.error('Erro ao enviar mensagem WhatsApp');
-      throw error;
+    if (!response.ok) {
+      throw new Error(`Erro ao enviar mensagem WhatsApp: ${response.status}`);
     }
+
+    const data: WhatsAppMessageResponse = await response.json();
+    return data;
   }
 
   async sendReaction(params: SendReactionParams): Promise<void> {
@@ -152,15 +144,6 @@ export class WhatsAppService implements IWhatsAppService {
           };
 
           messages.push(message);
-        }
-      }
-
-      // Processar status de mensagens enviadas
-      if (value.statuses) {
-        for (const status of value.statuses) {
-          // Aqui você pode atualizar o status de mensagens já salvas
-          // Por enquanto, apenas logamos
-          console.log(`Status atualizado: ${status.id} -> ${status.status}`);
         }
       }
     }

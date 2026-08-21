@@ -45,8 +45,8 @@ export function TransferAgentControl({
         departmentName: departmentNameOf(departments, agent.departmentId) || undefined,
       });
       onTransferred?.();
-    } catch (error) {
-      console.error('Erro ao transferir conversa:', error);
+    } catch {
+      /* ignore */
     } finally {
       setBusy(false);
     }

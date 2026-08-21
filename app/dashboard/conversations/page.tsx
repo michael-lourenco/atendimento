@@ -120,8 +120,8 @@ export default function ConversationsPage() {
           if (deptId) setDepartmentFilter(deptId);
         }
       }
-    } catch (error) {
-      console.error('Erro ao carregar conversas:', error);
+    } catch {
+      /* ignore */
     } finally {
       if (showLoading) {
         setLoading(false);

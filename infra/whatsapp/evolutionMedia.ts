@@ -85,7 +85,7 @@ export async function hydrateEvolutionMedia(params: {
         await params.storage.save(path, file);
       }
     } catch {
-      console.error('Falha ao cachear mídia Evolution');
+      /* ignore */
     }
   }
 }
@@ -125,12 +125,11 @@ export async function resolvePlayableMedia(params: {
       try {
         await params.storage.save(path, file);
       } catch {
-        console.error('Falha ao cachear mídia');
+        /* ignore */
       }
     }
     return file;
   } catch {
-    console.error('Falha ao obter mídia');
     return null;
   }
 }

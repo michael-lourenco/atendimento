@@ -38,7 +38,7 @@ Helpers da borda, usados pelos Route Handlers. **Não** são portas de `core`.
 | Peça | Contrato |
 |------|----------|
 | Request id | Todo response de `/api/**` leva `x-request-id`: valor incoming se `<= 128` chars; senão UUID gerado |
-| Log sanitizado | Erros de servidor: `[requestId] mensagem: detalhe`. Sem token, apikey, `service_role`, JWT, `Authorization`, body de mídia/base64, nem `error.response.data` completo. Webhooks não logam payload completo nem QR |
+| Log sanitizado | Erros de servidor, só na borda HTTP (`logApiError`): `[requestId] mensagem: detalhe`. Sem token, apikey, `service_role`, JWT, `Authorization`, senha, cookie, body de mídia/base64, nem `error.response.data` completo. Sem stack no JSON. Webhooks não logam payload completo nem QR. Painel **não** usa `console.*` para falhas (a tela mostra a mensagem). `core`/provedores não logam status de mensagem, QR nem objeto de erro cru. Falha esperada (cache de mídia, presence, fluxo inativo) **não** loga |
 | Schemas Zod | POST/PATCH com JSON em `app/api/**` validam o body na borda. Inválido → `400 { error: string }`. Sem vazar stack. GET sem body não usa Zod |
 
 Detalhe das rotas: `05-api.md`.

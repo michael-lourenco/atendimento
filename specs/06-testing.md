@@ -128,7 +128,7 @@ Runner: Jest + `ts-jest` (`npm test`). Testing Library só quando houver teste d
 - `infra/supabase/mappers/catalog.test.ts` — `scheduleToRow` só manda `conversation_id` se houver thread; `quickReplyToRow` manda `media_kind` e `department_id`; `numberToRow` manda `behavior`, `flow_id` e `business_hours`
 - `infra/supabase/mappers/messaging.test.ts` — `conversationToRow` só manda `last_message` se houver snapshot
 - `infra/supabase/mappers/messaging.test.ts` — `messageToRow` grava `reactions` (vazio se ainda não houver)
-- `infra/http/apiLog.test.ts` — formato `[requestId] mensagem: detalhe`; não inclui token, apikey, service_role, JWT, Authorization, base64, nem `error.response.data` completo
+- `infra/http/apiLog.test.ts` — formato `[requestId] mensagem` ou `[requestId] mensagem: detalhe`; não inclui token, apikey, `service_role`, JWT, Authorization, senha, cookie, base64, nem `error.response.data` completo
 - `infra/http/schemas.test.ts` — login; operators POST/PATCH (papel e/ou senha); Evolution `data` ou `key`; chat-whatsapp `{ event, data }`; Meta `object` + `entry`; `POST /api/messages/read` exige `conversationId`
 - `app/api/messages/send/parseSendRequest.test.ts` — JSON (Zod) e multipart; máx. 16 MB; JSON inválido → 400; `conversationId` opcional (JSON e multipart)
 - `core/entities/inboxFilterHint.test.ts` — filtro de linha esconde as outras; “Ver todas” via hiddenCount

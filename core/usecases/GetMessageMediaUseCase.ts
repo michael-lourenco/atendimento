@@ -44,12 +44,11 @@ export class GetMessageMediaUseCase {
         try {
           await this.storage.save(path, file);
         } catch {
-          console.error('Falha ao cachear mídia');
+          /* ignore */
         }
       }
       return file;
     } catch {
-      console.error('Falha ao obter mídia');
       return null;
     }
   }

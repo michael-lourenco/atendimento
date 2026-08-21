@@ -29,8 +29,8 @@ export default function MessagesPage() {
     try {
       const allMessages = await clientUseCases.allMessages().execute();
       setMessages(allMessages);
-    } catch (error) {
-      console.error('Erro ao carregar mensagens:', error);
+    } catch {
+      /* ignore */
     } finally {
       if (showLoading) {
         setLoading(false);

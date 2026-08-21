@@ -155,12 +155,6 @@ export class EvolutionWhatsAppService implements IWhatsAppService {
           messages.push(message);
         }
       }
-
-      if (value.statuses) {
-        for (const status of value.statuses) {
-          console.log(`Status atualizado: ${status.id} -> ${status.status}`);
-        }
-      }
     }
 
     return messages;
