@@ -25,3 +25,15 @@ export function reportToCsv(report: Report): string {
   ].join(',');
   return `${header}\n${row}\n`;
 }
+
+export function reportHistoryPeriod(now = new Date()): string {
+  return `Todo o histórico até ${now.toLocaleDateString('pt-BR')}`;
+}
+
+export function reportDownloadFilename(report: Report): string {
+  const day =
+    report.createdAt instanceof Date
+      ? report.createdAt.toISOString().slice(0, 10)
+      : String(report.createdAt).slice(0, 10);
+  return `relatorio-${report.type}-${day}.csv`;
+}

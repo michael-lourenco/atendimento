@@ -1,5 +1,11 @@
 import { Conversation } from '@/core/entities/Conversation';
 
+export const INBOX_CHIME_BOOST_KEY = 'inbox-chime-boost-date';
+
+export function shouldBoostInboxChime(today: string, stored: string | null): boolean {
+  return stored !== today;
+}
+
 export function shouldPlayInboxSound(
   previous: Conversation[] | null,
   next: Conversation[]
@@ -27,21 +33,31 @@ export function inboxDocumentTitle(unread: number, base = 'Conversas'): string {
   return `(${unread}) ${base}`;
 }
 
-export function playInboxChime(): void {
+export function playInboxChime(now = new Date()): void {
   if (typeof window === 'undefined' || typeof window.AudioContext === 'undefined') {
     return;
   }
   try {
+    const today = now.toISOString().slice(0, 10);
+    let boost = false;
+    try {
+      boost = shouldBoostInboxChime(today, window.localStorage.getItem(INBOX_CHIME_BOOST_KEY));
+      if (boost) {
+        window.localStorage.setItem(INBOX_CHIME_BOOST_KEY, today);
+      }
+    } catch {
+      boost = false;
+    }
     const context = new window.AudioContext();
     const oscillator = context.createOscillator();
     const gain = context.createGain();
     oscillator.type = 'sine';
-    oscillator.frequency.value = 880;
-    gain.gain.value = 0.05;
+    oscillator.frequency.value = boost ? 660 : 880;
+    gain.gain.value = boost ? 0.12 : 0.05;
     oscillator.connect(gain);
     gain.connect(context.destination);
     oscillator.start();
-    oscillator.stop(context.currentTime + 0.12);
+    oscillator.stop(context.currentTime + (boost ? 0.28 : 0.12));
     oscillator.onended = () => {
       void context.close();
     };

@@ -30,7 +30,7 @@ export default function AgentsPage() {
   const [formError, setFormError] = useState('');
   const [loading, setLoading] = useState(true);
   const { confirm, dialog } = useConfirm();
-  const { show, markSaved } = useCatalogSavedFlash();
+  const { show, kind, message, markSaved, flashError } = useCatalogSavedFlash();
 
   const load = async (showLoading = false) => {
     if (showLoading) {
@@ -96,7 +96,9 @@ export default function AgentsPage() {
       markSaved();
       await load();
     } catch (error) {
-      setFormError(error instanceof CreateOperatorError ? error.message : 'Não foi possível salvar');
+      const text = error instanceof CreateOperatorError ? error.message : 'Não foi possível salvar';
+      setFormError(text);
+      flashError(text);
     }
   };
 
@@ -116,7 +118,7 @@ export default function AgentsPage() {
   return (
     <div>
       {dialog}
-      <CatalogSavedNotice show={show} />
+      <CatalogSavedNotice show={show} kind={kind} message={message} />
       {formError && !showForm ? (
         <p className="mb-4 text-sm text-destructive">{formError}</p>
       ) : null}

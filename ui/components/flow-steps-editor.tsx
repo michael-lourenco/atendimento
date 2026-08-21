@@ -25,6 +25,7 @@ import {
   isSimCanvasReadOnly,
   stepsForSimCanvas,
 } from '@/ui/lib/flow-sim-canvas';
+import { useFlowCanvasUndo } from '@/ui/lib/use-flow-canvas-undo';
 
 type FlowStepsEditorProps = {
   steps: FlowStep[];
@@ -63,6 +64,7 @@ export function FlowStepsEditor({
   const [simulateOpen, setSimulateOpen] = useState(false);
   const [simCursor, setSimCursor] = useState<FlowSimCursor | null>(null);
   const [focusToken, setFocusToken] = useState(0);
+  const { commit, undo, canUndo } = useFlowCanvasUndo(steps, onChange);
 
   const onSimCursor = useCallback((cursor: FlowSimCursor) => {
     setSimCursor((current) =>
@@ -126,7 +128,7 @@ export function FlowStepsEditor({
   const selectedIssues = issues.filter((issue) => issue.stepId === selectedId);
 
   const patch = (index: number, next: FlowStep) => {
-    onChange(steps.map((step, i) => (i === index ? next : step)));
+    commit(steps.map((step, i) => (i === index ? next : step)));
   };
 
   const add = (kind: FlowAddKind) => {
@@ -135,16 +137,14 @@ export function FlowStepsEditor({
       canvasPosition: fallbackCanvasPosition(visible.length),
     });
     setSelectedId(next[next.length - 1]?.id ?? null);
-    onChange(next);
+    commit(next);
   };
 
   return (
     <div className="space-y-3">
       <div className="space-y-1">
         <Label>Roteiro no WhatsApp</Label>
-        <p className="text-xs text-muted-foreground">
-          Arraste os blocos. Puxe a bolinha até o próximo. Clique para editar.
-        </p>
+        <p className="text-xs text-muted-foreground">Arraste os blocos. Puxe a bolinha até o próximo. Clique para editar.</p>
       </div>
       <FlowHealthIssueList
         issues={issues}
@@ -173,7 +173,16 @@ export function FlowStepsEditor({
           type="button"
           variant="outline"
           size="sm"
-          onClick={() => onChange(applyCanvasLayout(steps, true))}
+          onClick={undo}
+          disabled={!canUndo || canvasReadOnly}
+        >
+          Desfazer
+        </Button>
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          onClick={() => commit(applyCanvasLayout(steps, true))}
           disabled={visible.length === 0 || canvasReadOnly}
         >
           Organizar
@@ -186,7 +195,7 @@ export function FlowStepsEditor({
             onClick={() => {
               const next = duplicateVisibleFlowStep(steps, selected.id);
               setSelectedId(next[next.length - 1]?.id ?? null);
-              onChange(next);
+              commit(next);
             }}
           >
             Duplicar bloco
@@ -197,7 +206,7 @@ export function FlowStepsEditor({
             type="button"
             variant="outline"
             size="sm"
-            onClick={() => onChange(moveStepToStart(steps, selected.id))}
+            onClick={() => commit(moveStepToStart(steps, selected.id))}
           >
             Começar por este bloco
           </Button>
@@ -222,7 +231,7 @@ export function FlowStepsEditor({
           fitSeed={`${currentFlowId || 'new'}:${canvasFlowId || 'edit'}:${simulateOpen ? 'sim' : 'edit'}`}
           focusNodeId={simulateOpen ? liveCursor?.stepId : selectedId}
           focusToken={focusToken}
-          onChange={canvasReadOnly ? () => undefined : onChange}
+          onChange={canvasReadOnly ? () => undefined : commit}
           onSelect={setSelectedId}
         />
         {selected || simulateOpen ? (
@@ -276,7 +285,7 @@ export function FlowStepsEditor({
                   onOpenFlow={onOpenFlow}
                   onRemove={() => {
                     const next = removeVisibleFlowStep(steps, selected.id);
-                    onChange(next);
+                    commit(next);
                     setSelectedId(null);
                   }}
                 />

@@ -1,4 +1,5 @@
 import { messagesMatchingQuery } from './messages-matching-query';
+import { highlightQueryMatches } from './highlight-query';
 import { Message } from '@/core/entities/Message';
 
 const now = new Date('2026-08-19T12:00:00Z');
@@ -25,5 +26,13 @@ describe('messagesMatchingQuery', () => {
 
   it('filtra pelo conteúdo', () => {
     expect(messagesMatchingQuery(list, 'DEMO').map((item) => item.id)).toEqual(['1']);
+  });
+
+  it('marca o trecho encontrado', () => {
+    expect(highlightQueryMatches('Já sou cliente', 'sou')).toEqual([
+      { text: 'Já ', match: false },
+      { text: 'sou', match: true },
+      { text: ' cliente', match: false },
+    ]);
   });
 });

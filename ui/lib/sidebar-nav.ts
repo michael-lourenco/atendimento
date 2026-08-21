@@ -1,6 +1,7 @@
 import type { ComponentType } from 'react';
 import {
   MessageSquare,
+  History,
   Users,
   BarChart3,
   UserCog,
@@ -35,6 +36,7 @@ export const sidebarGroups: SidebarGroup[] = [
     items: [
       { title: 'Conversas', href: '/dashboard/conversations', icon: MessageSquare },
       { title: 'WhatsApp', href: '/dashboard/whatsapp', icon: Smartphone, adminOnly: true },
+      { title: 'Histórico', href: '/dashboard/messages', icon: History, adminOnly: true },
       { title: 'Contatos', href: '/dashboard/contacts', icon: Users },
       { title: 'Respostas rápidas', href: '/dashboard/quick-replies', icon: Reply },
       { title: 'Agendamentos', href: '/dashboard/schedules', icon: Calendar },
@@ -67,7 +69,6 @@ export function sidebarGroupsForRole(role: 'admin' | 'user'): SidebarGroup[] {
 }
 
 const extraTitles: { href: string; title: string }[] = [
-  { href: '/dashboard/messages', title: 'Mensagens' },
   { href: '/dashboard/flows/new', title: 'Novo fluxo' },
 ];
 

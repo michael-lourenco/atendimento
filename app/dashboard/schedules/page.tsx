@@ -50,7 +50,7 @@ export default function SchedulesPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const { confirm, dialog } = useConfirm();
-  const { show, markSaved } = useCatalogSavedFlash();
+  const { show, kind, message, markSaved, flashError } = useCatalogSavedFlash();
 
   const load = async (showLoading = false) => {
     if (showLoading) {
@@ -104,6 +104,7 @@ export default function SchedulesPage() {
       });
     } catch (cause) {
       setError(catalogPersistErrorMessage(cause, 'scheduled_messages'));
+      flashError(catalogPersistErrorMessage(cause, 'scheduled_messages'));
       return;
     }
     try {
@@ -119,7 +120,7 @@ export default function SchedulesPage() {
   return (
     <div>
       {dialog}
-      <CatalogSavedNotice show={show} />
+      <CatalogSavedNotice show={show} kind={kind} message={message} />
       {error ? <p className="mb-4 text-sm text-destructive">{error}</p> : null}
       <div className="mb-6 flex justify-between items-center">
         <p className="text-muted-foreground">Envio na hora marcada, mesmo com o painel fechado</p>

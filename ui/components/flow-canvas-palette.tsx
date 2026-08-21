@@ -31,6 +31,7 @@ export function FlowCanvasPalette({ onAdd }: FlowCanvasPaletteProps) {
             type="button"
             draggable
             title={item.hint}
+            aria-label={`Adicionar bloco ${item.label}. ${item.hint}`}
             onDragStart={(event) => {
               event.dataTransfer.setData(FLOW_KIND_MIME, item.kind);
               event.dataTransfer.effectAllowed = 'move';

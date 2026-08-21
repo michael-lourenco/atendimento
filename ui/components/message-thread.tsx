@@ -19,6 +19,9 @@ import { ChatMessageList } from '@/ui/components/chat-message-list';
 import { conversationThreadBody } from '@/ui/lib/conversation-thread-body';
 import { messagesMatchingQuery } from '@/ui/lib/messages-matching-query';
 import { queueToneOf } from '@/ui/lib/status-tone';
+import { CatalogSavedNotice } from '@/ui/components/catalog-saved-notice';
+import { useCatalogSavedFlash } from '@/ui/lib/use-catalog-saved-flash';
+import { useEffect, useRef, useState } from 'react';
 
 type MessageThreadProps = {
   conversationId: string;
@@ -61,6 +64,25 @@ export function MessageThread({
     resume,
     refresh,
   } = thread;
+  const { show, kind, message, flashSuccess, flashError } = useCatalogSavedFlash();
+  const threadSearchRef = useRef<HTMLInputElement>(null);
+  const [notesCount, setNotesCount] = useState(0);
+
+  useEffect(() => {
+    setNotesCount(0);
+  }, [conversationId]);
+
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (!(event.ctrlKey || event.metaKey) || event.key.toLowerCase() !== 'f') {
+        return;
+      }
+      event.preventDefault();
+      threadSearchRef.current?.focus();
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, []);
 
   const threadBody = conversationThreadBody({
     ready: messagesReady,
@@ -80,6 +102,7 @@ export function MessageThread({
         photoUrl={conversation ? conversationPhotoUrl(conversation) : undefined}
         typing={conversation ? conversationIsTyping(conversation) : false}
         queueTone={queueTone}
+        notesCount={notesCount}
         onBack={onBack}
       >
         <ConversationActions
@@ -92,8 +115,16 @@ export function MessageThread({
           onClosed={onClosed}
           onSchedule={() => setScheduleOpen(true)}
           onResume={() => void resume()}
+          onFlash={(nextKind, text) =>
+            nextKind === 'error' ? flashError(text) : flashSuccess(text)
+          }
         />
       </ConversationThreadHeader>
+      {show ? (
+        <div className="px-3 pt-2">
+          <CatalogSavedNotice show kind={kind} message={message} />
+        </div>
+      ) : null}
       {conversation ? (
         <ConversationTagsControl
           conversationId={conversation.id}
@@ -116,8 +147,10 @@ export function MessageThread({
         {threadBody === 'messages' ? (
           <div className="border-b border-border px-3 py-2">
             <Input
+              ref={threadSearchRef}
               value={search}
               placeholder="Buscar na conversa"
+              aria-label="Buscar na conversa"
               onChange={(event) => setSearch(event.target.value)}
             />
           </div>
@@ -138,6 +171,7 @@ export function MessageThread({
               messages={visibleMessages}
               pendingSend={pendingSend}
               mineFrom={lineRef.current?.instanceName || lineRef.current?.number || ''}
+              highlightQuery={search}
               onResend={(text) => void send({ text, file: null })}
               onReact={(messageId, emoji) => void react(messageId, emoji)}
               onReply={setReplyTo}
@@ -147,7 +181,11 @@ export function MessageThread({
         </div>
         {conversation ? (
           <div className="border-t border-border px-3 py-2">
-            <TeamNotes conversationId={conversation.id} operator={operator} />
+            <TeamNotes
+              conversationId={conversation.id}
+              operator={operator}
+              onCount={setNotesCount}
+            />
           </div>
         ) : null}
         <MessageComposer

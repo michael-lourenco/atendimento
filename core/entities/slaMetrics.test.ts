@@ -1,5 +1,5 @@
 import { Conversation } from './Conversation';
-import { unassignedOlderThanMinutes } from './slaMetrics';
+import { unassignedOlderThanMinutes, queueWaitLabel } from './slaMetrics';
 
 const row = (overrides: Partial<Conversation> = {}): Conversation => ({
   id: '1',
@@ -41,5 +41,27 @@ describe('unassignedOlderThanMinutes', () => {
         now
       )
     ).toBe(1);
+  });
+});
+
+describe('queueWaitLabel', () => {
+  const now = new Date('2026-08-19T12:10:00Z');
+
+  it('há X min abaixo do limiar', () => {
+    expect(queueWaitLabel(row({ createdAt: new Date('2026-08-19T12:07:00Z') }), now)).toBe(
+      'há 3 min'
+    );
+  });
+
+  it('sem dono no limiar', () => {
+    expect(queueWaitLabel(row({ createdAt: new Date('2026-08-19T12:00:00Z') }), now)).toBe(
+      'sem dono'
+    );
+  });
+
+  it('com dono some', () => {
+    expect(
+      queueWaitLabel(row({ assignedAgentId: 'a1', createdAt: new Date('2026-08-19T12:00:00Z') }), now)
+    ).toBeNull();
   });
 });

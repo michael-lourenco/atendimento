@@ -16,11 +16,15 @@ import { EmptyState } from '@/ui/components/empty-state';
 import { CatalogListSkeleton } from '@/ui/components/catalog-list-skeleton';
 import { CatalogSavedNotice } from '@/ui/components/catalog-saved-notice';
 import { useCatalogSavedFlash } from '@/ui/lib/use-catalog-saved-flash';
+import { catalogPersistErrorMessage } from '@/ui/lib/catalog-persist-error';
+import { catalogMatchesQuery } from '@/ui/lib/catalog-filter';
+import { CatalogSearchField } from '@/ui/components/catalog-search-field';
 
 export default function DepartmentsPage() {
   const [departments, setDepartments] = useState<Department[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
+  const [filter, setFilter] = useState('');
   const [editingDepartment, setEditingDepartment] = useState<Department | null>(null);
   const [formData, setFormData] = useState({
     name: '',
@@ -29,7 +33,7 @@ export default function DepartmentsPage() {
     isActive: true,
   });
   const { confirm, dialog } = useConfirm();
-  const { show, markSaved } = useCatalogSavedFlash();
+  const { show, kind, message, markSaved, flashError } = useCatalogSavedFlash();
 
   const loadDepartments = async (showLoading = false) => {
     if (showLoading) {
@@ -69,8 +73,8 @@ export default function DepartmentsPage() {
       setFormData({ name: '', description: '', color: '#3b82f6', isActive: true });
       markSaved();
       loadDepartments();
-    } catch {
-      /* ignore */
+    } catch (error) {
+      flashError(catalogPersistErrorMessage(error, 'departments'));
     }
   };
 
@@ -81,8 +85,8 @@ export default function DepartmentsPage() {
     try {
       await clientUseCases.departments().delete(id);
       loadDepartments();
-    } catch {
-      /* ignore */
+    } catch (error) {
+      flashError(catalogPersistErrorMessage(error, 'departments'));
     }
   };
 
@@ -96,6 +100,8 @@ export default function DepartmentsPage() {
     });
     setShowForm(true);
   };
+
+  const visible = departments.filter((item) => catalogMatchesQuery(item.name, filter));
 
   if (loading) {
     return (
@@ -111,7 +117,7 @@ export default function DepartmentsPage() {
   return (
     <div>
       {dialog}
-      <CatalogSavedNotice show={show} />
+      <CatalogSavedNotice show={show} kind={kind} message={message} />
       <div className="mb-6 flex justify-between items-center">
         <p className="text-muted-foreground">Organize conversas por setores</p>
         <Button onClick={() => setShowForm(true)}>
@@ -211,8 +217,10 @@ export default function DepartmentsPage() {
           </CardContent>
         </Card>
       ) : (
+      <div>
+      <CatalogSearchField value={filter} onChange={setFilter} />
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 mb-6">
-        {departments.map((dept) => (
+        {visible.map((dept) => (
           <Card key={dept.id} className="relative">
             <div
               className="absolute top-0 left-0 right-0 h-2 rounded-t-lg"
@@ -259,6 +267,7 @@ export default function DepartmentsPage() {
             </CardContent>
           </Card>
         ))}
+      </div>
       </div>
       )}
     </div>

@@ -11,16 +11,19 @@ import { formatInboxTime } from '@/core/entities/conversationInbox';
 type TeamNotesProps = {
   conversationId: string;
   operator: User | null;
+  onCount?: (count: number) => void;
 };
 
-export function TeamNotes({ conversationId, operator }: TeamNotesProps) {
+export function TeamNotes({ conversationId, operator, onCount }: TeamNotesProps) {
   const [notes, setNotes] = useState<InternalMessage[]>([]);
   const [draft, setDraft] = useState('');
   const [open, setOpen] = useState(false);
   const [saving, setSaving] = useState(false);
 
   const load = async () => {
-    setNotes(await clientUseCases.internalMessages().execute(conversationId));
+    const next = await clientUseCases.internalMessages().execute(conversationId);
+    setNotes(next);
+    onCount?.(next.length);
   };
 
   useEffect(() => {
@@ -47,7 +50,7 @@ export function TeamNotes({ conversationId, operator }: TeamNotesProps) {
       setDraft('');
       await load();
     } catch {
-      /* ignore */
+      /* keep notes */
     } finally {
       setSaving(false);
     }

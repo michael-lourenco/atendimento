@@ -38,11 +38,11 @@ export function writeComposerDraft(
 }
 
 export function browserComposerDraftStore(): ComposerDraftStore | null {
-  if (typeof sessionStorage === 'undefined') {
+  if (typeof localStorage === 'undefined') {
     return null;
   }
   try {
-    return sessionStorage;
+    return localStorage;
   } catch {
     return null;
   }

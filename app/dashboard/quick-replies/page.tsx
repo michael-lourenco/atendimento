@@ -59,7 +59,7 @@ export default function QuickRepliesPage() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const { confirm, dialog } = useConfirm();
-  const { show, markSaved } = useCatalogSavedFlash();
+  const { show, kind, message, markSaved, flashError } = useCatalogSavedFlash();
 
   const load = async (showLoading = false) => {
     if (showLoading) {
@@ -118,13 +118,14 @@ export default function QuickRepliesPage() {
       await load();
     } catch (cause) {
       setError(catalogPersistErrorMessage(cause, 'quick_replies'));
+      flashError(catalogPersistErrorMessage(cause, 'quick_replies'));
     }
   };
 
   return (
     <div>
       {dialog}
-      <CatalogSavedNotice show={show} />
+      <CatalogSavedNotice show={show} kind={kind} message={message} />
       {error ? (
         <p className="mb-4 rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive">
           {error}

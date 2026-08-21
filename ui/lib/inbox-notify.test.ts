@@ -1,5 +1,5 @@
 import { Conversation } from '@/core/entities/Conversation';
-import { shouldPlayInboxSound, inboxDocumentTitle, inboxUnreadTotal } from './inbox-notify';
+import { shouldPlayInboxSound, inboxDocumentTitle, inboxUnreadTotal, shouldBoostInboxChime } from './inbox-notify';
 
 const conv = (phone: string, unreadCount: number): Conversation => ({
   id: phone,
@@ -42,5 +42,16 @@ describe('inboxDocumentTitle', () => {
     expect(inboxDocumentTitle(0)).toBe('Conversas');
     expect(inboxDocumentTitle(3)).toBe('(3) Conversas');
     expect(inboxUnreadTotal([conv('1', 2), conv('2', 1)])).toBe(3);
+  });
+});
+
+describe('shouldBoostInboxChime', () => {
+  it('reforça no primeiro toque do dia', () => {
+    expect(shouldBoostInboxChime('2026-08-20', null)).toBe(true);
+    expect(shouldBoostInboxChime('2026-08-20', '2026-08-19')).toBe(true);
+  });
+
+  it('não reforça de novo no mesmo dia', () => {
+    expect(shouldBoostInboxChime('2026-08-20', '2026-08-20')).toBe(false);
   });
 });

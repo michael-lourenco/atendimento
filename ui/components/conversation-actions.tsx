@@ -15,6 +15,8 @@ import {
 import { TransferAgentControl } from '@/ui/components/transfer-agent-control';
 import { ConversationDepartmentControl } from '@/ui/components/conversation-department-control';
 import { ActionMenu, ActionMenuItem, ActionMenuLabel } from '@/ui/components/action-menu';
+import { Button } from '@/ui/components/button';
+import { catalogPersistErrorMessage } from '@/ui/lib/catalog-persist-error';
 
 type ConversationActionsProps = {
   conversation: Conversation | null;
@@ -26,6 +28,7 @@ type ConversationActionsProps = {
   onClosed?: (conversationId: string) => void;
   onSchedule: () => void;
   onResume: () => void;
+  onFlash?: (kind: 'success' | 'error', message: string) => void;
 };
 
 export function ConversationActions({
@@ -38,6 +41,7 @@ export function ConversationActions({
   onClosed,
   onSchedule,
   onResume,
+  onFlash,
 }: ConversationActionsProps) {
   const [confirmClose, setConfirmClose] = useState(false);
   const closed = conversation?.status === 'closed';
@@ -50,125 +54,141 @@ export function ConversationActions({
     if (!operator || !assignment || !threadId) {
       return;
     }
-    await clientUseCases.assignConversation().execute({
-      conversationId: threadId,
-      agentId: assignment.agentId,
-      agentName: assignment.agentName,
-      departmentId: assignment.departmentId,
-      departmentName: departmentNameOf(departments, assignment.departmentId) || undefined,
-    });
-    await clientUseCases.pauseContactFlow().execute(threadId);
-    onChanged();
+    try {
+      await clientUseCases.assignConversation().execute({
+        conversationId: threadId,
+        agentId: assignment.agentId,
+        agentName: assignment.agentName,
+        departmentId: assignment.departmentId,
+        departmentName: departmentNameOf(departments, assignment.departmentId) || undefined,
+      });
+      await clientUseCases.pauseContactFlow().execute(threadId);
+      onFlash?.('success', 'Conversa com você');
+      onChanged();
+    } catch (error) {
+      onFlash?.('error', catalogPersistErrorMessage(error, 'conversations'));
+    }
   };
 
   const close = async () => {
     if (!threadId) {
       return;
     }
-    await clientUseCases.closeConversation().execute(threadId);
-    setConfirmClose(false);
-    onClosed?.(threadId);
-    onChanged();
+    try {
+      await clientUseCases.closeConversation().execute(threadId);
+      setConfirmClose(false);
+      onClosed?.(threadId);
+      onChanged();
+    } catch (error) {
+      onFlash?.('error', catalogPersistErrorMessage(error, 'conversations'));
+    }
   };
 
   return (
-    <ActionMenu
-      variant="icon"
-      align="end"
-      ariaLabel="Ações da conversa"
-      label={<MoreVertical className="h-5 w-5" />}
-      onOpenChange={(open) => {
-        if (!open) {
-          setConfirmClose(false);
-        }
-      }}
-    >
-      {(dismiss) => (
-        <>
-          <ActionMenuItem
-            disabled={!operator || assignedToMe || closed || !threadId}
-            onClick={() => {
-              void assume().then(dismiss);
-            }}
-          >
-            {assignedToMe ? 'Com você' : 'Assumir'}
-          </ActionMenuItem>
-          <ActionMenuLabel>Transferir</ActionMenuLabel>
-          <TransferAgentControl
-            asItems
-            conversationId={threadId ?? ''}
-            agents={transferAgents}
-            currentAgentId={conversation?.assignedAgentId}
-            departments={departments}
-            disabled={closed}
-            onClose={dismiss}
-            onTransferred={onChanged}
-          />
-          <ActionMenuLabel>Setor</ActionMenuLabel>
-          <ConversationDepartmentControl
-            asItems
-            conversationId={threadId ?? ''}
-            departmentId={conversation?.departmentId}
-            departmentName={conversation?.departmentName}
-            departments={departments}
-            disabled={closed}
-            onClose={dismiss}
-            onChanged={onChanged}
-          />
-          <ActionMenuItem
-            disabled={!conversation}
-            onClick={() => {
-              onSchedule();
-              dismiss();
-            }}
-          >
-            Agendar
-          </ActionMenuItem>
-          {paused ? (
+    <div className="flex shrink-0 items-center gap-1">
+      <Button
+        type="button"
+        size="sm"
+        variant={assignedToMe ? 'secondary' : 'default'}
+        disabled={!operator || closed || !threadId || assignedToMe}
+        onClick={() => void assume()}
+      >
+        {assignedToMe ? 'Com você' : 'Assumir'}
+      </Button>
+      <ActionMenu
+        variant="icon"
+        align="end"
+        ariaLabel="Ações da conversa"
+        label={<MoreVertical className="h-5 w-5" />}
+        onOpenChange={(open) => {
+          if (!open) {
+            setConfirmClose(false);
+          }
+        }}
+      >
+        {(dismiss) => (
+          <>
+            <ActionMenuLabel>Transferir</ActionMenuLabel>
+            <TransferAgentControl
+              asItems
+              conversationId={threadId ?? ''}
+              agents={transferAgents}
+              currentAgentId={conversation?.assignedAgentId}
+              departments={departments}
+              disabled={closed}
+              onClose={dismiss}
+              onTransferred={(name) => {
+                onFlash?.('success', `Transferida para ${name}. Foi para Esperando.`);
+                onChanged();
+              }}
+              onError={(text) => onFlash?.('error', text)}
+            />
+            <ActionMenuLabel>Setor</ActionMenuLabel>
+            <ConversationDepartmentControl
+              asItems
+              conversationId={threadId ?? ''}
+              departmentId={conversation?.departmentId}
+              departmentName={conversation?.departmentName}
+              departments={departments}
+              disabled={closed}
+              onClose={dismiss}
+              onChanged={onChanged}
+            />
             <ActionMenuItem
+              disabled={!conversation}
               onClick={() => {
-                onResume();
+                onSchedule();
                 dismiss();
               }}
             >
-              Retomar chatbot
+              Agendar
             </ActionMenuItem>
-          ) : null}
-          {closed ? (
-            <ActionMenuItem disabled onClick={() => undefined}>
-              Finalizada
-            </ActionMenuItem>
-          ) : confirmClose ? (
-            <>
+            {paused ? (
+              <ActionMenuItem
+                onClick={() => {
+                  onResume();
+                  dismiss();
+                }}
+              >
+                Retomar chatbot
+              </ActionMenuItem>
+            ) : null}
+            {closed ? (
+              <ActionMenuItem disabled onClick={() => undefined}>
+                Finalizada
+              </ActionMenuItem>
+            ) : confirmClose ? (
+              <>
+                <ActionMenuItem
+                  destructive
+                  onClick={() => {
+                    void close().then(dismiss);
+                  }}
+                >
+                  Confirmar
+                </ActionMenuItem>
+                <ActionMenuItem
+                  onClick={() => {
+                    setConfirmClose(false);
+                  }}
+                >
+                  Cancelar
+                </ActionMenuItem>
+              </>
+            ) : (
               <ActionMenuItem
                 destructive
+                disabled={!threadId}
                 onClick={() => {
-                  void close().then(dismiss);
+                  setConfirmClose(true);
                 }}
               >
-                Confirmar
+                Finalizar
               </ActionMenuItem>
-              <ActionMenuItem
-                onClick={() => {
-                  setConfirmClose(false);
-                }}
-              >
-                Cancelar
-              </ActionMenuItem>
-            </>
-          ) : (
-            <ActionMenuItem
-              destructive
-              disabled={!threadId}
-              onClick={() => {
-                setConfirmClose(true);
-              }}
-            >
-              Finalizar
-            </ActionMenuItem>
-          )}
-        </>
-      )}
-    </ActionMenu>
+            )}
+          </>
+        )}
+      </ActionMenu>
+    </div>
   );
 }

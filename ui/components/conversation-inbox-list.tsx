@@ -14,6 +14,7 @@ import {
 } from '@/core/entities/conversationInbox';
 import { cn } from '@/ui/lib/utils';
 import { queueToneBar, queueToneOf } from '@/ui/lib/status-tone';
+import { queueWaitLabel } from '@/core/entities/slaMetrics';
 import { MessageStatusTicks } from '@/ui/components/message-status-ticks';
 import { ConversationAvatar } from '@/ui/components/conversation-avatar';
 
@@ -48,6 +49,7 @@ export function ConversationInboxList({
         const selected = selectedId === conversation.id;
         const color = departmentColorOf(departments, conversation.departmentId);
         const tone = queueToneOf(conversation);
+        const wait = queueWaitLabel(conversation);
         const lineName = numbers.find((item) => item.id === conversation.whatsappNumberId)?.name;
         return (
           <li key={conversation.id}>
@@ -99,11 +101,25 @@ export function ConversationInboxList({
                   ) : (
                     <span className="text-xs text-muted-foreground">{lineName || 'Sem setor'}</span>
                   )}
-                  {conversation.unreadCount > 0 ? (
-                    <span className="rounded-full bg-primary px-1.5 py-0.5 text-[10px] font-semibold text-primary-foreground">
-                      {conversation.unreadCount}
-                    </span>
-                  ) : null}
+                  <span className="flex shrink-0 items-center gap-1">
+                    {tone === 'incoming' && wait ? (
+                      <span
+                        className={cn(
+                          'rounded-full px-1.5 py-0.5 text-[10px] font-medium',
+                          wait === 'sem dono'
+                            ? 'bg-amber-500/20 text-amber-800 dark:text-amber-300'
+                            : 'bg-muted text-muted-foreground'
+                        )}
+                      >
+                        {wait}
+                      </span>
+                    ) : null}
+                    {conversation.unreadCount > 0 ? (
+                      <span className="rounded-full bg-primary px-1.5 py-0.5 text-[10px] font-semibold text-primary-foreground">
+                        {conversation.unreadCount}
+                      </span>
+                    ) : null}
+                  </span>
                 </div>
               </div>
             </button>

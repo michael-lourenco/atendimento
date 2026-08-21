@@ -57,14 +57,13 @@ Runner: Jest + `ts-jest` (`npm test`). Testing Library só quando houver teste d
 - `core/entities/businessHours.test.ts` — fora do expediente; dentro no fuso; sábado com horário próprio; legado `days`+`start`/`end`; turno 22h–6h atravessa meia-noite; overlay da linha
 - `core/entities/queuePlace.test.ts` — posição na fila do mesmo setor
 - `core/usecases/GetDashboardMetricsUseCase.test.ts` — totais; volume por setor; média até Assumir; 1ª resposta humana; fila sem dono ≥ 5 min
-- `core/entities/slaMetrics.test.ts` — fila sem dono ≥ 5 min
+- `core/entities/slaMetrics.test.ts` — fila sem dono ≥ 5 min; `queueWaitLabel` (há X min / sem dono)
 - `core/entities/quotedPreview.test.ts` — corta em 200 chars
 - `core/usecases/GetSchemaHealthUseCase.test.ts` — probe marca coluna ausente
 - `infra/whatsapp/mapEvolutionPresence.test.ts` — composing/paused; ignora grupo
 - `core/usecases/ApplyContactTypingUseCase.test.ts` — grava `contactTypingAt`; paused zera
 - `core/usecases/SendWhatsAppPresenceUseCase.test.ts` — no-op se o serviço não tiver `sendPresence`; falha do provedor não rejeita
 - `ui/lib/composer-presence.test.ts` — `paused` só depois de `composing`/`recording`
-- `ui/lib/messages-matching-query.test.ts` — busca na conversa filtra pelo texto
 - `infra/whatsapp/mapEvolutionIncoming.test.ts` — pushName; MESSAGES_UPSERT; ignora grupo/fromMe; tipo imagem
 - `infra/whatsapp/evolutionMedia.test.ts` — parse base64; hydrate grava no storage fake
 - `core/usecases/SendWhatsAppMessageUseCase.test.ts` — persiste outgoing; mídia vai ao storage fake; `quotedMessageId` quando o alvo existe
@@ -95,7 +94,7 @@ Runner: Jest + `ts-jest` (`npm test`). Testing Library só quando houver teste d
 - `core/entities/scheduleOutgoingLine.test.ts` — coluna Linha: `conversationId` fixa a thread; sem id, a mais recente do telefone
 - `core/entities/atendimentoInicialFlow.test.ts` — menu no `inicio`; saltos `goToFlow`; contratar e demo pausam (`handoff`); FAQ do cliente pergunta se ainda precisa de alguém; opção inválida → miss + menu sem saudação; **número** da opção no menu
 - `core/entities/inboxFilterHint.test.ts` — quantas a aba tem vs o filtro; busca casa conteúdo da thread; `nextIncomingQueueConversation` (próxima da Entrada; última; vazia)
-- `ui/lib/composer-draft.test.ts` — grava/lê/apaga rascunho por `conversationId`; vazio remove; teto de 8000 chars
+- `ui/lib/composer-draft.test.ts` — grava/lê/apaga rascunho por `conversationId`; vazio remove; teto de 8000 chars; store padrão é `localStorage`
 - `core/engine/previewFlowOpening.test.ts` — primeiro “oi” vira `FlowReply[]` (opções numeradas); salto `goToFlow`; mídia no passo Mensagem; `known` começa na pergunta (sem Olá); `previewFlowTurn` deixa `currentStepId` na pergunta; `simulateFlowIncoming` após `handoff` não responde; depois do `goToFlow` a opção seguinte continua no destino (não reabre o fluxo do editor)
 - `ui/lib/flow-sim-canvas.test.ts` — quadro da simulação troca para os passos do destino e fica somente leitura
 - `core/entities/assignmentFromOperator.test.ts` — e-mail liga agente; senão linked false
@@ -132,10 +131,14 @@ Runner: Jest + `ts-jest` (`npm test`). Testing Library só quando houver teste d
 - `infra/http/schemas.test.ts` — login; operators POST/PATCH (papel e/ou senha); Evolution `data` ou `key`; chat-whatsapp `{ event, data }`; Meta `object` + `entry`; `POST /api/messages/read` exige `conversationId`
 - `app/api/messages/send/parseSendRequest.test.ts` — JSON (Zod) e multipart; máx. 16 MB; JSON inválido → 400; `conversationId` opcional (JSON e multipart)
 - `core/entities/inboxFilterHint.test.ts` — filtro de linha esconde as outras; “Ver todas” via hiddenCount
-- `ui/lib/inbox-notify.test.ts` — `document.title` `(N) Conversas` com não lidas
+- `ui/lib/inbox-notify.test.ts` — `document.title` `(N) Conversas` com não lidas; primeiro chime do dia
+- `ui/lib/messages-matching-query.test.ts` — busca na conversa filtra pelo texto; `highlightQueryMatches` marca o trecho
+- `core/entities/reportCsv.test.ts` — Baixar gera CSV com colunas em português; `reportDownloadFilename` usa tipo + data
+- `ui/lib/catalog-filter.test.ts` — `catalogMatchesQuery` casa nome
+- `ui/lib/dashboard-setup.test.ts` — checklist omite passos já feitos
+- `ui/lib/flow-canvas-history.test.ts` — desfazer até 10 estados
 - `ui/lib/whatsapp-chip.test.ts` — uma linha = conectado/desconectado; várias = N de M (vermelho se alguma caiu)
 - `ui/lib/ttl-list-cache.test.ts` — cache de lista: coalescing + invalidate
-- `core/entities/reportCsv.test.ts` — Baixar gera CSV com colunas em português
 - `core/usecases/SaveFlowStepMediaUseCase.test.ts` — grava imagem ou áudio; recusa vídeo/documento e > 16 MB; fluxo/passo inexistente ou tipo ≠ `message` → null; `media: null` limpa campos e remove do storage
 - `core/usecases/GetFlowStepMediaUseCase.test.ts` — lê o path; ausente → null
 - `core/usecases/loadFlowStepMedia.test.ts` — `http(s)` continua; path `flows/{flowId}/{stepId}` e href da API leem `IMediaStorage`; outro valor → null

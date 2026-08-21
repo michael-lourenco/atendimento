@@ -136,7 +136,7 @@ function FlowCanvasBoardInner({
     }
     fitted.current = fitSeed;
     const frame = requestAnimationFrame(() => {
-      void fitView({ padding: 0.2, duration: 200 });
+      void fitView({ padding: 0.2, duration: 320 });
     });
     return () => cancelAnimationFrame(frame);
   }, [fitSeed, fitView, steps.length]);
@@ -149,7 +149,7 @@ function FlowCanvasBoardInner({
       void fitView({
         nodes: [{ id: focusNodeId }],
         padding: 0.4,
-        duration: 220,
+        duration: 320,
         maxZoom: 1.15,
       });
     });

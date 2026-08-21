@@ -65,7 +65,7 @@ Isolamento entre empresas = cópia da stack (`00-vision.md`, `08-supabase.md`).
 - Deslizar para cima cancela o PTT
 - Atalho `/` e `Ctrl`/`⌘`+`/` no compositor para respostas rápidas
 - Respostas rápidas opcionais por setor
-- Rascunho de texto por conversa (`sessionStorage`)
+- Rascunho de texto por conversa (`localStorage`)
 - Finalizar abre a próxima da Entrada (setor/minhas/linha)
 - Clique na imagem da bolha amplia (overlay)
 - Comportamento do bot: delay/digitando; conhecido = thread desta linha + contato já no catálogo; idle só na pergunta; reabertura → menu conhecido
@@ -83,6 +83,7 @@ Isolamento entre empresas = cópia da stack (`00-vision.md`, `08-supabase.md`).
 - Simulador: depois de `goToFlow` o turno seguinte fica no destino; o quadro acompanha o fluxo da sessão e destaca o passo atual
 - Presence do compositor: não dispara `paused` ao abrir/sair com campo vazio; `POST /api/messages/presence` devolve 204 se a Evolution falhar
 - Logs: só `logApiError` na borda HTTP; sem `console` no painel nem status/QR/mídia nos provedores
+- UX: aviso Salvo/erro nos catálogos; Assumir visível; idade da fila; checklist de setup; Histórico no menu; rascunho em `localStorage`; simulador com Reabertura; desfazer 10 no quadro
 
 ## Não fazer
 

@@ -23,7 +23,9 @@ import { cn } from '@/ui/lib/utils';
 import { CatalogListSkeleton } from '@/ui/components/catalog-list-skeleton';
 import { CatalogSavedNotice } from '@/ui/components/catalog-saved-notice';
 import { useCatalogSavedFlash } from '@/ui/lib/use-catalog-saved-flash';
-
+import { runCatalogSave } from '@/ui/lib/run-catalog-save';
+import { catalogMatchesQuery } from '@/ui/lib/catalog-filter';
+import { CatalogSearchField } from '@/ui/components/catalog-search-field';
 const catalog = clientUseCases.whatsAppNumbers;
 
 export default function NumbersPage() {
@@ -38,8 +40,9 @@ export default function NumbersPage() {
     instanceName: '',
   });
   const { confirm, dialog } = useConfirm();
-  const { show: showSaved, markSaved } = useCatalogSavedFlash();
+  const { show: showSaved, kind, message, markSaved, flashError } = useCatalogSavedFlash();
   const [loading, setLoading] = useState(true);
+  const [filter, setFilter] = useState('');
   const { connected, pushname, wid, platform } = useWhatsAppStatus();
   const numbers = mergeWhatsAppNumbersWithLive(saved, {
     connected: connected === true,
@@ -97,31 +100,36 @@ export default function NumbersPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const instanceName = editing?.instanceName || slugWhatsAppInstanceName(form.name);
-    await catalog().save({
-      id: editing?.id || `number-${Date.now()}`,
-      name: form.name,
-      number: form.number,
-      provider: form.provider,
-      status: form.status,
-      instanceName,
-      behavior: editing?.behavior,
-      createdAt: editing?.createdAt || new Date(),
-    });
-    await fetch('/api/chat-whatsapp/instance', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      credentials: 'include',
-      body: JSON.stringify({ instanceName }),
-    });
-    reset();
-    markSaved();
-    load();
+    await runCatalogSave(
+      async () => {
+        await catalog().save({
+          id: editing?.id || `number-${Date.now()}`,
+          name: form.name,
+          number: form.number,
+          provider: form.provider,
+          status: form.status,
+          instanceName,
+          behavior: editing?.behavior,
+          createdAt: editing?.createdAt || new Date(),
+        });
+        await fetch('/api/chat-whatsapp/instance', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({ instanceName }),
+        });
+        reset();
+        await load();
+      },
+      { markSaved, flashError },
+      'whatsapp_numbers'
+    );
   };
 
   return (
     <div>
       {dialog}
-      <CatalogSavedNotice show={showSaved} />
+      <CatalogSavedNotice show={showSaved} kind={kind} message={message} />
       <div className="mb-6 flex justify-between items-center">
         <p className="text-muted-foreground">Linhas do WhatsApp da empresa</p>
         <Button onClick={() => setShowForm(true)}>
@@ -200,6 +208,8 @@ export default function NumbersPage() {
               </Link>
             </div>
           ) : (
+            <>
+              <CatalogSearchField value={filter} onChange={setFilter} />
             <Table>
               <TableHeader>
                 <TableRow>
@@ -212,7 +222,9 @@ export default function NumbersPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {numbers.map((num) => (
+                {numbers
+                  .filter((num) => catalogMatchesQuery(num.name, filter) || catalogMatchesQuery(num.number, filter))
+                  .map((num) => (
                   <TableRow key={num.id}>
                     <TableCell className="font-medium">{num.name}</TableCell>
                     <TableCell>{num.number}</TableCell>
@@ -279,6 +291,7 @@ export default function NumbersPage() {
                 ))}
               </TableBody>
             </Table>
+            </>
           )}
         </CardContent>
       </Card>

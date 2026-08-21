@@ -16,6 +16,8 @@ describe('sidebarGroupsForRole', () => {
     const hrefs = items.map((item) => item.href);
     expect(hrefs).toContain('/dashboard/agents');
     expect(hrefs).toContain('/dashboard/whatsapp');
+    expect(hrefs).toContain('/dashboard/messages');
+    expect(items.find((item) => item.href === '/dashboard/messages')?.title).toBe('Histórico');
     expect(hrefs).toContain('/dashboard/chatbots');
     expect(items.find((item) => item.href === '/dashboard/chatbots')?.title).toBe('Chatbot');
   });

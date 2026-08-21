@@ -12,6 +12,8 @@ import { Badge } from '@/ui/components/badge';
 import { EmptyState } from '@/ui/components/empty-state';
 import { CatalogListSkeleton } from '@/ui/components/catalog-list-skeleton';
 import { Search } from 'lucide-react';
+import { useCatalogSearchShortcut } from '@/ui/lib/use-catalog-search-shortcut';
+import { useRef } from 'react';
 
 type AgentsTableProps = {
   loading: boolean;
@@ -44,6 +46,8 @@ export function AgentsTable({
   onDeactivate,
   onDeleteAgent,
 }: AgentsTableProps) {
+  const searchRef = useRef<HTMLInputElement>(null);
+  useCatalogSearchShortcut(searchRef);
   return (
     <Card>
       <CardHeader>
@@ -55,7 +59,9 @@ export function AgentsTable({
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
+              ref={searchRef}
               placeholder="Buscar atendentes..."
+              aria-label="Filtrar atendentes"
               className="pl-10 w-64 bg-background"
               value={filter}
               onChange={(e) => onFilter(e.target.value)}

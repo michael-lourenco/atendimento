@@ -15,7 +15,8 @@ type TransferAgentControlProps = {
   disabled?: boolean;
   asItems?: boolean;
   onClose?: () => void;
-  onTransferred?: () => void;
+  onTransferred?: (agentName: string) => void;
+  onError?: (message: string) => void;
 };
 
 export function TransferAgentControl({
@@ -27,6 +28,7 @@ export function TransferAgentControl({
   asItems,
   onClose,
   onTransferred,
+  onError,
 }: TransferAgentControlProps) {
   const [busy, setBusy] = useState(false);
   const options = agents.filter((agent) => agent.id !== currentAgentId);
@@ -44,9 +46,9 @@ export function TransferAgentControl({
         departmentId: agent.departmentId,
         departmentName: departmentNameOf(departments, agent.departmentId) || undefined,
       });
-      onTransferred?.();
+      onTransferred?.(agent.name);
     } catch {
-      /* ignore */
+      onError?.('Não foi possível transferir.');
     } finally {
       setBusy(false);
     }

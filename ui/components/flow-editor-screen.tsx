@@ -36,7 +36,7 @@ function snapshot(value: {
 export function FlowEditorScreen({ flowId, fromFlowId }: FlowEditorScreenProps) {
   const router = useRouter();
   const { confirm, dialog } = useConfirm();
-  const { show, markSaved } = useCatalogSavedFlash();
+  const { show, kind, message, markSaved, flashError } = useCatalogSavedFlash();
   const [loading, setLoading] = useState(true);
   const [flows, setFlows] = useState<Flow[]>([]);
   const [departments, setDepartments] = useState<Department[]>([]);
@@ -149,9 +149,10 @@ export function FlowEditorScreen({ flowId, fromFlowId }: FlowEditorScreenProps) 
       return flow;
     } catch (saveError) {
       setError(catalogPersistErrorMessage(saveError, 'flows'));
+      flashError(catalogPersistErrorMessage(saveError, 'flows'));
       return null;
     }
-  }, [description, editing, flowId, isActive, keywords, markSaved, name, router, steps]);
+  }, [description, editing, flowId, isActive, keywords, markSaved, flashError, name, router, steps]);
 
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
@@ -198,7 +199,7 @@ export function FlowEditorScreen({ flowId, fromFlowId }: FlowEditorScreenProps) 
   return (
     <div className="space-y-4">
       {dialog}
-      <CatalogSavedNotice show={show} />
+      <CatalogSavedNotice show={show} kind={kind} message={message} />
       {error ? (
         <p className="rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive">
           {error}

@@ -46,7 +46,7 @@ export default function ChatbotsPage() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [savedSnap, setSavedSnap] = useState('');
   const { confirm, dialog } = useConfirm();
-  const { show, markSaved } = useCatalogSavedFlash();
+  const { show, kind, message, markSaved, flashError } = useCatalogSavedFlash();
   const extras = extraChatbots(bots);
   const line = numbers.find((item) => item.id === scope);
   const currentDraft = useMemo(
@@ -124,9 +124,12 @@ export default function ChatbotsPage() {
       markSaved();
       await load();
     } catch (cause) {
-      setError(
-        catalogPersistErrorMessage(cause, scope === 'company' ? 'chatbots' : 'whatsapp_numbers')
+      const text = catalogPersistErrorMessage(
+        cause,
+        scope === 'company' ? 'chatbots' : 'whatsapp_numbers'
       );
+      setError(text);
+      flashError(text);
     }
   };
 
@@ -156,17 +159,19 @@ export default function ChatbotsPage() {
   return (
     <div>
       {dialog}
-      <CatalogSavedNotice show={show} />
+      <CatalogSavedNotice show={show} kind={kind} message={message} />
       {error ? (
         <p className="mb-4 rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive">
           {error}
         </p>
       ) : null}
       <p className="mb-6 text-muted-foreground">
-        Só o bot <strong>ativo</strong> vale no WhatsApp.{' '}
+        O roteiro mora em{' '}
         <Link href="/dashboard/flows" className="underline">
-          Abrir Fluxos
+          Fluxos
         </Link>
+        . Aqui você só diz qual é o de entrada, o expediente e o ritmo.{' '}
+        Só o bot <strong>ativo</strong> vale no WhatsApp.
       </p>
 
       <Card className="mb-6">

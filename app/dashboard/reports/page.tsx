@@ -3,16 +3,20 @@
 import { clientUseCases } from '@/infra/adapters/clientUseCases';
 import { useEffect, useState } from 'react';
 import { DashboardMetrics, Report } from '@/core/entities/Report';
-import { reportToCsv } from '@/core/entities/reportCsv';
+import { reportToCsv, reportDownloadFilename, reportHistoryPeriod } from '@/core/entities/reportCsv';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/ui/components/card';
 import { Button } from '@/ui/components/button';
 import { Download, Calendar } from 'lucide-react';
 import { CatalogListSkeleton } from '@/ui/components/catalog-list-skeleton';
+import { CatalogSavedNotice } from '@/ui/components/catalog-saved-notice';
+import { useCatalogSavedFlash } from '@/ui/lib/use-catalog-saved-flash';
+import { runCatalogSave } from '@/ui/lib/run-catalog-save';
 
 export default function ReportsPage() {
   const [metrics, setMetrics] = useState<DashboardMetrics | null>(null);
   const [reports, setReports] = useState<Report[]>([]);
   const [loading, setLoading] = useState(true);
+  const { show, kind, message, markSaved, flashError } = useCatalogSavedFlash();
 
   const load = async (showLoading = false) => {
     if (showLoading) {
@@ -35,8 +39,14 @@ export default function ReportsPage() {
   }, []);
 
   const handleGenerate = async () => {
-    await clientUseCases.generateReport().execute();
-    load();
+    await runCatalogSave(
+      async () => {
+        await clientUseCases.generateReport().execute();
+        await load();
+      },
+      { markSaved, flashError },
+      'reports'
+    );
   };
 
   const handleDownload = (report: Report) => {
@@ -44,7 +54,7 @@ export default function ReportsPage() {
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.download = `${report.id}.csv`;
+    link.download = reportDownloadFilename(report);
     link.click();
     URL.revokeObjectURL(url);
   };
@@ -57,8 +67,11 @@ export default function ReportsPage() {
 
   return (
     <div>
+      <CatalogSavedNotice show={show} kind={kind} message={message} />
       <div className="mb-6">
-        <p className="text-muted-foreground">Volume e análises a partir do histórico atual</p>
+        <p className="text-muted-foreground">
+          Recorte: <strong>{reportHistoryPeriod()}</strong>. Não há filtro de datas nesta tela.
+        </p>
       </div>
 
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 mb-6">
@@ -154,11 +167,13 @@ export default function ReportsPage() {
           <div className="flex justify-between items-center">
             <div>
               <CardTitle>Relatórios Disponíveis</CardTitle>
-              <CardDescription>Visualize e baixe relatórios gerados</CardDescription>
+              <CardDescription>
+                Snapshot dos números acima. Não recorta por mês.
+              </CardDescription>
             </div>
             <Button onClick={handleGenerate}>
               <Calendar className="h-4 w-4 mr-2" />
-              Gerar Relatório
+              Gerar snapshot do período atual
             </Button>
           </div>
         </CardHeader>

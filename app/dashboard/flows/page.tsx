@@ -24,7 +24,7 @@ export default function FlowsPage() {
   const [entryFlowIds, setEntryFlowIds] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const { confirm, dialog } = useConfirm();
-  const { show, markSaved } = useCatalogSavedFlash();
+  const { show, kind, message, markSaved, flashError } = useCatalogSavedFlash();
   const [error, setError] = useState<string | null>(null);
 
   const loadFlows = async (showLoading = false) => {
@@ -75,6 +75,7 @@ export default function FlowsPage() {
       loadFlows();
     } catch (dupError) {
       setError(catalogPersistErrorMessage(dupError, 'flows'));
+      flashError(catalogPersistErrorMessage(dupError, 'flows'));
     }
   };
 
@@ -92,7 +93,7 @@ export default function FlowsPage() {
   return (
     <div>
       {dialog}
-      <CatalogSavedNotice show={show} />
+      <CatalogSavedNotice show={show} kind={kind} message={message} />
       {error ? (
         <p className="mb-4 rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive">
           {error}

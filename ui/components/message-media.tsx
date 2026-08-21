@@ -3,21 +3,23 @@
 import { useState } from 'react';
 import { isPlayableMediaType } from '@/core/services/IMediaStorage';
 import { ImageLightbox } from '@/ui/components/image-lightbox';
+import { HighlightedText } from '@/ui/components/highlighted-text';
 
 type MessageMediaProps = {
   id: string;
   type: string;
   content: string;
+  highlightQuery?: string;
 };
 
-export function MessageMedia({ id, type, content }: MessageMediaProps) {
+export function MessageMedia({ id, type, content, highlightQuery = '' }: MessageMediaProps) {
   const [failed, setFailed] = useState(false);
   const [open, setOpen] = useState(false);
   const src = `/api/messages/${encodeURIComponent(id)}/media`;
   const alt = content || 'Imagem';
 
   if (!isPlayableMediaType(type) || failed) {
-    return <span className="whitespace-pre-wrap">{content || '-'}</span>;
+    return <HighlightedText text={content || '-'} query={highlightQuery} />;
   }
 
   if (type === 'image') {

@@ -10,9 +10,21 @@ type FlowKeywordChipsProps = {
   value: string[];
   onChange: (next: string[]) => void;
   onShortcutSave?: (keywords: string[]) => void;
+  label?: string;
+  inputId?: string;
+  placeholder?: string;
+  hint?: string;
 };
 
-export function FlowKeywordChips({ value, onChange, onShortcutSave }: FlowKeywordChipsProps) {
+export function FlowKeywordChips({
+  value,
+  onChange,
+  onShortcutSave,
+  label = 'Palavras-chave',
+  inputId = 'flow-keywords',
+  placeholder,
+  hint = 'Enter ou vírgula adiciona. Se o cliente enviar isso, entra neste fluxo (precisa estar Ativo).',
+}: FlowKeywordChipsProps) {
   const [draft, setDraft] = useState('');
 
   const commit = (raw: string) => {
@@ -53,7 +65,7 @@ export function FlowKeywordChips({ value, onChange, onShortcutSave }: FlowKeywor
 
   return (
     <div className="space-y-2">
-      <Label htmlFor="flow-keywords">Palavras-chave</Label>
+      <Label htmlFor={inputId}>{label}</Label>
       <div className="flex flex-wrap items-center gap-2 rounded-md border border-input bg-background px-2 py-2">
         {value.map((keyword, index) => (
           <Badge key={`${keyword}-${index}`} variant="secondary" className="gap-1 pr-1">
@@ -69,9 +81,9 @@ export function FlowKeywordChips({ value, onChange, onShortcutSave }: FlowKeywor
           </Badge>
         ))}
         <Input
-          id="flow-keywords"
+          id={inputId}
           value={draft}
-          placeholder={value.length === 0 ? 'preço' : 'Outra palavra'}
+          placeholder={placeholder ?? (value.length === 0 ? 'preço' : 'Outra palavra')}
           className="h-8 min-w-[8rem] flex-1 border-0 bg-transparent px-1 shadow-none focus-visible:ring-0"
           onChange={(event) => setDraft(event.target.value)}
           onKeyDown={onKeyDown}
@@ -83,9 +95,7 @@ export function FlowKeywordChips({ value, onChange, onShortcutSave }: FlowKeywor
           }}
         />
       </div>
-      <p className="text-xs text-muted-foreground">
-        Enter ou vírgula adiciona. Se o cliente enviar isso, entra neste fluxo (precisa estar Ativo).
-      </p>
+      <p className="text-xs text-muted-foreground">{hint}</p>
     </div>
   );
 }

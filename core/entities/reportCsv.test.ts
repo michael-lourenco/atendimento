@@ -1,5 +1,5 @@
 import { Report } from './Report';
-import { reportToCsv } from './reportCsv';
+import { reportDownloadFilename, reportToCsv } from './reportCsv';
 
 describe('reportToCsv', () => {
   it('gera colunas em português', () => {
@@ -15,5 +15,16 @@ describe('reportToCsv', () => {
     expect(csv).toContain('"Agosto ""A"""');
     expect(csv).toContain('"Conversas"');
     expect(csv).toContain('"2026-08"');
+  });
+
+  it('nome do arquivo usa tipo e data', () => {
+    const report: Report = {
+      id: 'report-1',
+      title: 'X',
+      type: 'conversations',
+      period: 'Atual',
+      createdAt: new Date('2026-08-19T12:00:00.000Z'),
+    };
+    expect(reportDownloadFilename(report)).toBe('relatorio-conversations-2026-08-19.csv');
   });
 });

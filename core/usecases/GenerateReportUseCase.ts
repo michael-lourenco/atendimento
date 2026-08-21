@@ -1,5 +1,6 @@
 import { Report } from '../entities/Report';
 import { IReportRepository } from '../repositories/IReportRepository';
+import { reportHistoryPeriod } from '../entities/reportCsv';
 
 export class GenerateReportUseCase {
   constructor(private reports: IReportRepository) {}
@@ -9,7 +10,7 @@ export class GenerateReportUseCase {
       id: `report-${now.getTime()}`,
       title: `Relatório de Conversas — ${now.toLocaleDateString('pt-BR')}`,
       type: 'conversations',
-      period: 'Atual',
+      period: reportHistoryPeriod(now),
       createdAt: now,
     };
 

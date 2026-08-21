@@ -79,3 +79,34 @@ export function unassignedOlderThanMinutes(
     return new Date(item.createdAt).getTime() <= cutoff;
   }).length;
 }
+
+export function queueWaitMinutes(
+  conversation: { assignedAgentId?: string; status: string; createdAt: Date },
+  now = new Date()
+): number | null {
+  if (conversation.assignedAgentId || conversation.status === 'closed') {
+    return null;
+  }
+  return Math.max(
+    0,
+    Math.floor((now.getTime() - new Date(conversation.createdAt).getTime()) / 60000)
+  );
+}
+
+export function queueWaitLabel(
+  conversation: { assignedAgentId?: string; status: string; createdAt: Date },
+  now = new Date(),
+  thresholdMinutes = UNASSIGNED_QUEUE_MINUTES
+): string | null {
+  const minutes = queueWaitMinutes(conversation, now);
+  if (minutes == null) {
+    return null;
+  }
+  if (minutes >= thresholdMinutes) {
+    return 'sem dono';
+  }
+  if (minutes <= 0) {
+    return 'há pouco';
+  }
+  return `há ${minutes} min`;
+}

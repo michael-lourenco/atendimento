@@ -14,6 +14,10 @@ import { useConfirm } from '@/ui/components/confirm-dialog';
 import { CatalogListSkeleton } from '@/ui/components/catalog-list-skeleton';
 import { CatalogSavedNotice } from '@/ui/components/catalog-saved-notice';
 import { useCatalogSavedFlash } from '@/ui/lib/use-catalog-saved-flash';
+import { runCatalogSave } from '@/ui/lib/run-catalog-save';
+import { catalogMatchesQuery } from '@/ui/lib/catalog-filter';
+import { CatalogSearchField } from '@/ui/components/catalog-search-field';
+import { EmptyState } from '@/ui/components/empty-state';
 
 const catalog = clientUseCases.tags;
 
@@ -23,8 +27,9 @@ export default function TagsPage() {
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState<Tag | null>(null);
   const [form, setForm] = useState({ name: '', color: '#3b82f6' });
+  const [filter, setFilter] = useState('');
   const { confirm, dialog } = useConfirm();
-  const { show, markSaved } = useCatalogSavedFlash();
+  const { show, kind, message, markSaved, flashError } = useCatalogSavedFlash();
 
   const load = async (showLoading = false) => {
     if (showLoading) {
@@ -49,22 +54,29 @@ export default function TagsPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    await catalog().save({
-      id: editing?.id || `tag-${Date.now()}`,
-      name: form.name,
-      color: form.color,
-      contactsCount: editing?.contactsCount || 0,
-      createdAt: editing?.createdAt || new Date(),
-    });
-    reset();
-    markSaved();
-    load();
+    await runCatalogSave(
+      async () => {
+        await catalog().save({
+          id: editing?.id || `tag-${Date.now()}`,
+          name: form.name,
+          color: form.color,
+          contactsCount: editing?.contactsCount || 0,
+          createdAt: editing?.createdAt || new Date(),
+        });
+        reset();
+        await load();
+      },
+      { markSaved, flashError },
+      'tags'
+    );
   };
+
+  const visible = tags.filter((tag) => catalogMatchesQuery(tag.name, filter));
 
   return (
     <div>
       {dialog}
-      <CatalogSavedNotice show={show} />
+      <CatalogSavedNotice show={show} kind={kind} message={message} />
       <div className="mb-6 flex justify-between items-center">
         <p className="text-muted-foreground">Organize contatos com etiquetas</p>
         <Button onClick={() => setShowForm(true)}>
@@ -127,8 +139,13 @@ export default function TagsPage() {
           {loading ? (
             <CatalogListSkeleton />
           ) : tags.length === 0 ? (
-            <div className="py-8 text-center text-muted-foreground">Nenhuma etiqueta encontrada</div>
+            <EmptyState title="Nenhuma etiqueta" description="Crie a primeira para organizar contatos." />
           ) : (
+            <>
+              <CatalogSearchField value={filter} onChange={setFilter} />
+              {visible.length === 0 ? (
+                <p className="py-8 text-center text-sm text-muted-foreground">Nenhuma etiqueta com esse filtro</p>
+              ) : (
             <Table>
               <TableHeader>
                 <TableRow>
@@ -140,7 +157,7 @@ export default function TagsPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {tags.map((tag) => (
+                {visible.map((tag) => (
                   <TableRow key={tag.id}>
                     <TableCell className="font-medium">{tag.name}</TableCell>
                     <TableCell>
@@ -183,6 +200,8 @@ export default function TagsPage() {
                 ))}
               </TableBody>
             </Table>
+              )}
+            </>
           )}
         </CardContent>
       </Card>

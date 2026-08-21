@@ -14,6 +14,7 @@ type ConversationThreadHeaderProps = {
   photoUrl?: string;
   typing?: boolean;
   queueTone: ReturnType<typeof queueToneOf> | null;
+  notesCount?: number;
   onBack?: () => void;
   children?: ReactNode;
 };
@@ -25,6 +26,7 @@ export function ConversationThreadHeader({
   photoUrl,
   typing,
   queueTone,
+  notesCount = 0,
   onBack,
   children,
 }: ConversationThreadHeaderProps) {
@@ -54,6 +56,9 @@ export function ConversationThreadHeader({
             ) : (
               <span className="truncate">{subtitle}</span>
             )}
+            {notesCount > 0 ? (
+              <Badge variant="info">há notas</Badge>
+            ) : null}
             {queueTone ? (
               <Badge
                 variant={

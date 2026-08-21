@@ -1,7 +1,7 @@
 'use client';
 
 import { clientUseCases } from '@/infra/adapters/clientUseCases';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Contact } from '@/core/entities/Contact';
 import { Conversation } from '@/core/entities/Conversation';
 import { WhatsAppNumber } from '@/core/entities/WhatsAppNumber';
@@ -18,7 +18,9 @@ import { CatalogListSkeleton } from '@/ui/components/catalog-list-skeleton';
 import { CatalogSavedNotice } from '@/ui/components/catalog-saved-notice';
 import { ContactTalkLink } from '@/ui/components/contact-talk-link';
 import { useCatalogSavedFlash } from '@/ui/lib/use-catalog-saved-flash';
-import { listWhatsAppNumbersCached } from '@/ui/lib/whatsapp-number-cache';
+import { FlowKeywordChips } from '@/ui/components/flow-keyword-chips';
+import { runCatalogSave } from '@/ui/lib/run-catalog-save';
+import { useCatalogSearchShortcut } from '@/ui/lib/use-catalog-search-shortcut';
 
 const catalog = clientUseCases.contacts;
 
@@ -30,9 +32,11 @@ export default function ContactsPage() {
   const [filter, setFilter] = useState('');
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState<Contact | null>(null);
-  const [form, setForm] = useState({ name: '', phone: '', email: '', tags: '' });
+  const [form, setForm] = useState({ name: '', phone: '', email: '', tags: [] as string[] });
   const { confirm, dialog } = useConfirm();
-  const { show, markSaved } = useCatalogSavedFlash();
+  const { show, kind, message, markSaved, flashError } = useCatalogSavedFlash();
+  const searchRef = useRef<HTMLInputElement>(null);
+  useCatalogSearchShortcut(searchRef);
 
   const load = async (showLoading = false) => {
     if (showLoading) {
@@ -59,28 +63,29 @@ export default function ContactsPage() {
   const reset = () => {
     setShowForm(false);
     setEditing(null);
-    setForm({ name: '', phone: '', email: '', tags: '' });
+    setForm({ name: '', phone: '', email: '', tags: [] });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const now = new Date();
-    const tags = form.tags
-      .split(',')
-      .map((tag) => tag.trim())
-      .filter(Boolean);
-    await catalog().save({
-      id: editing?.id || `contact-${Date.now()}`,
-      name: form.name,
-      phone: form.phone,
-      email: form.email || undefined,
-      tags,
-      createdAt: editing?.createdAt || now,
-      updatedAt: now,
-    });
-    reset();
-    markSaved();
-    load();
+    await runCatalogSave(
+      async () => {
+        await catalog().save({
+          id: editing?.id || `contact-${Date.now()}`,
+          name: form.name,
+          phone: form.phone,
+          email: form.email || undefined,
+          tags: form.tags,
+          createdAt: editing?.createdAt || now,
+          updatedAt: now,
+        });
+        reset();
+        await load();
+      },
+      { markSaved, flashError },
+      'contacts'
+    );
   };
 
   const visible = contacts.filter((contact) => {
@@ -95,7 +100,7 @@ export default function ContactsPage() {
   return (
     <div>
       {dialog}
-      <CatalogSavedNotice show={show} />
+      <CatalogSavedNotice show={show} kind={kind} message={message} />
       <div className="mb-6 flex justify-between items-center">
         <p className="text-muted-foreground">Contatos do WhatsApp</p>
         <Button onClick={() => setShowForm(true)}>
@@ -142,12 +147,13 @@ export default function ContactsPage() {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="tags">Etiquetas (separadas por vírgula)</Label>
-                <Input
-                  id="tags"
+                <FlowKeywordChips
                   value={form.tags}
-                  onChange={(e) => setForm({ ...form, tags: e.target.value })}
-                  className="bg-background"
+                  onChange={(tags) => setForm({ ...form, tags })}
+                  label="Etiquetas"
+                  inputId="contact-tags"
+                  placeholder="vip"
+                  hint="Enter ou vírgula adiciona. Só no cadastro deste contato."
                 />
               </div>
               <div className="flex gap-2">
@@ -171,7 +177,9 @@ export default function ContactsPage() {
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
+                ref={searchRef}
                 placeholder="Buscar contatos..."
+                aria-label="Filtrar contatos"
                 className="pl-10 w-64 bg-background"
                 value={filter}
                 onChange={(e) => setFilter(e.target.value)}
@@ -235,7 +243,7 @@ export default function ContactsPage() {
                               name: contact.name,
                               phone: contact.phone,
                               email: contact.email || '',
-                              tags: contact.tags.join(', '),
+                              tags: contact.tags,
                             });
                             setShowForm(true);
                           }}

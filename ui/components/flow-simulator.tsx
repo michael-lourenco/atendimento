@@ -28,6 +28,12 @@ type FlowSimulatorProps = {
   onCursor?: (cursor: FlowSimCursor) => void;
 };
 
+type SimAudience = FlowAudience | 'reopen';
+
+function engineAudienceOf(audience: SimAudience): FlowAudience {
+  return audience === 'reopen' ? 'known' : audience;
+}
+
 function outgoingBubbles(replies: FlowReply[]): Bubble[] {
   return replies.map((reply) => ({
     direction: 'out' as const,
@@ -56,9 +62,9 @@ export function FlowSimulator({
   onCursor,
 }: FlowSimulatorProps) {
   const now = useMemo(() => new Date(0), []);
-  const [audience, setAudience] = useState<FlowAudience>('new');
+  const [audience, setAudience] = useState<SimAudience>('new');
   const start = useMemo(
-    () => previewFlowTurn(steps, now, flows, audience, flowId),
+    () => previewFlowTurn(steps, now, flows, engineAudienceOf(audience), flowId),
     [steps, flows, flowId, now, audience]
   );
   const [session, setSession] = useState<FlowSession | null>(null);
@@ -119,13 +125,15 @@ export function FlowSimulator({
           id="sim-audience"
           className="flex h-9 w-full rounded-md border border-input bg-background px-2 text-sm"
           value={audience}
-          onChange={(event) => restart(event.target.value as FlowAudience)}
+          onChange={(event) => restart(event.target.value as SimAudience)}
         >
           <option value="new">Novo</option>
           <option value="known">Conhecido</option>
+          <option value="reopen">Reabertura</option>
         </select>
         <p className="text-xs text-muted-foreground">
-          Novo recebe a saudação. Conhecido começa no menu.
+          Novo recebe a saudação. Conhecido e Reabertura começam no menu (como quem já falou ou
+          finalizou).
         </p>
       </div>
       {steps.length === 0 ? (
@@ -135,6 +143,14 @@ export function FlowSimulator({
           {visible.map((bubble, index) => (
             <FlowSimBubble key={`${index}-${bubble.text.slice(0, 20)}`} {...bubble} />
           ))}
+          {currentSession?.returnStack && currentSession.returnStack.length > 0 ? (
+            <p className="text-xs text-muted-foreground">
+              Ao acabar, volta para{' '}
+              {flows.find((item) => item.id === currentSession.returnStack?.[0]?.flowId)?.name ||
+                'o fluxo anterior'}
+              .
+            </p>
+          ) : null}
           {currentSession?.paused ? (
             <p className="text-xs text-amber-700 dark:text-amber-300">
               Passou para o time. O bot não responde. Recomeçar para simular de novo.

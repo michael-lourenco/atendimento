@@ -15,6 +15,7 @@ type ChatMessageListProps = {
   onReact: (messageId: string, emoji: string) => void;
   onReply: (message: Message) => void;
   bottomRef: RefObject<HTMLDivElement | null>;
+  highlightQuery?: string;
 };
 
 export function ChatMessageList({
@@ -25,6 +26,7 @@ export function ChatMessageList({
   onReact,
   onReply,
   bottomRef,
+  highlightQuery = '',
 }: ChatMessageListProps) {
   return (
     <div className="space-y-3">
@@ -36,6 +38,7 @@ export function ChatMessageList({
           onResend={onResend}
           onReact={(emoji) => onReact(message.id, emoji)}
           onReply={() => onReply(message)}
+          highlightQuery={highlightQuery}
         />
       ))}
       {pendingSend ? (
@@ -60,12 +63,14 @@ function ChatBubble({
   onResend,
   onReact,
   onReply,
+  highlightQuery = '',
 }: {
   message: Message;
   mineFrom: string;
   onResend: (text: string) => void;
   onReact: (emoji: string) => void;
   onReply: () => void;
+  highlightQuery?: string;
 }) {
   const incoming = message.direction === 'incoming';
   const [pickerOpen, setPickerOpen] = useState(false);
@@ -120,7 +125,12 @@ function ChatBubble({
               </p>
             </div>
           ) : null}
-          <MessageMedia id={message.id} type={message.type} content={message.content} />
+          <MessageMedia
+            id={message.id}
+            type={message.type}
+            content={message.content}
+            highlightQuery={highlightQuery}
+          />
           <p className="mt-1 flex items-center justify-end gap-1 text-[11px] opacity-70">
             <span>{formatInboxTime(message.timestamp)}</span>
             <MessageStatusTicks message={message} />

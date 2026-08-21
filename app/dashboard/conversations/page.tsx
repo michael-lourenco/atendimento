@@ -22,6 +22,7 @@ import { InboxConversationAside } from '@/ui/components/inbox-conversation-aside
 import { MessageThread } from '@/ui/components/message-thread';
 import { WhatsAppDisconnectedBanner } from '@/ui/components/whatsapp-status';
 import { OperatorAgentBanner } from '@/ui/components/inbox-guidance';
+import { InboxSetupChecklist } from '@/ui/components/inbox-setup-checklist';
 import { InboxSkeleton } from '@/ui/components/inbox-skeleton';
 import { InboxFilterBar } from '@/ui/components/inbox-filter-bar';
 import { conversationFromInboxQuery } from '@/core/entities/conversationThread';
@@ -211,6 +212,7 @@ export default function ConversationsPage() {
   return (
     <div className="flex h-[calc(100dvh-8.5rem)] min-h-[520px] flex-col gap-3">
       <WhatsAppDisconnectedBanner />
+      <InboxSetupChecklist operator={operator} />
       {operator && operatorAssignment && !operatorAssignment.linked ? (
         <OperatorAgentBanner email={operator.email} />
       ) : null}
