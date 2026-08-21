@@ -72,6 +72,19 @@ describe('inboxHiddenCount', () => {
     expect(inboxHiddenCount(withPreview, 'incoming', false, 'me', 'all', 'contrato')).toBe(1);
     expect(inboxHiddenCount(withPreview, 'incoming', false, 'me', 'all', 'bruno')).toBe(1);
   });
+
+  it('esconde conversas de outras etiquetas', () => {
+    const withTags = [
+      row({ id: 'a', contactPhone: '1', status: 'open', tags: ['VIP'] }),
+      row({ id: 'b', contactPhone: '2', status: 'open', tags: ['Lead'] }),
+    ];
+    expect(inboxHiddenCount(withTags, 'incoming', false, 'me', 'all', '', 'all', undefined, 'VIP')).toBe(
+      1
+    );
+    expect(inboxHiddenCount(withTags, 'incoming', false, 'me', 'all', '', 'all', undefined, 'all')).toBe(
+      0
+    );
+  });
 });
 
 describe('nextIncomingQueueConversation', () => {

@@ -21,6 +21,8 @@ import { useCatalogSavedFlash } from '@/ui/lib/use-catalog-saved-flash';
 import { FlowKeywordChips } from '@/ui/components/flow-keyword-chips';
 import { runCatalogSave } from '@/ui/lib/run-catalog-save';
 import { useCatalogSearchShortcut } from '@/ui/lib/use-catalog-search-shortcut';
+import { listWhatsAppNumbersCached } from '@/ui/lib/whatsapp-number-cache';
+import { matchesTagFilter, uniqueTagNames, TagFilter } from '@/core/entities/tagFilter';
 
 const catalog = clientUseCases.contacts;
 
@@ -30,6 +32,7 @@ export default function ContactsPage() {
   const [numbers, setNumbers] = useState<WhatsAppNumber[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('');
+  const [tagFilter, setTagFilter] = useState<TagFilter>('all');
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState<Contact | null>(null);
   const [form, setForm] = useState({ name: '', phone: '', email: '', tags: [] as string[] });
@@ -88,7 +91,11 @@ export default function ContactsPage() {
     );
   };
 
+  const tagNames = uniqueTagNames(contacts);
   const visible = contacts.filter((contact) => {
+    if (!matchesTagFilter(contact.tags, tagFilter)) {
+      return false;
+    }
     const term = filter.toLowerCase();
     return (
       contact.name.toLowerCase().includes(term) ||
@@ -174,16 +181,33 @@ export default function ContactsPage() {
               <CardTitle>Lista de Contatos</CardTitle>
               <CardDescription>Visualize e gerencie seus contatos</CardDescription>
             </div>
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                ref={searchRef}
-                placeholder="Buscar contatos..."
-                aria-label="Filtrar contatos"
-                className="pl-10 w-64 bg-background"
-                value={filter}
-                onChange={(e) => setFilter(e.target.value)}
-              />
+            <div className="flex flex-wrap items-center gap-2">
+              {tagNames.length > 0 ? (
+                <select
+                  className="h-10 rounded-md border border-input bg-background px-2 text-sm"
+                  value={tagFilter}
+                  aria-label="Filtrar por etiqueta"
+                  onChange={(event) => setTagFilter(event.target.value)}
+                >
+                  <option value="all">Todas as etiquetas</option>
+                  {tagNames.map((name) => (
+                    <option key={name} value={name}>
+                      {name}
+                    </option>
+                  ))}
+                </select>
+              ) : null}
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  ref={searchRef}
+                  placeholder="Buscar contatos..."
+                  aria-label="Filtrar contatos"
+                  className="pl-10 w-64 bg-background"
+                  value={filter}
+                  onChange={(e) => setFilter(e.target.value)}
+                />
+              </div>
             </div>
           </div>
         </CardHeader>

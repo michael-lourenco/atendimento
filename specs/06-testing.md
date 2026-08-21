@@ -93,7 +93,9 @@ Runner: Jest + `ts-jest` (`npm test`). Testing Library só quando houver teste d
 - `core/entities/schedulesForConversation.test.ts` — lista da thread: `conversationId` bate; sem id, mesmo telefone
 - `core/entities/scheduleOutgoingLine.test.ts` — coluna Linha: `conversationId` fixa a thread; sem id, a mais recente do telefone
 - `core/entities/atendimentoInicialFlow.test.ts` — menu no `inicio`; saltos `goToFlow`; contratar e demo pausam (`handoff`); FAQ do cliente pergunta se ainda precisa de alguém; opção inválida → miss + menu sem saudação; **número** da opção no menu
-- `core/entities/inboxFilterHint.test.ts` — quantas a aba tem vs o filtro; busca casa conteúdo da thread; `nextIncomingQueueConversation` (próxima da Entrada; última; vazia)
+- `core/entities/inboxFilterHint.test.ts` — quantas a aba tem vs o filtro; busca casa conteúdo da thread; `nextIncomingQueueConversation` (próxima da Entrada; última; vazia); etiqueta esconde as outras
+- `core/entities/tagFilter.test.ts` — `matchesTagFilter`; nomes únicos
+- `ui/lib/inbox-filter-prefs.test.ts` — grava/lê Minhas, setor e linha por operador
 - `ui/lib/composer-draft.test.ts` — grava/lê/apaga rascunho por `conversationId`; vazio remove; teto de 8000 chars; store padrão é `localStorage`
 - `core/engine/previewFlowOpening.test.ts` — primeiro “oi” vira `FlowReply[]` (opções numeradas); salto `goToFlow`; mídia no passo Mensagem; `known` começa na pergunta (sem Olá); `previewFlowTurn` deixa `currentStepId` na pergunta; `simulateFlowIncoming` após `handoff` não responde; depois do `goToFlow` a opção seguinte continua no destino (não reabre o fluxo do editor)
 - `ui/lib/flow-sim-canvas.test.ts` — quadro da simulação troca para os passos do destino e fica somente leitura
@@ -152,7 +154,7 @@ Runner: Jest + `ts-jest` (`npm test`). Testing Library só quando houver teste d
 - `ui/lib/flow-keywords.test.ts` — Enter/vírgula/colar vira chips; trim; vazio e duplicata (case) ignorados; remover por índice
 - `core/entities/historyThread.test.ts` — clique no Histórico abre a thread da linha; senão `?contact=`
 - `ui/lib/history-href.test.ts` — href da linha do Histórico
-- `ui/lib/inbox-keyboard.test.ts` — j/k/setas movem; Enter abre; Esc volta
+- `ui/lib/inbox-keyboard.test.ts` — j/k/setas movem; Enter abre; Esc volta; `?` abre a folha; Esc fecha a folha antes da lista
 - `core/entities/conversationViewer.test.ts` — selo só se outro agente e `viewerAt` fresco
 - `core/usecases/TouchConversationViewerUseCase.test.ts` — grava viewer; limpa só o próprio; não mexe em lastActivity
 

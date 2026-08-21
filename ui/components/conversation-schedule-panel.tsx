@@ -46,7 +46,7 @@ export function ConversationSchedulePanel({
   const [message, setMessage] = useState('');
   const [scheduledDate, setScheduledDate] = useState(() => defaultScheduleDatetimeValue());
   const [error, setError] = useState<string | null>(null);
-  const { show, kind, message, markSaved, flashError } = useCatalogSavedFlash();
+  const { show, kind, message: savedNotice, markSaved, flashError } = useCatalogSavedFlash();
   const { confirm, dialog } = useConfirm();
 
   const load = async () => {
@@ -112,7 +112,7 @@ export function ConversationSchedulePanel({
       ) : null}
       {isOpen ? (
         <div className="space-y-3 rounded-md border border-border p-3">
-          <CatalogSavedNotice show={show} kind={kind} message={message} />
+          <CatalogSavedNotice show={show} kind={kind} message={savedNotice} />
           {error ? <p className="text-sm text-destructive">{error}</p> : null}
           {hideTrigger ? (
             <div className="flex justify-end">

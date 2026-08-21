@@ -30,4 +30,12 @@ describe('inboxListKeyAction', () => {
     expect(inboxListKeyAction({ ...base, key: 'j', modified: true })).toBeNull();
     expect(inboxListKeyAction({ ...base, key: 'J' })).toEqual({ type: 'move', index: 2 });
   });
+
+  it('? abre a folha; Esc fecha a folha antes da lista', () => {
+    expect(inboxListKeyAction({ ...base, key: '?' })).toEqual({ type: 'toggle-help' });
+    expect(inboxListKeyAction({ ...base, key: 'Escape', helpOpen: true, threadOpen: true })).toEqual({
+      type: 'close-help',
+    });
+    expect(inboxListKeyAction({ ...base, key: 'j', helpOpen: true })).toBeNull();
+  });
 });

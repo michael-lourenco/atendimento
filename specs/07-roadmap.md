@@ -86,6 +86,7 @@ Isolamento entre empresas = cópia da stack (`00-vision.md`, `08-supabase.md`).
 - UX: aviso Salvo/erro nos catálogos; Assumir visível; idade da fila; checklist de setup; Histórico no menu; rascunho em `localStorage`; simulador com Reabertura; desfazer 10 no quadro
 - Histórico clicável (abre a conversa); teclado j/k/setas/Enter/Esc na fila; “{nome} está nesta conversa”
 - Inbox: silenciar chime; selo Falhou na lista; CTA Números ↔ WhatsApp (sem unificar rotas)
+- Inbox: lembrar Minhas/setor/linha; folha de atalhos (`?`); filtro por etiqueta (fila e Contatos)
 
 ## Não fazer
 

@@ -9,6 +9,7 @@ import {
   isWaitingTab,
   matchesMineFilter,
 } from './conversationTabs';
+import { matchesTagFilter, TagFilter } from './tagFilter';
 
 export function conversationOnQueueTab(
   conversation: Conversation,
@@ -24,6 +25,7 @@ export function conversationOnQueueTab(
 }
 
 export type LineFilter = 'all' | string;
+export type { TagFilter };
 
 export type InboxSearchCorpus = {
   messages: Message[];
@@ -48,7 +50,8 @@ export function conversationMatchesInboxFilters(
   departmentFilter: DepartmentFilter,
   search: string,
   lineFilter: LineFilter = 'all',
-  corpus?: InboxSearchCorpus
+  corpus?: InboxSearchCorpus,
+  tagFilter: TagFilter = 'all'
 ): boolean {
   if (!conversationOnQueueTab(conversation, tab)) {
     return false;
@@ -60,6 +63,9 @@ export function conversationMatchesInboxFilters(
     return false;
   }
   if (!matchesLineFilter(conversation, lineFilter)) {
+    return false;
+  }
+  if (!matchesTagFilter(conversation.tags, tagFilter)) {
     return false;
   }
   const term = search.trim().toLowerCase();
@@ -90,7 +96,8 @@ export function inboxHiddenCount(
   departmentFilter: DepartmentFilter,
   search: string,
   lineFilter: LineFilter = 'all',
-  corpus?: InboxSearchCorpus
+  corpus?: InboxSearchCorpus,
+  tagFilter: TagFilter = 'all'
 ): number {
   const onTab = conversations.filter((item) => conversationOnQueueTab(item, tab)).length;
   const visible = conversations.filter((item) =>
@@ -102,7 +109,8 @@ export function inboxHiddenCount(
       departmentFilter,
       search,
       lineFilter,
-      corpus
+      corpus,
+      tagFilter
     )
   ).length;
   return Math.max(0, onTab - visible);
@@ -114,7 +122,8 @@ export function nextIncomingQueueConversation(
   mineOnly: boolean,
   operatorAgentId: string | undefined,
   departmentFilter: DepartmentFilter,
-  lineFilter: LineFilter = 'all'
+  lineFilter: LineFilter = 'all',
+  tagFilter: TagFilter = 'all'
 ): Conversation | undefined {
   const queue = conversations.filter((item) =>
     conversationMatchesInboxFilters(
@@ -124,7 +133,9 @@ export function nextIncomingQueueConversation(
       operatorAgentId,
       departmentFilter,
       '',
-      lineFilter
+      lineFilter,
+      undefined,
+      tagFilter
     )
   );
   const remaining = queue.filter((item) => item.id !== closedId);
@@ -143,3 +154,27 @@ export const QUEUE_TAB_LABEL: Record<QueueTab, string> = {
   waiting: 'Esperando',
   closed: 'Finalizados',
 };
+
+export function inboxTabCount(
+  conversations: Conversation[],
+  tab: QueueTab,
+  mineOnly: boolean,
+  operatorAgentId: string | undefined,
+  departmentFilter: DepartmentFilter,
+  lineFilter: LineFilter = 'all',
+  tagFilter: TagFilter = 'all'
+): number {
+  return conversations.filter((item) =>
+    conversationMatchesInboxFilters(
+      item,
+      tab,
+      mineOnly,
+      operatorAgentId,
+      departmentFilter,
+      '',
+      lineFilter,
+      undefined,
+      tagFilter
+    )
+  ).length;
+}

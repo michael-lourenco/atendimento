@@ -8,13 +8,15 @@ import { Agent } from '@/core/entities/Agent';
 import { Department } from '@/core/entities/Department';
 import { User } from '@/core/entities/User';
 import { WhatsAppNumber } from '@/core/entities/WhatsAppNumber';
+import { Tag } from '@/core/entities/Tag';
 import { assignmentFromOperator } from '@/core/entities/assignmentFromOperator';
-import { DepartmentFilter, QueueTab } from '@/core/entities/conversationDepartment';
+import { QueueTab } from '@/core/entities/conversationDepartment';
 import {
-  LineFilter,
+  TagFilter,
   conversationMatchesInboxFilters,
   conversationOnQueueTab,
   inboxHiddenCount,
+  inboxTabCount,
   nextIncomingQueueConversation,
 } from '@/core/entities/inboxFilterHint';
 import { inboxHrefForConversation } from '@/ui/lib/inbox-href';
@@ -31,6 +33,8 @@ import { DASHBOARD_POLL_MS } from '@/ui/lib/dashboard-poll';
 import { listWhatsAppNumbersCached } from '@/ui/lib/whatsapp-number-cache';
 import { playInboxChime, shouldPlayInboxSound } from '@/ui/lib/inbox-notify';
 import { useInboxDocumentTitle, useInboxShortcuts } from '@/ui/lib/use-inbox-chrome';
+import { useInboxFilterPrefs } from '@/ui/lib/use-inbox-filter-prefs';
+import { InboxShortcutSheet } from '@/ui/components/inbox-shortcut-sheet';
 import { useInboxRealtime } from '@/ui/lib/use-inbox-realtime';
 import { useInboxMessageSearch } from '@/ui/lib/use-inbox-message-search';
 import { syncInboxAvatars } from '@/ui/lib/sync-inbox-avatars';
@@ -40,11 +44,13 @@ export default function ConversationsPage() {
   const [agents, setAgents] = useState<Agent[]>([]);
   const [departments, setDepartments] = useState<Department[]>([]);
   const [numbers, setNumbers] = useState<WhatsAppNumber[]>([]);
+  const [tags, setTags] = useState<Tag[]>([]);
   const [operator, setOperator] = useState<User | null>(null);
-  const [mineOnly, setMineOnly] = useState(true);
-  const [departmentFilter, setDepartmentFilter] = useState<DepartmentFilter>('all');
-  const [lineFilter, setLineFilter] = useState<LineFilter>('all');
-  const departmentFilterReady = useRef(false);
+  const operatorAssignment = operator ? assignmentFromOperator(operator, agents) : null;
+  const { mineOnly, setMineOnly, departmentFilter, setDepartmentFilter, lineFilter, setLineFilter } =
+    useInboxFilterPrefs(operator?.id, operatorAssignment?.departmentId);
+  const [tagFilter, setTagFilter] = useState<TagFilter>('all');
+  const [helpOpen, setHelpOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('');
   const [mounted, setMounted] = useState(false);
@@ -101,21 +107,18 @@ export default function ConversationsPage() {
       }
 
       if (refreshCatalogs) {
-        const [agentList, departmentList, numberList, user] = await Promise.all([
+        const [agentList, departmentList, numberList, user, tagList] = await Promise.all([
           clientUseCases.agents().list(),
           clientUseCases.departments().list(),
           listWhatsAppNumbersCached(),
           clientUseCases.currentUser().execute(),
+          clientUseCases.tags().list(),
         ]);
         setAgents(agentList);
         setDepartments(departmentList);
         setNumbers(numberList);
         setOperator(user);
-        if (!departmentFilterReady.current) {
-          departmentFilterReady.current = true;
-          const deptId = user ? assignmentFromOperator(user, agentList)?.departmentId : undefined;
-          if (deptId) setDepartmentFilter(deptId);
-        }
+        setTags(tagList);
       }
     } catch {
       /* ignore */
@@ -136,7 +139,6 @@ export default function ConversationsPage() {
   });
 
   const threadOpen = Boolean(selectedConversation);
-  const operatorAssignment = operator ? assignmentFromOperator(operator, agents) : null;
   const operatorAgentId = operatorAssignment?.agentId;
   const tab = activeTab as QueueTab;
 
@@ -149,7 +151,8 @@ export default function ConversationsPage() {
       departmentFilter,
       filter,
       lineFilter,
-      searchCorpus
+      searchCorpus,
+      tagFilter
     )
   );
   const hiddenCount = inboxHiddenCount(
@@ -160,7 +163,8 @@ export default function ConversationsPage() {
     departmentFilter,
     filter,
     lineFilter,
-    searchCorpus
+    searchCorpus,
+    tagFilter
   );
   const onTabCount = conversations.filter((conv) => conversationOnQueueTab(conv, tab)).length;
   const focusIndex =
@@ -171,35 +175,34 @@ export default function ConversationsPage() {
   useInboxShortcuts({
     searchRef,
     threadOpen,
+    helpOpen,
     focusedIndex: focusIndex,
     listLength: filteredConversations.length,
     onBack: () => router.push('/dashboard/conversations'),
     onFocusIndex: setFocusedIndex,
     onOpenIndex: (index) => {
       const item = filteredConversations[index];
-      if (item) {
-        setFocusedIndex(index);
-        openConversation(item);
-      }
+      if (item) openConversation(item);
     },
+    onToggleHelp: () => setHelpOpen((value) => !value),
+    onCloseHelp: () => setHelpOpen(false),
   });
 
   const countTab = (queue: QueueTab) =>
-    conversations.filter((conv) =>
-      conversationMatchesInboxFilters(
-        conv,
-        queue,
-        mineOnly,
-        operatorAgentId,
-        departmentFilter,
-        '',
-        lineFilter
-      )
-    ).length;
+    inboxTabCount(
+      conversations,
+      queue,
+      mineOnly,
+      operatorAgentId,
+      departmentFilter,
+      lineFilter,
+      tagFilter
+    );
 
   const clearInboxFilters = () => {
     setDepartmentFilter('all');
     setLineFilter('all');
+    setTagFilter('all');
     setMineOnly(false);
     setFilter('');
   };
@@ -211,7 +214,8 @@ export default function ConversationsPage() {
       mineOnly,
       operatorAgentId,
       departmentFilter,
-      lineFilter
+      lineFilter,
+      tagFilter
     );
     setActiveTab('incoming');
     if (next) {
@@ -227,6 +231,7 @@ export default function ConversationsPage() {
 
   return (
     <div className="flex h-[calc(100dvh-8.5rem)] min-h-[520px] flex-col gap-3">
+      <InboxShortcutSheet open={helpOpen} onClose={() => setHelpOpen(false)} />
       <WhatsAppDisconnectedBanner />
       <InboxSetupChecklist operator={operator} />
       {operator && operatorAssignment && !operatorAssignment.linked ? (
@@ -235,12 +240,16 @@ export default function ConversationsPage() {
       <InboxFilterBar
         numbers={numbers}
         departments={departments}
+        tags={tags}
         lineFilter={lineFilter}
         departmentFilter={departmentFilter}
+        tagFilter={tagFilter}
         mineOnly={mineOnly}
         onLineFilter={setLineFilter}
         onDepartmentFilter={setDepartmentFilter}
+        onTagFilter={setTagFilter}
         onMineOnly={() => setMineOnly((value) => !value)}
+        onHelp={() => setHelpOpen(true)}
       />
 
       <div className="grid min-h-0 flex-1 gap-3 lg:grid-cols-[minmax(260px,340px)_1fr]">
@@ -266,10 +275,7 @@ export default function ConversationsPage() {
           myAgentId={operatorAgentId}
           mounted={mounted}
           onSelect={(conversation) => {
-            const index = filteredConversations.findIndex((item) => item.id === conversation.id);
-            if (index >= 0) {
-              setFocusedIndex(index);
-            }
+            setFocusedIndex(filteredConversations.findIndex((item) => item.id === conversation.id));
             openConversation(conversation);
           }}
           onClearFilters={clearInboxFilters}

@@ -19,20 +19,34 @@ export function useInboxDocumentTitle(conversations: Conversation[]) {
 export function useInboxShortcuts(input: {
   searchRef: RefObject<HTMLInputElement | null>;
   threadOpen: boolean;
+  helpOpen?: boolean;
   focusedIndex: number;
   listLength: number;
   onBack: () => void;
   onFocusIndex: (index: number) => void;
   onOpenIndex: (index: number) => void;
+  onToggleHelp?: () => void;
+  onCloseHelp?: () => void;
 }) {
-  const { searchRef, threadOpen, focusedIndex, listLength, onBack, onFocusIndex, onOpenIndex } =
-    input;
+  const {
+    searchRef,
+    threadOpen,
+    helpOpen = false,
+    focusedIndex,
+    listLength,
+    onBack,
+    onFocusIndex,
+    onOpenIndex,
+    onToggleHelp,
+    onCloseHelp,
+  } = input;
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
       const action = inboxListKeyAction({
         key: event.key,
         typing: isTypingTarget(event.target),
         modified: event.ctrlKey || event.metaKey || event.altKey,
+        helpOpen,
         threadOpen,
         focusedIndex,
         listLength,
@@ -41,6 +55,14 @@ export function useInboxShortcuts(input: {
         return;
       }
       event.preventDefault();
+      if (action.type === 'toggle-help') {
+        onToggleHelp?.();
+        return;
+      }
+      if (action.type === 'close-help') {
+        onCloseHelp?.();
+        return;
+      }
       if (action.type === 'focus-search') {
         searchRef.current?.focus();
         return;
@@ -59,10 +81,13 @@ export function useInboxShortcuts(input: {
     return () => window.removeEventListener('keydown', onKeyDown);
   }, [
     focusedIndex,
+    helpOpen,
     listLength,
     onBack,
+    onCloseHelp,
     onFocusIndex,
     onOpenIndex,
+    onToggleHelp,
     searchRef,
     threadOpen,
   ]);

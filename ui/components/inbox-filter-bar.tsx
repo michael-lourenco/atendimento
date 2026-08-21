@@ -2,31 +2,40 @@
 
 import { Department } from '@/core/entities/Department';
 import { DepartmentFilter } from '@/core/entities/conversationDepartment';
-import { LineFilter } from '@/core/entities/inboxFilterHint';
+import { LineFilter, TagFilter } from '@/core/entities/inboxFilterHint';
 import { WhatsAppNumber } from '@/core/entities/WhatsAppNumber';
+import { Tag } from '@/core/entities/Tag';
 import { Button } from '@/ui/components/button';
 import { InboxChimeToggle } from '@/ui/components/inbox-chime-toggle';
 
 type InboxFilterBarProps = {
   numbers: WhatsAppNumber[];
   departments: Department[];
+  tags?: Tag[];
   lineFilter: LineFilter;
   departmentFilter: DepartmentFilter;
+  tagFilter?: TagFilter;
   mineOnly: boolean;
   onLineFilter: (value: LineFilter) => void;
   onDepartmentFilter: (value: DepartmentFilter) => void;
+  onTagFilter?: (value: TagFilter) => void;
   onMineOnly: () => void;
+  onHelp?: () => void;
 };
 
 export function InboxFilterBar({
   numbers,
   departments,
+  tags = [],
   lineFilter,
   departmentFilter,
+  tagFilter = 'all',
   mineOnly,
   onLineFilter,
   onDepartmentFilter,
+  onTagFilter,
   onMineOnly,
+  onHelp,
 }: InboxFilterBarProps) {
   const selectedColor =
     departmentFilter !== 'all' && departmentFilter !== 'none'
@@ -71,6 +80,21 @@ export function InboxFilterBar({
             </option>
           ))}
       </select>
+      {tags.length > 0 && onTagFilter ? (
+        <select
+          className="h-9 rounded-md border border-input bg-background px-2 text-sm"
+          value={tagFilter}
+          aria-label="Filtrar por etiqueta"
+          onChange={(event) => onTagFilter(event.target.value)}
+        >
+          <option value="all">Todas as etiquetas</option>
+          {tags.map((tag) => (
+            <option key={tag.id} value={tag.name}>
+              {tag.name}
+            </option>
+          ))}
+        </select>
+      ) : null}
       <Button
         type="button"
         variant={mineOnly ? 'outline' : 'default'}
@@ -79,6 +103,11 @@ export function InboxFilterBar({
       >
         {mineOnly ? 'Ver o time' : 'Só as minhas'}
       </Button>
+      {onHelp ? (
+        <Button type="button" variant="outline" size="icon" onClick={onHelp} aria-label="Atalhos da fila">
+          ?
+        </Button>
+      ) : null}
       <InboxChimeToggle />
     </div>
   );
