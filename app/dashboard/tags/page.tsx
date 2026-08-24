@@ -13,6 +13,7 @@ import { Plus } from 'lucide-react';
 import { useConfirm } from '@/ui/components/confirm-dialog';
 import { CatalogListSkeleton } from '@/ui/components/catalog-list-skeleton';
 import { CatalogSavedNotice } from '@/ui/components/catalog-saved-notice';
+import { CatalogSaveButton } from '@/ui/components/catalog-save-button';
 import { useCatalogSavedFlash } from '@/ui/lib/use-catalog-saved-flash';
 import { runCatalogSave } from '@/ui/lib/run-catalog-save';
 import { catalogMatchesQuery } from '@/ui/lib/catalog-filter';
@@ -29,7 +30,7 @@ export default function TagsPage() {
   const [form, setForm] = useState({ name: '', color: '#3b82f6' });
   const [filter, setFilter] = useState('');
   const { confirm, dialog } = useConfirm();
-  const { show, kind, message, markSaved, flashError } = useCatalogSavedFlash();
+  const { show, saving, kind, message, beginSave, markSaved, flashError } = useCatalogSavedFlash();
 
   const load = async (showLoading = false) => {
     if (showLoading) {
@@ -66,7 +67,7 @@ export default function TagsPage() {
         reset();
         await load();
       },
-      { markSaved, flashError },
+      { markSaved, flashError, beginSave },
       'tags'
     );
   };
@@ -120,7 +121,7 @@ export default function TagsPage() {
                 </div>
               </div>
               <div className="flex gap-2">
-                <Button type="submit">Salvar</Button>
+                <CatalogSaveButton flash={{ saving, show, kind, message }} />
                 <Button type="button" variant="outline" onClick={reset}>
                   Cancelar
                 </Button>

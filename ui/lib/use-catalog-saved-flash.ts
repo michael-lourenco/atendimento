@@ -5,6 +5,7 @@ import { CATALOG_SAVED_NOTICE_MS } from '@/ui/lib/catalog-saved';
 
 export function useCatalogSavedFlash(ttlMs = CATALOG_SAVED_NOTICE_MS) {
   const [show, setShow] = useState(false);
+  const [saving, setSaving] = useState(false);
   const [kind, setKind] = useState<'success' | 'error'>('success');
   const [message, setMessage] = useState('Salvo');
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -19,6 +20,7 @@ export function useCatalogSavedFlash(ttlMs = CATALOG_SAVED_NOTICE_MS) {
   );
 
   const flash = (nextKind: 'success' | 'error', nextMessage: string) => {
+    setSaving(false);
     setKind(nextKind);
     setMessage(nextMessage);
     setShow(true);
@@ -30,8 +32,13 @@ export function useCatalogSavedFlash(ttlMs = CATALOG_SAVED_NOTICE_MS) {
 
   return {
     show,
+    saving,
     kind,
     message,
+    beginSave: () => {
+      setSaving(true);
+      setShow(false);
+    },
     markSaved: () => flash('success', 'Salvo'),
     flashSuccess: (text: string) => flash('success', text),
     flashError: (text: string) => flash('error', text),

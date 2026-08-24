@@ -4,6 +4,8 @@ import { AgentStatus } from '@/core/entities/Agent';
 import { Department } from '@/core/entities/Department';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/ui/components/card';
 import { Button } from '@/ui/components/button';
+import { CatalogSaveButton } from '@/ui/components/catalog-save-button';
+import { CatalogActionFlash } from '@/ui/lib/catalog-saved';
 import { Input } from '@/ui/components/input';
 import { Label } from '@/ui/components/label';
 
@@ -36,6 +38,7 @@ export function OperatorForm({
   onChange,
   onSubmit,
   onCancel,
+  flash,
 }: {
   editing: boolean;
   form: OperatorFormState;
@@ -47,6 +50,7 @@ export function OperatorForm({
   onChange: (next: OperatorFormState) => void;
   onSubmit: (e: React.FormEvent) => void;
   onCancel: () => void;
+  flash: CatalogActionFlash;
 }) {
   return (
     <Card className="mb-6">
@@ -169,7 +173,7 @@ export function OperatorForm({
             </div>
           ) : null}
           <div className="flex gap-2">
-            <Button type="submit">Salvar</Button>
+            <CatalogSaveButton flash={flash} />
             <Button type="button" variant="outline" onClick={onCancel}>
               Cancelar
             </Button>

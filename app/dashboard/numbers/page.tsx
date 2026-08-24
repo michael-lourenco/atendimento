@@ -22,6 +22,7 @@ import { invalidateWhatsAppNumberCache } from '@/ui/lib/whatsapp-number-cache';
 import { cn } from '@/ui/lib/utils';
 import { CatalogListSkeleton } from '@/ui/components/catalog-list-skeleton';
 import { CatalogSavedNotice } from '@/ui/components/catalog-saved-notice';
+import { CatalogSaveButton } from '@/ui/components/catalog-save-button';
 import { useCatalogSavedFlash } from '@/ui/lib/use-catalog-saved-flash';
 import { runCatalogSave } from '@/ui/lib/run-catalog-save';
 import { catalogMatchesQuery } from '@/ui/lib/catalog-filter';
@@ -41,7 +42,8 @@ export default function NumbersPage() {
     instanceName: '',
   });
   const { confirm, dialog } = useConfirm();
-  const { show: showSaved, kind, message, markSaved, flashError } = useCatalogSavedFlash();
+  const { show: showSaved, saving, kind, message, beginSave, markSaved, flashError } =
+    useCatalogSavedFlash();
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('');
   const { connected, pushname, wid, platform } = useWhatsAppStatus();
@@ -122,7 +124,7 @@ export default function NumbersPage() {
         reset();
         await load();
       },
-      { markSaved, flashError },
+      { markSaved, flashError, beginSave },
       'whatsapp_numbers'
     );
   };
@@ -185,7 +187,7 @@ export default function NumbersPage() {
                 />
               </div>
               <div className="flex gap-2">
-                <Button type="submit">Salvar</Button>
+                <CatalogSaveButton flash={{ saving, show: showSaved, kind, message }} />
                 <Button type="button" variant="outline" onClick={reset}>
                   Cancelar
                 </Button>

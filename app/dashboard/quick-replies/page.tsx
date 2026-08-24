@@ -61,7 +61,7 @@ export default function QuickRepliesPage() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const { confirm, dialog } = useConfirm();
-  const { show, kind, message, markSaved, flashError } = useCatalogSavedFlash();
+  const { show, saving, kind, message, beginSave, markSaved, flashError } = useCatalogSavedFlash();
 
   const load = async (showLoading = false) => {
     if (showLoading) {
@@ -99,6 +99,7 @@ export default function QuickRepliesPage() {
     removeMedia: boolean;
   }) => {
     const id = editing?.id || `qr-${Date.now()}`;
+    beginSave();
     try {
       await catalog().save({
         id,
@@ -148,6 +149,7 @@ export default function QuickRepliesPage() {
           departments={departments}
           onCancel={reset}
           onSave={handleSave}
+          flash={{ saving, show, kind, message }}
         />
       ) : null}
 

@@ -12,6 +12,7 @@ import { Input } from '@/ui/components/input';
 import { Label } from '@/ui/components/label';
 import { Textarea } from '@/ui/components/textarea';
 import { CatalogSavedNotice } from '@/ui/components/catalog-saved-notice';
+import { CatalogSaveButton } from '@/ui/components/catalog-save-button';
 import { useConfirm } from '@/ui/components/confirm-dialog';
 import { catalogPersistErrorMessage } from '@/ui/lib/catalog-persist-error';
 import { DASHBOARD_POLL_MS } from '@/ui/lib/dashboard-poll';
@@ -46,7 +47,8 @@ export function ConversationSchedulePanel({
   const [message, setMessage] = useState('');
   const [scheduledDate, setScheduledDate] = useState(() => defaultScheduleDatetimeValue());
   const [error, setError] = useState<string | null>(null);
-  const { show, kind, message: savedNotice, markSaved, flashError } = useCatalogSavedFlash();
+  const { show, saving, kind, message: savedNotice, beginSave, markSaved, flashError } =
+    useCatalogSavedFlash();
   const { confirm, dialog } = useConfirm();
 
   const load = async () => {
@@ -66,6 +68,7 @@ export function ConversationSchedulePanel({
     if (!text || !scheduledDate) {
       return;
     }
+    beginSave();
     setError(null);
     try {
       await catalog().save({
@@ -144,9 +147,12 @@ export function ConversationSchedulePanel({
                 className="bg-background"
               />
             </div>
-            <Button type="submit" size="sm">
+            <CatalogSaveButton
+              size="sm"
+              flash={{ saving, show, kind, message: savedNotice }}
+            >
               Agendar envio
-            </Button>
+            </CatalogSaveButton>
           </form>
           {items.length === 0 ? (
             <p className="text-xs text-muted-foreground">Nenhum agendamento nesta conversa</p>

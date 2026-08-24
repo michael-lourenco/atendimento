@@ -15,6 +15,7 @@ import Link from 'next/link';
 import { useConfirm } from '@/ui/components/confirm-dialog';
 import { CatalogListSkeleton } from '@/ui/components/catalog-list-skeleton';
 import { CatalogSavedNotice } from '@/ui/components/catalog-saved-notice';
+import { CatalogSaveButton } from '@/ui/components/catalog-save-button';
 import { useCatalogSavedFlash } from '@/ui/lib/use-catalog-saved-flash';
 import { catalogPersistErrorMessage } from '@/ui/lib/catalog-persist-error';
 import { invalidateWhatsAppNumberCache } from '@/ui/lib/whatsapp-number-cache';
@@ -46,7 +47,7 @@ export default function ChatbotsPage() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [savedSnap, setSavedSnap] = useState('');
   const { confirm, dialog } = useConfirm();
-  const { show, kind, message, markSaved, flashError } = useCatalogSavedFlash();
+  const { show, saving, kind, message, beginSave, markSaved, flashError } = useCatalogSavedFlash();
   const extras = extraChatbots(bots);
   const line = numbers.find((item) => item.id === scope);
   const currentDraft = useMemo(
@@ -97,6 +98,7 @@ export default function ChatbotsPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const now = new Date();
+    beginSave();
     try {
       if (scope !== 'company' && line) {
         await numbersCatalog().save({
@@ -254,7 +256,7 @@ export default function ChatbotsPage() {
                 }}
               />
             )}
-            <Button type="submit">Salvar</Button>
+            <CatalogSaveButton flash={{ saving, show, kind, message }} />
           </form>
         </CardContent>
       </Card>

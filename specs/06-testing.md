@@ -131,7 +131,7 @@ Runner: Jest + `ts-jest` (`npm test`). Testing Library só quando houver teste d
 - `ui/lib/catalog-load-phase.test.ts` — enquanto carrega não é empty state
 - `ui/lib/sidebar-nav.test.ts` — atendente vê Conversas, Contatos, `/dashboard/quick-replies` **e** `/dashboard/schedules`; `isAdminPath` dessas duas é false; admin vê Configuração incluindo `/dashboard/chatbots` com título **Chatbot**. Sem Testing Library obrigatório para esta feature
 - `ui/lib/inbox-href.test.ts` — Contatos: uma thread → `?conversation=`; nenhuma → `?contact=`; várias → `?contact=` (o menu escolhe o id)
-- `ui/lib/catalog-saved.test.ts` — aviso Salvo some depois do TTL
+- `ui/lib/catalog-saved.test.ts` — aviso Salvo some depois do TTL; botão mostra Salvando… / Salvo
 - `infra/schedules/cronAuth.test.ts` — Bearer `CRON_SECRET`
 - `infra/schedules/shouldStartInProcessScheduleCron.test.ts` — não sobe em test / build / Vercel
 - `infra/supabase/missingColumn.test.ts` — PGRST204 de `last_message` é coluna ausente; `conversation_id` de agendamento também

@@ -30,7 +30,7 @@ export default function AgentsPage() {
   const [formError, setFormError] = useState('');
   const [loading, setLoading] = useState(true);
   const { confirm, dialog } = useConfirm();
-  const { show, kind, message, markSaved, flashError } = useCatalogSavedFlash();
+  const { show, saving, kind, message, beginSave, markSaved, flashError } = useCatalogSavedFlash();
 
   const load = async (showLoading = false) => {
     if (showLoading) {
@@ -67,6 +67,7 @@ export default function AgentsPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!actor) return;
+    beginSave();
     setFormError('');
     try {
       if (editing) {
@@ -146,6 +147,7 @@ export default function AgentsPage() {
           onChange={setForm}
           onSubmit={handleSubmit}
           onCancel={reset}
+          flash={{ saving, show, kind, message }}
         />
       ) : null}
 

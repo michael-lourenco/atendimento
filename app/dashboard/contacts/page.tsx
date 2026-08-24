@@ -16,6 +16,7 @@ import { useConfirm } from '@/ui/components/confirm-dialog';
 import { EmptyState } from '@/ui/components/empty-state';
 import { CatalogListSkeleton } from '@/ui/components/catalog-list-skeleton';
 import { CatalogSavedNotice } from '@/ui/components/catalog-saved-notice';
+import { CatalogSaveButton } from '@/ui/components/catalog-save-button';
 import { ContactTalkLink } from '@/ui/components/contact-talk-link';
 import { useCatalogSavedFlash } from '@/ui/lib/use-catalog-saved-flash';
 import { FlowKeywordChips } from '@/ui/components/flow-keyword-chips';
@@ -37,7 +38,7 @@ export default function ContactsPage() {
   const [editing, setEditing] = useState<Contact | null>(null);
   const [form, setForm] = useState({ name: '', phone: '', email: '', tags: [] as string[] });
   const { confirm, dialog } = useConfirm();
-  const { show, kind, message, markSaved, flashError } = useCatalogSavedFlash();
+  const { show, saving, kind, message, beginSave, markSaved, flashError } = useCatalogSavedFlash();
   const searchRef = useRef<HTMLInputElement>(null);
   useCatalogSearchShortcut(searchRef);
 
@@ -86,7 +87,7 @@ export default function ContactsPage() {
         reset();
         await load();
       },
-      { markSaved, flashError },
+      { markSaved, flashError, beginSave },
       'contacts'
     );
   };
@@ -164,7 +165,7 @@ export default function ContactsPage() {
                 />
               </div>
               <div className="flex gap-2">
-                <Button type="submit">Salvar</Button>
+                <CatalogSaveButton flash={{ saving, show, kind, message }} />
                 <Button type="button" variant="outline" onClick={reset}>
                   Cancelar
                 </Button>

@@ -9,6 +9,8 @@ import {
 } from '@/core/entities/QuickReply';
 import { mediaKindFromMime, quickReplyMediaApiHref } from '@/core/services/IMediaStorage';
 import { Button } from '@/ui/components/button';
+import { CatalogSaveButton } from '@/ui/components/catalog-save-button';
+import { CatalogActionFlash } from '@/ui/lib/catalog-saved';
 import { Card, CardContent, CardHeader, CardTitle } from '@/ui/components/card';
 import { Input } from '@/ui/components/input';
 import { Label } from '@/ui/components/label';
@@ -30,6 +32,7 @@ type QuickReplyEditorProps = {
     file: File | null;
     removeMedia: boolean;
   }) => Promise<void>;
+  flash: CatalogActionFlash;
 };
 
 function mediaKindOfFile(file: File) {
@@ -41,7 +44,13 @@ function mediaKindOfFile(file: File) {
   return isQuickReplyMediaKind(kind) ? kind : undefined;
 }
 
-export function QuickReplyEditor({ editing, departments, onCancel, onSave }: QuickReplyEditorProps) {
+export function QuickReplyEditor({
+  editing,
+  departments,
+  onCancel,
+  onSave,
+  flash,
+}: QuickReplyEditorProps) {
   const [title, setTitle] = useState(editing?.title ?? '');
   const [body, setBody] = useState(editing?.body ?? '');
   const [departmentId, setDepartmentId] = useState(editing?.departmentId ?? '');
@@ -245,12 +254,10 @@ export function QuickReplyEditor({ editing, departments, onCancel, onSave }: Qui
             </p>
           </div>
           <div className="flex gap-2">
-            <Button
-              type="submit"
+            <CatalogSaveButton
+              flash={flash}
               disabled={ptt.recording || !quickReplyIsValid(draft) || Boolean(sizeError)}
-            >
-              Salvar
-            </Button>
+            />
             <Button type="button" variant="outline" onClick={onCancel} disabled={ptt.recording}>
               Cancelar
             </Button>

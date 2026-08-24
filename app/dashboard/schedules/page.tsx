@@ -21,6 +21,7 @@ import { Plus } from 'lucide-react';
 import { useConfirm } from '@/ui/components/confirm-dialog';
 import { CatalogListSkeleton } from '@/ui/components/catalog-list-skeleton';
 import { CatalogSavedNotice } from '@/ui/components/catalog-saved-notice';
+import { CatalogSaveButton } from '@/ui/components/catalog-save-button';
 import { catalogPersistErrorMessage } from '@/ui/lib/catalog-persist-error';
 import {
   contactPickerLabel,
@@ -50,7 +51,7 @@ export default function SchedulesPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const { confirm, dialog } = useConfirm();
-  const { show, kind, message, markSaved, flashError } = useCatalogSavedFlash();
+  const { show, saving, kind, message, beginSave, markSaved, flashError } = useCatalogSavedFlash();
 
   const load = async (showLoading = false) => {
     if (showLoading) {
@@ -88,6 +89,7 @@ export default function SchedulesPage() {
     e.preventDefault();
     const phone = normalizeSchedulePhone(form.contact);
     if (!phone) return;
+    beginSave();
     if (!findContactByPhone(contacts, phone)) {
       await clientUseCases.upsertContactFromIncoming().execute(phone, form.newName || undefined);
     }
@@ -173,9 +175,7 @@ export default function SchedulesPage() {
                 />
               </div>
               <div className="flex gap-2">
-                <Button type="submit" disabled={!form.contact}>
-                  Salvar
-                </Button>
+                <CatalogSaveButton flash={{ saving, show, kind, message }} disabled={!form.contact} />
                 <Button type="button" variant="outline" onClick={reset}>
                   Cancelar
                 </Button>

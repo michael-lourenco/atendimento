@@ -6,9 +6,10 @@ import { DashboardMetrics, Report } from '@/core/entities/Report';
 import { reportToCsv, reportDownloadFilename, reportHistoryPeriod } from '@/core/entities/reportCsv';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/ui/components/card';
 import { Button } from '@/ui/components/button';
-import { Download, Calendar } from 'lucide-react';
+import { Download } from 'lucide-react';
 import { CatalogListSkeleton } from '@/ui/components/catalog-list-skeleton';
 import { CatalogSavedNotice } from '@/ui/components/catalog-saved-notice';
+import { CatalogSaveButton } from '@/ui/components/catalog-save-button';
 import { useCatalogSavedFlash } from '@/ui/lib/use-catalog-saved-flash';
 import { runCatalogSave } from '@/ui/lib/run-catalog-save';
 
@@ -16,7 +17,7 @@ export default function ReportsPage() {
   const [metrics, setMetrics] = useState<DashboardMetrics | null>(null);
   const [reports, setReports] = useState<Report[]>([]);
   const [loading, setLoading] = useState(true);
-  const { show, kind, message, markSaved, flashError } = useCatalogSavedFlash();
+  const { show, saving, kind, message, beginSave, markSaved, flashError } = useCatalogSavedFlash();
 
   const load = async (showLoading = false) => {
     if (showLoading) {
@@ -44,7 +45,7 @@ export default function ReportsPage() {
         await clientUseCases.generateReport().execute();
         await load();
       },
-      { markSaved, flashError },
+      { markSaved, flashError, beginSave },
       'reports'
     );
   };
@@ -171,10 +172,13 @@ export default function ReportsPage() {
                 Snapshot dos números acima. Não recorta por mês.
               </CardDescription>
             </div>
-            <Button onClick={handleGenerate}>
-              <Calendar className="h-4 w-4 mr-2" />
+            <CatalogSaveButton
+              type="button"
+              flash={{ saving, show, kind, message }}
+              onClick={handleGenerate}
+            >
               Gerar snapshot do período atual
-            </Button>
+            </CatalogSaveButton>
           </div>
         </CardHeader>
         <CardContent>

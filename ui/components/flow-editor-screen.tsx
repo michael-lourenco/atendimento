@@ -13,6 +13,7 @@ import { Label } from '@/ui/components/label';
 import { Textarea } from '@/ui/components/textarea';
 import { FlowKeywordChips } from '@/ui/components/flow-keyword-chips';
 import { CatalogSavedNotice } from '@/ui/components/catalog-saved-notice';
+import { CatalogSaveButton } from '@/ui/components/catalog-save-button';
 import { useCatalogSavedFlash } from '@/ui/lib/use-catalog-saved-flash';
 import { catalogPersistErrorMessage } from '@/ui/lib/catalog-persist-error';
 import { normalizeFlowKeywords } from '@/ui/lib/flow-keywords';
@@ -37,7 +38,8 @@ function snapshot(value: {
 export function FlowEditorScreen({ flowId, fromFlowId }: FlowEditorScreenProps) {
   const router = useRouter();
   const { confirm, dialog } = useConfirm();
-  const { show, kind, message, markSaved, flashSuccess, flashError } = useCatalogSavedFlash();
+  const { show, saving, kind, message, beginSave, markSaved, flashSuccess, flashError } =
+    useCatalogSavedFlash();
   const [loading, setLoading] = useState(true);
   const [flows, setFlows] = useState<Flow[]>([]);
   const [departments, setDepartments] = useState<Department[]>([]);
@@ -118,6 +120,7 @@ export function FlowEditorScreen({ flowId, fromFlowId }: FlowEditorScreenProps) 
       return null;
     }
     try {
+      beginSave();
       const id = editing?.id || flowId || `flow-${Date.now()}`;
       const keywordList = normalizeFlowKeywords(options?.keywordsOverride ?? keywords);
       const flow: Flow = {
@@ -154,7 +157,7 @@ export function FlowEditorScreen({ flowId, fromFlowId }: FlowEditorScreenProps) 
       flashError(catalogPersistErrorMessage(saveError, 'flows'));
       return null;
     }
-  }, [description, editing, flowId, isActive, keywords, markSaved, flashError, name, router, steps]);
+  }, [description, editing, flowId, isActive, keywords, beginSave, markSaved, flashError, name, router, steps]);
 
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
@@ -254,12 +257,22 @@ export function FlowEditorScreen({ flowId, fromFlowId }: FlowEditorScreenProps) 
           Voltar
         </Button>
         <div className="flex flex-wrap gap-2">
-          <Button type="button" variant="outline" onClick={() => void publishFlow()}>
+          <CatalogSaveButton
+            type="button"
+            variant="outline"
+            flash={{ saving, show, kind, message }}
+            doneLabel="Publicado"
+            onClick={() => void publishFlow()}
+          >
             Publicar
-          </Button>
-          <Button type="button" onClick={() => void saveFlow()}>
+          </CatalogSaveButton>
+          <CatalogSaveButton
+            type="button"
+            flash={{ saving, show, kind, message }}
+            onClick={() => void saveFlow()}
+          >
             Salvar fluxo
-          </Button>
+          </CatalogSaveButton>
         </div>
       </div>
       <div className="flex flex-wrap items-end gap-3">

@@ -16,10 +16,11 @@ export function CatalogSavedNotice({
   return (
     <p
       role="status"
+      aria-live="polite"
       className={
         error
-          ? 'mb-4 rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive'
-          : 'mb-4 rounded-md border border-emerald-500/40 bg-emerald-500/10 px-3 py-2 text-sm text-emerald-800 dark:text-emerald-300'
+          ? 'fixed left-1/2 top-20 z-50 w-[min(calc(100%-2rem),24rem)] -translate-x-1/2 rounded-md border border-destructive/40 bg-card px-3 py-2 text-sm text-destructive shadow-lg'
+          : 'fixed left-1/2 top-20 z-50 w-[min(calc(100%-2rem),24rem)] -translate-x-1/2 rounded-md border border-emerald-500/40 bg-card px-3 py-2 text-sm text-emerald-800 shadow-lg dark:text-emerald-300'
       }
     >
       {message}

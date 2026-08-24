@@ -15,6 +15,7 @@ import { useConfirm } from '@/ui/components/confirm-dialog';
 import { EmptyState } from '@/ui/components/empty-state';
 import { CatalogListSkeleton } from '@/ui/components/catalog-list-skeleton';
 import { CatalogSavedNotice } from '@/ui/components/catalog-saved-notice';
+import { CatalogSaveButton } from '@/ui/components/catalog-save-button';
 import { useCatalogSavedFlash } from '@/ui/lib/use-catalog-saved-flash';
 import { catalogPersistErrorMessage } from '@/ui/lib/catalog-persist-error';
 import { catalogMatchesQuery } from '@/ui/lib/catalog-filter';
@@ -33,7 +34,7 @@ export default function DepartmentsPage() {
     isActive: true,
   });
   const { confirm, dialog } = useConfirm();
-  const { show, kind, message, markSaved, flashError } = useCatalogSavedFlash();
+  const { show, saving, kind, message, beginSave, markSaved, flashError } = useCatalogSavedFlash();
 
   const loadDepartments = async (showLoading = false) => {
     if (showLoading) {
@@ -55,6 +56,7 @@ export default function DepartmentsPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    beginSave();
     try {
       const department: Department = {
         id: editingDepartment?.id || `dept-${Date.now()}`,
@@ -187,7 +189,7 @@ export default function DepartmentsPage() {
                 <Label htmlFor="isActive" className="cursor-pointer">Ativo</Label>
               </div>
               <div className="flex space-x-2">
-                <Button type="submit">Salvar</Button>
+                <CatalogSaveButton flash={{ saving, show, kind, message }} />
                 <Button
                   type="button"
                   variant="outline"
