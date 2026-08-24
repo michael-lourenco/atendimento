@@ -1,4 +1,6 @@
 import { flowStepMediaPreviewSrc } from '@/ui/lib/flow-step-media';
+import { QuickReplyMediaPreview } from '@/ui/components/quick-reply-media-preview';
+import { FlowStepMediaKind } from '@/core/entities/Flow';
 
 type FlowSimBubbleProps = {
   direction: 'in' | 'out';
@@ -6,7 +8,7 @@ type FlowSimBubbleProps = {
   flowId?: string;
   stepId?: string;
   mediaUrl?: string;
-  mediaKind?: 'image' | 'audio';
+  mediaKind?: FlowStepMediaKind;
 };
 
 export function FlowSimBubble({
@@ -19,6 +21,7 @@ export function FlowSimBubble({
 }: FlowSimBubbleProps) {
   const preview = flowStepMediaPreviewSrc(flowId, stepId ?? '', mediaUrl);
   const outgoing = direction === 'out';
+  const kind = mediaKind ?? 'image';
   return (
     <div
       className={
@@ -27,13 +30,7 @@ export function FlowSimBubble({
           : 'mr-8 whitespace-pre-wrap rounded-lg bg-bubble-in px-3 py-2 text-sm text-bubble-in-foreground shadow-sm'
       }
     >
-      {preview && mediaKind === 'audio' ? (
-        <audio controls className="w-full" src={preview} />
-      ) : null}
-      {preview && mediaKind !== 'audio' ? (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img alt={text || 'Imagem'} className="max-h-32 rounded-md object-contain" src={preview} />
-      ) : null}
+      {preview ? <QuickReplyMediaPreview src={preview} kind={kind} className="max-h-32" /> : null}
       {text ? <p>{text}</p> : null}
     </div>
   );

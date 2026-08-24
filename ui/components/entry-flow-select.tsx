@@ -3,6 +3,7 @@
 import { Flow } from '@/core/entities/Flow';
 import { entryFlowChoices } from '@/ui/lib/chatbot-form';
 import { entryFlowSelectLink } from '@/ui/lib/entry-flow-href';
+import { entryFlowIsHealthy } from '@/core/engine/flowHealth';
 import { Label } from '@/ui/components/label';
 import Link from 'next/link';
 
@@ -33,12 +34,16 @@ export function EntryFlowSelect({
         onChange={(event) => onChange(event.target.value)}
       >
         {choices.length === 0 ? <option value="">Nenhum fluxo ativo</option> : null}
-        {choices.map((item) => (
-          <option key={item.id} value={item.id}>
-            {item.name}
-            {item.isActive ? '' : ' (inativo)'}
-          </option>
-        ))}
+        {choices.map((item) => {
+          const healthy = entryFlowIsHealthy(item, flows);
+          return (
+            <option key={item.id} value={item.id} disabled={!healthy && item.id !== value}>
+              {item.name}
+              {item.isActive ? '' : ' (inativo)'}
+              {healthy ? '' : ' (com problemas)'}
+            </option>
+          );
+        })}
       </select>
       <p className="text-xs text-muted-foreground">
         {hint}{' '}

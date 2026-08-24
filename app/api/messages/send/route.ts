@@ -9,6 +9,9 @@ import { requestIdFrom } from '@/infra/http/requestId';
 import { isPublicSupabaseConfigured } from '@/infra/supabase/env';
 import { getOperatorUser } from '@/infra/supabase/getOperatorUser';
 import { PauseContactFlowUseCase } from '@/core/usecases/PauseContactFlowUseCase';
+import { ReopenConversationUseCase } from '@/core/usecases/ReopenConversationUseCase';
+import { ResumeContactFlowUseCase } from '@/core/usecases/ResumeContactFlowUseCase';
+import { conversationFromInboxQuery } from '@/core/entities/conversationThread';
 import { parseSendRequest, SendRequestError } from './parseSendRequest';
 
 export async function POST(request: NextRequest) {
@@ -23,6 +26,12 @@ export async function POST(request: NextRequest) {
     const input = await parseSendRequest(request);
     const locator = serverLocator;
     const repos = locator.getRepos();
+    const threadId = input.conversationId?.trim();
+    const existing =
+      (threadId ? await repos.conversation.getById(threadId) : null) ??
+      conversationFromInboxQuery(await repos.conversation.getAll(), { contactPhone: input.to });
+    const wasClosed = existing?.status === 'closed';
+
     const upsert = new UpsertConversationFromMessageUseCase(
       repos.conversation,
       repos.contact,
@@ -41,17 +50,20 @@ export async function POST(request: NextRequest) {
     const result = await useCase.execute(input);
 
     try {
-      await new PauseContactFlowUseCase(
-        repos.flowSession,
-        repos.flow,
-        repos.chatbot,
-        repos.whatsAppNumber,
-        repos.conversation
-      ).execute(
-        input.conversationId?.trim() || input.to
-      );
+      if (wasClosed && existing) {
+        await new ReopenConversationUseCase(repos.conversation).execute(existing.id);
+        await new ResumeContactFlowUseCase(repos.flowSession).execute(existing.id);
+      } else {
+        await new PauseContactFlowUseCase(
+          repos.flowSession,
+          repos.flow,
+          repos.chatbot,
+          repos.whatsAppNumber,
+          repos.conversation
+        ).execute(threadId || input.to);
+      }
     } catch (pauseError) {
-      logApiError(requestIdFrom(request), 'Falha ao pausar fluxo após envio do operador', pauseError);
+      logApiError(requestIdFrom(request), 'Falha ao ajustar fluxo após envio do operador', pauseError);
     }
 
     return apiJson(request, result, { status: 200 });

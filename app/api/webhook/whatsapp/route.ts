@@ -33,10 +33,15 @@ export async function POST(request: NextRequest) {
   try {
     const body = await parseJsonBody(request, metaWebhookSchema);
     if (body.entry && Array.isArray(body.entry)) {
+      const whatsAppService = serverLocator.getWhatsAppService();
       const useCase = serverLocator.createIncomingHandler();
       const applyReaction = new ApplyMessageReactionUseCase(serverLocator.getRepos().message);
       for (const entry of body.entry as WhatsAppWebhookEntry[]) {
-        await useCase.execute(entry);
+        const messages = await whatsAppService.processWebhook(entry);
+        const { fresh, hints } = await useCase.persistIncoming(messages);
+        void useCase.runIncomingFlow(fresh, hints).catch((error) => {
+          logApiError(requestIdFrom(request), 'Erro no motor do webhook WhatsApp', error);
+        });
         for (const reaction of mapMetaReactions(entry)) {
           await applyReaction.execute(reaction);
         }

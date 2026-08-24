@@ -8,6 +8,10 @@ export class MockFlowSessionRepository implements IFlowSessionRepository {
     return this.sessions.get(contactId) ?? null;
   }
 
+  async listByFlowId(flowId: string): Promise<FlowSession[]> {
+    return [...this.sessions.values()].filter((session) => session.flowId === flowId);
+  }
+
   async save(session: FlowSession): Promise<void> {
     this.sessions.set(session.contactId, { ...session });
   }

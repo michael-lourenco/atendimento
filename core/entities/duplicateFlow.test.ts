@@ -17,5 +17,6 @@ describe('duplicateFlow', () => {
     expect(copy.name).toBe('Atendimento (cópia)');
     expect(copy.isActive).toBe(false);
     expect(copy.steps).toEqual(flow.steps);
+    expect(copy.publishedSteps).toBeUndefined();
   });
 });

@@ -17,11 +17,19 @@ export function lastIncomingTimestamp(
   return null;
 }
 
-export function latestIncomingText(messages: Message[], fallback: string): string {
-  const incoming = messages
+function incomingTexts(messages: Message[]): Message[] {
+  return messages
     .filter((item) => item.direction === 'incoming' && item.type === 'text' && item.content.trim())
     .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
-  return incoming[0]?.content.trim() ?? fallback;
+}
+
+export function latestIncomingText(messages: Message[], fallback: string): string {
+  return incomingTexts(messages)[0]?.content.trim() ?? fallback;
+}
+
+export function latestIncomingAt(messages: Message[], fallback: Date): Date {
+  const stamp = incomingTexts(messages)[0]?.timestamp;
+  return stamp ? new Date(stamp) : fallback;
 }
 
 export function isBotIdleQuestion(session: {

@@ -4,7 +4,7 @@ import { Agent, AgentStatus } from '../../../core/entities/Agent';
 import { Contact } from '../../../core/entities/Contact';
 import { WhatsAppNumber, WhatsAppNumberStatus } from '../../../core/entities/WhatsAppNumber';
 import { Tag } from '../../../core/entities/Tag';
-import { QuickReply } from '../../../core/entities/QuickReply';
+import { isQuickReplyMediaKind, QuickReply } from '../../../core/entities/QuickReply';
 import { ScheduledMessage, ScheduleStatus } from '../../../core/entities/ScheduledMessage';
 import { Report, ReportType } from '../../../core/entities/Report';
 import { asDate, asStringArray } from '../crud';
@@ -194,7 +194,7 @@ export function quickReplyFromRow(row: Record<string, unknown>): QuickReply {
     id: String(row.id),
     title: String(row.title),
     body: String(row.body ?? ''),
-    mediaKind: row.media_kind === 'audio' ? 'audio' : undefined,
+    mediaKind: isQuickReplyMediaKind(row.media_kind) ? row.media_kind : undefined,
     departmentId: row.department_id ? String(row.department_id) : undefined,
     createdAt: asDate(row.created_at),
   };
@@ -205,7 +205,7 @@ export function quickReplyToRow(reply: QuickReply) {
     id: reply.id,
     title: reply.title,
     body: reply.body,
-    media_kind: reply.mediaKind === 'audio' ? 'audio' : null,
+    media_kind: isQuickReplyMediaKind(reply.mediaKind) ? reply.mediaKind : null,
     department_id: reply.departmentId ?? null,
     created_at: reply.createdAt.toISOString(),
   };

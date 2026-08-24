@@ -122,6 +122,7 @@ export function useMessageThread(conversationId: string, onConversationChanged?:
     setError(null);
     setPendingSend(input.text.trim() || (input.file ? input.file.name : '…'));
     try {
+      const reopening = conversation?.status === 'closed';
       await postThreadMessage({
         to: phone,
         conversationId,
@@ -129,7 +130,7 @@ export function useMessageThread(conversationId: string, onConversationChanged?:
         file: input.file,
         quotedMessageId: input.quotedMessageId,
       });
-      setPaused(true);
+      setPaused(!reopening);
       setPendingSend(null);
       setReplyTo(null);
       refresh();

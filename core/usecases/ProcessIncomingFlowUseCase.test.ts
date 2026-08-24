@@ -13,7 +13,8 @@ import { SetConversationDepartmentUseCase } from './SetConversationDepartmentUse
 import { ProcessIncomingFlowUseCase } from './ProcessIncomingFlowUseCase';
 import { IChatbotRepository } from '../repositories/IChatbotRepository';
 import { IWhatsAppNumberRepository } from '../repositories/IWhatsAppNumberRepository';
-import { ZERO_BOT_BEHAVIOR } from '../entities/botBehavior';
+import { ZERO_BOT_BEHAVIOR, DEFAULT_BOT_BEHAVIOR } from '../entities/botBehavior';
+import { salesIntakeFlows } from '../entities/atendimentoInicialFlow';
 
 const now = new Date('2026-08-18T15:00:00Z');
 
@@ -53,6 +54,9 @@ class InMemorySessionRepository implements IFlowSessionRepository {
   private sessions = new Map<string, FlowSession>();
   async getByContactId(contactId: string) {
     return this.sessions.get(contactId) ?? null;
+  }
+  async listByFlowId(flowId: string) {
+    return [...this.sessions.values()].filter((session) => session.flowId === flowId);
   }
   async save(session: FlowSession) {
     this.sessions.set(session.contactId, session);
@@ -151,7 +155,7 @@ describe('ProcessIncomingFlowUseCase', () => {
     };
 
     await useCase.executeForMessages([
-      { ...base, id: 'img', content: 'foto', type: 'image', direction: 'incoming' },
+      { ...base, id: 'img', content: '', type: 'image', direction: 'incoming' },
       { ...base, id: 'out', content: 'já enviada', type: 'text', direction: 'outgoing' },
     ]);
 
@@ -339,7 +343,7 @@ describe('ProcessIncomingFlowUseCase', () => {
     expect((await sessions.getByContactId('5511999999999'))?.paused).toBe(false);
   });
 
-  it('lote na mesma linha usa só a última mensagem', async () => {
+  it('lote na mesma linha processa cada texto na ordem', async () => {
     const { useCase, whatsApp } = createUseCase([sampleFlow]);
     const base = {
       from: '5511999999999',
@@ -353,7 +357,7 @@ describe('ProcessIncomingFlowUseCase', () => {
       { ...base, id: 'a', content: 'oi' },
       { ...base, id: 'b', content: 'oi de novo' },
     ]);
-    expect(whatsApp.sent.map((item) => item.message)).toEqual(['Olá', 'Qual área?']);
+    expect(whatsApp.sent.map((item) => item.message)).toEqual(['Olá', 'Qual área?', 'Obrigado']);
   });
 
   it('conhecido com pergunta à espera trata o texto como resposta', async () => {
@@ -484,5 +488,243 @@ describe('ProcessIncomingFlowUseCase', () => {
     });
     expect(whatsApp.sent.map((item) => item.message)).toEqual(['Suporte olá', 'Qual chamado?']);
     expect((await sessions.getByContactId('5511999999999'))?.flowId).toBe('suporte');
+  });
+
+  it('três incoming concorrentes na mesma thread: uma abertura e o burst não gera miss', async () => {
+    const whatsApp = new FakeWhatsAppService();
+    const sessions = new InMemorySessionRepository();
+    const messages = new InMemoryMessageRepository();
+    const t1 = new Date('2026-08-18T15:00:00Z');
+    const t2 = new Date('2026-08-18T15:00:01Z');
+    const t3 = new Date('2026-08-18T15:00:02Z');
+    const phone = '5511999999999';
+    const base = {
+      from: phone,
+      to: 'bot',
+      type: 'text' as const,
+      direction: 'incoming' as const,
+      status: 'sent' as const,
+    };
+    messages.messages = [
+      { ...base, id: '1', content: 'Oie', timestamp: t1 },
+      { ...base, id: '2', content: 'Td bem?', timestamp: t2 },
+      {
+        ...base,
+        id: '3',
+        content: 'Vai ter aula amanhã mesmo? Onde vai ser?',
+        timestamp: t3,
+      },
+    ];
+    const chatbots: IChatbotRepository = {
+      getAll: async () => [
+        {
+          id: '1',
+          name: 'Bot',
+          isActive: true,
+          messagesCount: 0,
+          createdAt: now,
+          updatedAt: now,
+          behavior: { ...ZERO_BOT_BEHAVIOR, inboundDebounceMs: 800, missHandoffAfter: 3 },
+        },
+      ],
+      getById: async () => null,
+      save: async () => {},
+      delete: async () => {},
+    };
+    const send = new SendWhatsAppMessageUseCase(whatsApp, new InMemoryMessageRepository());
+    const useCase = new ProcessIncomingFlowUseCase(
+      new InMemoryFlowRepository(salesIntakeFlows(now)),
+      sessions,
+      send,
+      null,
+      null,
+      null,
+      chatbots,
+      null,
+      { sleep: async () => undefined, messages }
+    );
+
+    await Promise.all([
+      useCase.execute({ contactId: phone, text: 'Oie', incomingAt: t1 }),
+      useCase.execute({ contactId: phone, text: 'Td bem?', incomingAt: t2 }),
+      useCase.execute({
+        contactId: phone,
+        text: 'Vai ter aula amanhã mesmo? Onde vai ser?',
+        incomingAt: t3,
+      }),
+    ]);
+
+    const sent = whatsApp.sent.map((item) => item.message);
+    expect(sent.filter((item) => item.startsWith('Oi, aqui é o Michael')).length).toBe(1);
+    expect(sent.filter((item) => item.startsWith('Como posso te ajudar?')).length).toBe(1);
+    expect(sent.filter((item) => item.startsWith('Não peguei')).length).toBe(0);
+  });
+
+  it('threads distintas processam o motor em paralelo', async () => {
+    const { useCase, whatsApp } = createUseCase([sampleFlow]);
+
+    await Promise.all([
+      useCase.execute({ contactId: '5511111111111', text: 'oi' }),
+      useCase.execute({ contactId: '5511222222222', text: 'oi' }),
+    ]);
+
+    expect(whatsApp.sent.filter((item) => item.message === 'Olá')).toHaveLength(2);
+    expect(whatsApp.sent.filter((item) => item.message === 'Qual área?')).toHaveLength(2);
+  });
+
+  it('terceiro miss na pergunta faz handoff', async () => {
+    const whatsApp = new FakeWhatsAppService();
+    const sessions = new InMemorySessionRepository();
+    const send = new SendWhatsAppMessageUseCase(whatsApp, new InMemoryMessageRepository());
+    const chatbots: IChatbotRepository = {
+      getAll: async () => [
+        {
+          id: '1',
+          name: 'Bot',
+          isActive: true,
+          messagesCount: 0,
+          createdAt: now,
+          updatedAt: now,
+          behavior: { ...DEFAULT_BOT_BEHAVIOR, inboundDebounceMs: 0, replyDelayMs: 0, bubbleDelayMs: 0 },
+        },
+      ],
+      getById: async () => null,
+      save: async () => {},
+      delete: async () => {},
+    };
+    const useCase = new ProcessIncomingFlowUseCase(
+      new InMemoryFlowRepository([sampleFlow]),
+      sessions,
+      send,
+      null,
+      null,
+      null,
+      chatbots,
+      null,
+      { sleep: async () => undefined }
+    );
+    await useCase.execute({ contactId: '5511999999999', text: 'oi' });
+    await useCase.execute({ contactId: '5511999999999', text: 'x' });
+    await useCase.execute({ contactId: '5511999999999', text: 'y' });
+    whatsApp.sent = [];
+    await useCase.execute({ contactId: '5511999999999', text: 'z' });
+    expect(whatsApp.sent.map((item) => item.message)).toEqual([
+      'Vou te passar para uma pessoa da equipe.',
+    ]);
+    expect((await sessions.getByContactId('5511999999999'))?.paused).toBe(true);
+  });
+
+  it('mídia na pergunta envia aviso uma vez', async () => {
+    const whatsApp = new FakeWhatsAppService();
+    const sessions = new InMemorySessionRepository();
+    await sessions.save({
+      contactId: '5511999999999',
+      flowId: 'inicio',
+      currentStepId: 'ask',
+      paused: false,
+      updatedAt: now,
+    });
+    const send = new SendWhatsAppMessageUseCase(whatsApp, new InMemoryMessageRepository());
+    const chatbots: IChatbotRepository = {
+      getAll: async () => [
+        {
+          id: '1',
+          name: 'Bot',
+          isActive: true,
+          messagesCount: 0,
+          createdAt: now,
+          updatedAt: now,
+          behavior: DEFAULT_BOT_BEHAVIOR,
+        },
+      ],
+      getById: async () => null,
+      save: async () => {},
+      delete: async () => {},
+    };
+    const useCase = new ProcessIncomingFlowUseCase(
+      new InMemoryFlowRepository([sampleFlow]),
+      sessions,
+      send,
+      null,
+      null,
+      null,
+      chatbots
+    );
+    const image = {
+      id: 'img',
+      from: '5511999999999',
+      to: 'bot',
+      content: '',
+      type: 'image' as const,
+      direction: 'incoming' as const,
+      status: 'sent' as const,
+      timestamp: now,
+    };
+    await useCase.executeForMessages([image]);
+    await useCase.executeForMessages([{ ...image, id: 'img2' }]);
+    expect(whatsApp.sent.map((item) => item.message)).toEqual([DEFAULT_BOT_BEHAVIOR.mediaHintMessage]);
+  });
+
+  it('motor usa publishedSteps e não o rascunho', async () => {
+    const { useCase, whatsApp } = createUseCase([
+      {
+        ...sampleFlow,
+        steps: [{ id: 'draft', type: 'message', content: 'RASCUNHO' }],
+        publishedSteps: [
+          { id: 'welcome', type: 'message', content: 'PUBLICADO', nextStepId: 'ask' },
+          { id: 'ask', type: 'question', content: 'Qual área?' },
+        ],
+      },
+    ]);
+    await useCase.execute({ contactId: '5511999999999', text: 'oi' });
+    expect(whatsApp.sent.map((item) => item.message)).toEqual(['PUBLICADO', 'Qual área?']);
+  });
+
+  it('legenda da mídia avança como texto', async () => {
+    const { useCase, whatsApp, sessions } = createUseCase([sampleFlow]);
+    await sessions.save({
+      contactId: '5511999999999',
+      flowId: 'inicio',
+      currentStepId: 'ask',
+      paused: false,
+      updatedAt: now,
+    });
+    await useCase.executeForMessages([
+      {
+        id: 'img',
+        from: '5511999999999',
+        to: 'bot',
+        content: 'qualquer',
+        type: 'image',
+        direction: 'incoming',
+        status: 'sent',
+        timestamp: now,
+      },
+    ]);
+    expect(whatsApp.sent.map((item) => item.message)).toEqual(['Obrigado']);
+  });
+
+  it('atalho humano pausa no meio da pergunta', async () => {
+    const { useCase, whatsApp, sessions } = createUseCase([sampleFlow]);
+    await useCase.execute({ contactId: '5511999999999', text: 'oi' });
+    whatsApp.sent = [];
+    await useCase.execute({ contactId: '5511999999999', text: 'quero um humano' });
+    expect(whatsApp.sent.map((item) => item.message)).toEqual([
+      'Vou te passar para uma pessoa da equipe.',
+    ]);
+    expect((await sessions.getByContactId('5511999999999'))?.paused).toBe(true);
+  });
+
+  it('passo órfão volta ao menu conhecido', async () => {
+    const { useCase, whatsApp, sessions } = createUseCase([sampleFlow]);
+    await sessions.save({
+      contactId: '5511999999999',
+      flowId: 'inicio',
+      currentStepId: 'sumiu',
+      paused: false,
+      updatedAt: now,
+    });
+    await useCase.execute({ contactId: '5511999999999', text: 'oi' });
+    expect(whatsApp.sent.map((item) => item.message)).toEqual(['Qual área?']);
   });
 });

@@ -52,12 +52,37 @@ describe('SaveQuickReplyMediaUseCase', () => {
     expect(storage.files.get('quick-replies/qr-1')?.mimeType).toBe('audio/ogg');
   });
 
-  it('recusa arquivo que não é áudio', async () => {
+  it('grava imagem e vídeo', async () => {
+    const replies = new MemoryReplies([{ ...sample }]);
+    const storage = new MemoryStorage();
+    const image = await new SaveQuickReplyMediaUseCase(replies, storage).execute('qr-1', {
+      bytes: new Uint8Array([1]),
+      mimeType: 'image/png',
+    });
+    expect(image?.mediaKind).toBe('image');
+    const video = await new SaveQuickReplyMediaUseCase(replies, storage).execute('qr-1', {
+      bytes: new Uint8Array([2]),
+      mimeType: 'video/mp4',
+    });
+    expect(video?.mediaKind).toBe('video');
+  });
+
+  it('grava PDF como document', async () => {
+    const replies = new MemoryReplies([{ ...sample }]);
+    const storage = new MemoryStorage();
+    const pdf = await new SaveQuickReplyMediaUseCase(replies, storage).execute('qr-1', {
+      bytes: new Uint8Array([1]),
+      mimeType: 'application/pdf',
+    });
+    expect(pdf?.mediaKind).toBe('document');
+  });
+
+  it('recusa documento que não é PDF', async () => {
     const replies = new MemoryReplies([{ ...sample }]);
     await expect(
       new SaveQuickReplyMediaUseCase(replies, new MemoryStorage()).execute('qr-1', {
         bytes: new Uint8Array([1]),
-        mimeType: 'image/png',
+        mimeType: 'application/zip',
       })
     ).rejects.toBeInstanceOf(InvalidQuickReplyMediaError);
     expect(replies.items[0].mediaKind).toBeUndefined();

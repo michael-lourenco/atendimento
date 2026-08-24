@@ -58,7 +58,7 @@ Isolamento entre empresas = cópia da stack (`00-vision.md`, `08-supabase.md`).
 - PTT no compositor (áudio via send existente)
 - Recibo de leitura ao abrir a thread (`POST /api/messages/read`)
 - Busca da inbox e do histórico pelo texto das mensagens
-- Áudio pré-gravado nas respostas rápidas
+- Áudio, imagem, vídeo e PDF nas respostas rápidas
 - PTT no cadastro de respostas rápidas (mesmo gravador do chat)
 - Ícone de microfone no picker para respostas de áudio
 - Busca no picker de respostas rápidas; Enviando…/erro ao baixar áudio
@@ -71,13 +71,13 @@ Isolamento entre empresas = cópia da stack (`00-vision.md`, `08-supabase.md`).
 - Comportamento do bot: delay/digitando; conhecido = thread desta linha + contato já no catálogo; idle só na pergunta; reabertura → menu conhecido
 - Fluxo de entrada no chatbot ativo (`Chatbot.flowId`); overlay por linha (`WhatsAppNumber.flowId`); fallback `inicio`
 - Expediente por linha (`WhatsAppNumber.businessHours`)
-- Mídia anexada (imagem/áudio) no bloco Mensagem do editor de fluxos (bucket `media`, path `flows/{flowId}/{stepId}`, rotas `PUT`/`GET`/`DELETE /api/flows/{flowId}/steps/{stepId}/media`)
+- Mídia anexada (imagem/áudio/vídeo/PDF) no bloco Mensagem do editor de fluxos (bucket `media`, path `flows/{flowId}/{stepId}`, rotas `PUT`/`GET`/`DELETE /api/flows/{flowId}/steps/{stepId}/media`)
 - Avisos de roteiro clicáveis no editor (`flowHealthIssues` → seleciona bloco, abre inspetor, foca o nó)
 - Anexar mídia no bloco Mensagem grava o fluxo (se já tiver nome; mesmo save do `Ctrl`/`⌘`+S) e em seguida faz o PUT; sem nome, “Dê um nome ao fluxo” e não anexa
 - Pausa do bloco Mensagem na tela em segundos (0–8); grava `delayMs` (0–8000) com `msToSeconds` / `secondsToMs`
 - Chatbot: atalho **Editar este fluxo** no `EntryFlowSelect` (empresa e linha) → `/dashboard/flows/{flowId}`; sem fluxo escolhido, **Abrir Fluxos** na lista
 - Menu e header: rótulo **Chatbot** (singular); URL permanece `/dashboard/chatbots`
-- Simulador do fluxo: bolhas com mídia (`image`/`audio`) e seletor **Novo** / **Conhecido**; após `handoff` o bot não responde
+- Simulador do fluxo: bolhas com mídia (`image`/`audio`/`video`/`document`) e seletor **Novo** / **Conhecido**; após `handoff` o bot não responde
 - Chatbot: confirmar antes de trocar **Vale para** com rascunho; expediente e ritmo nascem recolhidos
 - Palavras-chave do fluxo no editor em chips (Enter/vírgula/colar; X tira)
 - Simulador: depois de `goToFlow` o turno seguinte fica no destino; o quadro acompanha o fluxo da sessão e destaca o passo atual
@@ -87,6 +87,7 @@ Isolamento entre empresas = cópia da stack (`00-vision.md`, `08-supabase.md`).
 - Histórico clicável (abre a conversa); teclado j/k/setas/Enter/Esc na fila; “{nome} está nesta conversa”
 - Inbox: silenciar chime; selo Falhou na lista; CTA Números ↔ WhatsApp (sem unificar rotas)
 - Inbox: lembrar Minhas/setor/linha; folha de atalhos (`?`); filtro por etiqueta (fila e Contatos)
+- Atalho humano; legenda de mídia como texto; sessão órfã volta ao menu; confirmação ao publicar com gente no passo que some
 
 ## Não fazer
 

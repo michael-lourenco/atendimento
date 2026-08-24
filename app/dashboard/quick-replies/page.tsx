@@ -4,8 +4,9 @@ import { clientUseCases } from '@/infra/adapters/clientUseCases';
 import { useEffect, useState } from 'react';
 import {
   QuickReply,
-  quickReplyHasAudio,
+  quickReplyHasMedia,
   quickReplyListPreview,
+  quickReplyMediaLabel,
   sortQuickReplies,
 } from '@/core/entities/QuickReply';
 import { Department } from '@/core/entities/Department';
@@ -18,6 +19,7 @@ import { Badge } from '@/ui/components/badge';
 import { EmptyState } from '@/ui/components/empty-state';
 import { useConfirm } from '@/ui/components/confirm-dialog';
 import { QuickReplyEditor } from '@/ui/components/quick-reply-editor';
+import { QuickReplyMediaPreview } from '@/ui/components/quick-reply-media-preview';
 import { Plus } from 'lucide-react';
 import { catalogPersistErrorMessage } from '@/ui/lib/catalog-persist-error';
 import { CatalogListSkeleton } from '@/ui/components/catalog-list-skeleton';
@@ -33,21 +35,21 @@ function sectorLabel(departments: Department[], departmentId?: string): string {
   return departmentNameOf(departments, departmentId) || 'Setor removido';
 }
 
-async function putAudio(id: string, file: File): Promise<void> {
+async function putMedia(id: string, file: File): Promise<void> {
   const form = new FormData();
   form.append('file', file);
   const response = await fetch(quickReplyMediaApiHref(id), { method: 'PUT', body: form });
   const body = await response.json().catch(() => ({}));
   if (!response.ok) {
-    throw new Error(body.error || 'Não foi possível gravar o áudio');
+    throw new Error(body.error || 'Não foi possível gravar a mídia');
   }
 }
 
-async function deleteAudio(id: string): Promise<void> {
+async function deleteMedia(id: string): Promise<void> {
   const response = await fetch(quickReplyMediaApiHref(id), { method: 'DELETE' });
   const body = await response.json().catch(() => ({}));
   if (!response.ok) {
-    throw new Error(body.error || 'Não foi possível remover o áudio');
+    throw new Error(body.error || 'Não foi possível remover a mídia');
   }
 }
 
@@ -94,7 +96,7 @@ export default function QuickRepliesPage() {
     body: string;
     departmentId?: string;
     file: File | null;
-    removeAudio: boolean;
+    removeMedia: boolean;
   }) => {
     const id = editing?.id || `qr-${Date.now()}`;
     try {
@@ -103,14 +105,14 @@ export default function QuickRepliesPage() {
         title: input.title,
         body: input.body,
         departmentId: input.departmentId,
-        mediaKind: input.removeAudio ? undefined : editing?.mediaKind,
+        mediaKind: input.removeMedia ? undefined : editing?.mediaKind,
         createdAt: editing?.createdAt || new Date(),
       });
-      if (input.removeAudio && !input.file) {
-        await deleteAudio(id);
+      if (input.removeMedia && !input.file) {
+        await deleteMedia(id);
       }
       if (input.file) {
-        await putAudio(id, input.file);
+        await putMedia(id, input.file);
       }
       setError(null);
       reset();
@@ -132,7 +134,7 @@ export default function QuickRepliesPage() {
         </p>
       ) : null}
       <div className="mb-6 flex items-center justify-between">
-        <p className="text-muted-foreground">Frases e áudios prontos para o chat</p>
+        <p className="text-muted-foreground">Frases e mídias prontas para o chat</p>
         <Button onClick={() => setShowForm(true)}>
           <Plus className="mr-2 h-4 w-4" />
           Nova resposta
@@ -152,7 +154,9 @@ export default function QuickRepliesPage() {
       <Card>
         <CardHeader>
           <CardTitle>Respostas rápidas</CardTitle>
-          <CardDescription>Texto insere no compositor; áudio envia na hora</CardDescription>
+          <CardDescription>
+            Texto insere no compositor; imagem, vídeo, áudio e PDF enviam na hora
+          </CardDescription>
         </CardHeader>
         <CardContent>
           {loading ? (
@@ -160,7 +164,7 @@ export default function QuickRepliesPage() {
           ) : replies.length === 0 ? (
             <EmptyState
               title="Nenhuma resposta ainda"
-              description="Cadastre uma frase ou um áudio pronto para o atendimento."
+              description="Cadastre uma frase, foto, vídeo, áudio ou PDF pronto para o atendimento."
               actionLabel="Nova resposta"
               onAction={() => setShowForm(true)}
             />
@@ -179,9 +183,9 @@ export default function QuickRepliesPage() {
                   <TableRow key={item.id}>
                     <TableCell className="font-medium">
                       <span>{item.title}</span>
-                      {quickReplyHasAudio(item) ? (
+                      {item.mediaKind ? (
                         <Badge variant="info" className="ml-2">
-                          Áudio
+                          {quickReplyMediaLabel(item.mediaKind)}
                         </Badge>
                       ) : null}
                     </TableCell>
@@ -189,8 +193,12 @@ export default function QuickRepliesPage() {
                       {sectorLabel(departments, item.departmentId)}
                     </TableCell>
                     <TableCell className="max-w-md">
-                      {quickReplyHasAudio(item) ? (
-                        <audio controls className="mb-1 w-full max-w-xs" src={quickReplyMediaApiHref(item.id)} />
+                      {quickReplyHasMedia(item) && item.mediaKind ? (
+                        <QuickReplyMediaPreview
+                          className="mb-1 max-w-xs"
+                          src={quickReplyMediaApiHref(item.id)}
+                          kind={item.mediaKind}
+                        />
                       ) : null}
                       <p className="truncate text-muted-foreground">{quickReplyListPreview(item)}</p>
                     </TableCell>

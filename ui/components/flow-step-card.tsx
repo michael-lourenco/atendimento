@@ -1,6 +1,6 @@
 'use client';
 
-import { FlowStep } from '@/core/entities/Flow';
+import { FlowStep, FlowStepMediaKind } from '@/core/entities/Flow';
 import { Department } from '@/core/entities/Department';
 import { Button } from '@/ui/components/button';
 import { Label } from '@/ui/components/label';
@@ -174,11 +174,13 @@ export function FlowStepCard({
                   value={step.mediaKind ?? 'image'}
                   aria-label="Tipo da mídia"
                   onChange={(event) =>
-                    onPatch({ ...step, mediaKind: event.target.value as 'image' | 'audio' })
+                    onPatch({ ...step, mediaKind: event.target.value as FlowStepMediaKind })
                   }
                 >
                   <option value="image">Imagem</option>
                   <option value="audio">Áudio</option>
+                  <option value="video">Vídeo</option>
+                  <option value="document">PDF</option>
                 </select>
               </div>
             </div>

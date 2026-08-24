@@ -1,7 +1,7 @@
 'use client';
 
 import { ChangeEvent, useEffect, useRef, useState } from 'react';
-import { FlowStep } from '@/core/entities/Flow';
+import { FlowStep, FlowStepMediaKind } from '@/core/entities/Flow';
 import {
   flowStepMediaApiHref,
   flowStepMediaPath,
@@ -12,10 +12,15 @@ import { Button } from '@/ui/components/button';
 import { Input } from '@/ui/components/input';
 import { Label } from '@/ui/components/label';
 import { PttButton } from '@/ui/components/ptt-button';
+import { QuickReplyMediaPreview } from '@/ui/components/quick-reply-media-preview';
 import { flowSelectClass } from '@/ui/components/flow-next-step-select';
 import { PTT_MAX_MS } from '@/ui/lib/ptt-file';
 import { usePttRecorder } from '@/ui/lib/use-ptt-recorder';
-import { flowStepMediaFileError, flowStepMediaPreviewSrc } from '@/ui/lib/flow-step-media';
+import {
+  flowStepMediaFileError,
+  flowStepMediaPreviewSrc,
+  mimeOfFlowStepFile,
+} from '@/ui/lib/flow-step-media';
 
 type FlowStepMediaFieldsProps = {
   flowId?: string;
@@ -57,7 +62,6 @@ export function FlowStepMediaFields({
   const preview = flowStepMediaPreviewSrc(flowId, step.id, step.mediaUrl);
   const stored = Boolean(flowStepStoragePathFromRef(step.mediaUrl ?? ''));
   const urlValue = stored ? '' : (step.mediaUrl ?? '');
-  const previewKind = step.mediaKind === 'audio' ? 'audio' : 'image';
 
   useEffect(() => () => ptt.cancel(), []);
 
@@ -94,11 +98,11 @@ export function FlowStepMediaFields({
         onPersisted?.(id);
         return;
       }
-      const mediaKind = mediaKindFromMime(file.type || 'application/octet-stream');
+      const mediaKind = mediaKindFromMime(mimeOfFlowStepFile(file));
       onPatch({
         ...step,
         mediaUrl: flowStepMediaPath(id, step.id),
-        mediaKind: mediaKind === 'audio' ? 'audio' : 'image',
+        mediaKind,
       });
       onPersisted?.(id);
     } catch {
@@ -147,16 +151,7 @@ export function FlowStepMediaFields({
   return (
     <div className="space-y-2">
       {preview ? (
-        previewKind === 'audio' ? (
-          <audio controls className="w-full" src={preview} />
-        ) : (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            alt="Mídia do passo"
-            className="max-h-32 rounded-md border border-border object-contain"
-            src={preview}
-          />
-        )
+        <QuickReplyMediaPreview src={preview} kind={step.mediaKind ?? 'image'} />
       ) : null}
       <div className="flex flex-wrap items-center gap-2">
           {ptt.supported ? (
@@ -176,7 +171,7 @@ export function FlowStepMediaFields({
           <Input
             ref={fileRef}
             type="file"
-            accept="image/*,audio/*"
+            accept="image/*,video/*,audio/*,.pdf,application/pdf"
             className="bg-background"
             disabled={busy || ptt.recording}
             onChange={onFileChange}
@@ -226,16 +221,18 @@ export function FlowStepMediaFields({
             value={step.mediaKind ?? 'image'}
             aria-label="Tipo da mídia"
             onChange={(event) =>
-              onPatch({ ...step, mediaKind: event.target.value as 'image' | 'audio' })
+              onPatch({ ...step, mediaKind: event.target.value as FlowStepMediaKind })
             }
           >
             <option value="image">Imagem</option>
             <option value="audio">Áudio</option>
+            <option value="video">Vídeo</option>
+            <option value="document">PDF</option>
           </select>
         ) : null}
       </div>
       {error ? <p className="text-sm text-destructive">{error}</p> : null}
-      <p className="text-xs text-muted-foreground">Imagem ou áudio. Máx. 16 MB.</p>
+      <p className="text-xs text-muted-foreground">Foto, vídeo, áudio ou PDF. Máx. 16 MB.</p>
     </div>
   );
 }

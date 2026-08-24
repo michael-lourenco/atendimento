@@ -338,4 +338,44 @@ describe('planFlowTurn', () => {
     expect(plan.replies.map((reply) => reply.content)).toEqual(['Tabela de valores']);
     expect(plan.nextSession.flowId).toBe('preco');
   });
+
+  it('currentStepId inexistente mostra só o menu conhecido', () => {
+    const plan = planFlowTurn({
+      flow,
+      session: {
+        contactId: '5511999999999',
+        flowId: 'inicio',
+        currentStepId: 'sumiu',
+        paused: false,
+        updatedAt: now,
+      },
+      contactId: '5511999999999',
+      incomingText: 'oi',
+      now,
+    });
+    expect(plan.replies.map((reply) => reply.content)).toEqual([
+      'Qual área?\n1. Suporte\n2. Vendas',
+    ]);
+    expect(plan.nextSession.currentStepId).toBe('ask');
+  });
+
+  it('atalho humano vence a pergunta', () => {
+    const plan = planFlowTurn({
+      flow,
+      session: {
+        contactId: '5511999999999',
+        flowId: 'inicio',
+        currentStepId: 'ask',
+        paused: false,
+        updatedAt: now,
+      },
+      contactId: '5511999999999',
+      incomingText: '0',
+      now,
+    });
+    expect(plan.replies.map((reply) => reply.content)).toEqual([
+      'Vou te passar para uma pessoa da equipe.',
+    ]);
+    expect(plan.nextSession.paused).toBe(true);
+  });
 });

@@ -25,24 +25,39 @@ describe('sortQuickReplies', () => {
 });
 
 describe('quickReplyListPreview', () => {
-  it('mostra Áudio quando não há texto', () => {
+  it('mostra o rótulo da mídia quando não há texto', () => {
     expect(quickReplyListPreview(reply({ id: '1', title: 'Voicemail', mediaKind: 'audio' }))).toBe(
       'Áudio'
+    );
+    expect(quickReplyListPreview(reply({ id: '2', title: 'Foto', mediaKind: 'image' }))).toBe(
+      'Foto'
+    );
+    expect(quickReplyListPreview(reply({ id: '3', title: 'Clip', mediaKind: 'video' }))).toBe(
+      'Vídeo'
+    );
+    expect(quickReplyListPreview(reply({ id: '4', title: 'Tabela', mediaKind: 'document' }))).toBe(
+      'Documento'
     );
   });
 });
 
 describe('quickReplyPickerActionLabel', () => {
-  it('distingue áudio de texto', () => {
+  it('distingue mídia de texto', () => {
     expect(quickReplyPickerActionLabel({ mediaKind: 'audio' })).toBe('Envia áudio');
+    expect(quickReplyPickerActionLabel({ mediaKind: 'image' })).toBe('Envia imagem');
+    expect(quickReplyPickerActionLabel({ mediaKind: 'video' })).toBe('Envia vídeo');
+    expect(quickReplyPickerActionLabel({ mediaKind: 'document' })).toBe('Envia documento');
     expect(quickReplyPickerActionLabel({ mediaKind: undefined })).toBe('Insere texto');
   });
 });
 
 describe('quickReplyIsValid', () => {
-  it('aceita texto ou áudio', () => {
+  it('aceita texto ou mídia', () => {
     expect(quickReplyIsValid({ title: 'Oi', body: 'Olá', mediaKind: undefined })).toBe(true);
     expect(quickReplyIsValid({ title: 'Oi', body: '', mediaKind: 'audio' })).toBe(true);
+    expect(quickReplyIsValid({ title: 'Oi', body: '', mediaKind: 'image' })).toBe(true);
+    expect(quickReplyIsValid({ title: 'Oi', body: '', mediaKind: 'video' })).toBe(true);
+    expect(quickReplyIsValid({ title: 'Oi', body: '', mediaKind: 'document' })).toBe(true);
     expect(quickReplyIsValid({ title: 'Oi', body: '', mediaKind: undefined })).toBe(false);
     expect(quickReplyIsValid({ title: '  ', body: 'Olá', mediaKind: undefined })).toBe(false);
   });

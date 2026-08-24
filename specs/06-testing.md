@@ -17,10 +17,15 @@ Runner: Jest + `ts-jest` (`npm test`). Testing Library só quando houver teste d
 
 ## Cobertura atual
 
-- `core/engine/planFlowTurn.test.ts` — primeira sessão, `nextStepId`, `condition` true/false (texto ou **número** da opção), `setDepartment`, `goToFlow`; sessão encerrada não reenvia a abertura
+- `core/usecases/ProcessIncomingFlowUseCase.test.ts` — envio via fake + persistência de sessão; pausado não responde; action grava setor da thread; duas linhas = duas sessões; entrada pelo `flowId` do chatbot ou da linha; **burst concorrente** (invariante 10): 3 textos na mesma thread → 1 abertura, extras consumidas sem `miss`; 3× miss → handoff; mídia na pergunta avisa uma vez; **legenda** de mídia avança como texto; atalho humano; motor usa `publishedSteps`; passo órfão volta ao menu
+- `core/engine/planFlowTurn.test.ts` — primeira sessão, `nextStepId`, `condition`, `setDepartment`, `goToFlow`; sessão encerrada não reenvia a abertura; `currentStepId` inexistente = menu conhecido; atalho humano vence opção
+- `core/usecases/GetFlowPublishImpactUseCase.test.ts` — conta sessões cujo passo some ao publicar
+- `core/entities/humanHandoff.test.ts` — `0` exact; `humano` no meio da frase
 - `core/engine/resolveActiveFlow.test.ts` — `flowId` do chatbot ativo na entrada; overlay da linha; sessão em andamento não troca; inativo cai no `inicio`
 - `core/engine/resolveQuestionChoice.test.ts` — `1` / `1.` viram a primeira opção; texto livre permanece
-- `core/usecases/ProcessIncomingFlowUseCase.test.ts` — envio via fake + persistência de sessão; pausado não responde; action grava setor da thread; duas linhas = duas sessões; entrada pelo `flowId` do chatbot ou da linha
+- `core/usecases/ReopenConversationUseCase.test.ts` — reabre `closed` e solta o dono
+- `core/usecases/SaveFlowUseCase.test.ts` — primeira gravação publica; as seguintes preservam `publishedSteps`
+- `core/entities/flowPublish.test.ts` / `flowSessionTurn.test.ts` — rascunho vs publicado; skip de incoming consumido
 - `core/usecases/ProcessIncomingFlowUseCase.hours.test.ts` — fora do expediente só avisa; overlay da linha; `handoff` acrescenta posição na fila
 - `core/usecases/PauseContactFlowUseCase.test.ts` — pausa e retoma sessão da thread (`contactId` = `Conversation.id`); sem sessão cria no fluxo de entrada do chatbot
 - `core/usecases/DeleteFlowUseCase.test.ts` — excluir fluxo remove sessões daquele roteiro e solta chatbot e linha
@@ -32,7 +37,7 @@ Runner: Jest + `ts-jest` (`npm test`). Testing Library só quando houver teste d
 - `ui/lib/ptt-file.test.ts` — arquivo a partir dos blobs; sem MediaRecorder o PTT não quebra
 - `ui/lib/ptt-slide-cancel.test.ts` — deslizar para cima além do limiar cancela o PTT
 - `ui/lib/quick-reply-picker-keys.test.ts` — `/` com campo vazio e `Ctrl`/`⌘`+`/` abrem o picker
-- `ui/lib/quick-reply-audio.test.ts` — cadastro recusa arquivo que não é áudio
+- `ui/lib/quick-reply-audio.test.ts` — cadastro aceita imagem/vídeo/áudio/PDF; recusa outro documento
 - `core/usecases/LoginUseCase.test.ts` — porta de auth (senha obrigatória); agente `offline` recusa
 - `core/usecases/GetCurrentUserUseCase.test.ts` — agente `offline` faz logout
 - `core/usecases/GetAllConversationsUseCase.test.ts` — lista o catálogo; com snapshot não relê mensagens; `execute(true)` preenche e grava a prévia; se gravar falhar ainda devolve a prévia; padrão / `execute(false)` hidrata e não grava
@@ -67,7 +72,7 @@ Runner: Jest + `ts-jest` (`npm test`). Testing Library só quando houver teste d
 - `infra/whatsapp/mapEvolutionIncoming.test.ts` — pushName; MESSAGES_UPSERT; ignora grupo/fromMe; tipo imagem
 - `infra/whatsapp/evolutionMedia.test.ts` — parse base64; hydrate grava no storage fake
 - `core/usecases/SendWhatsAppMessageUseCase.test.ts` — persiste outgoing; mídia vai ao storage fake; `quotedMessageId` quando o alvo existe
-- `core/services/IMediaStorage.test.ts` — tipo pelo MIME; Meta/Twilio recusam mídia; path de áudio de resposta rápida; `flowStepMediaPath` / `flowStepMediaApiHref`; `remove` apaga o objeto
+- `core/services/IMediaStorage.test.ts` — tipo pelo MIME; PDF permitido na resposta rápida; Meta/Twilio recusam mídia; path de mídia de resposta rápida; `flowStepMediaPath` / `flowStepMediaApiHref`; `remove` apaga o objeto
 - `infra/whatsapp/evolutionSendMedia.test.ts` — sendMedia vs sendWhatsAppAudio
 - `app/api/messages/send/parseSendRequest.test.ts` — JSON e multipart; máx. 16 MB; `conversationId` opcional
 - `ui/lib/flow-step-graph.test.ts` — ligar próximo passo ao adicionar; limpar refs ao remover; opções da pergunta na condição
@@ -110,7 +115,9 @@ Runner: Jest + `ts-jest` (`npm test`). Testing Library só quando houver teste d
 - `core/usecases/SetOperatorRoleUseCase.test.ts` — promove; bloqueia último admin
 - `core/usecases/SetOperatorPasswordUseCase.test.ts` — só admin; senha curta falha; id inexistente 404
 - `ui/lib/emoji.test.ts` — insere emoji na posição do cursor e substitui a seleção; o mesmo helper insere `body` de resposta rápida (texto Unicode, inclusive com emoji)
-- `core/entities/QuickReply.test.ts` — lista ordenada pelo título; prévia Áudio; válido com texto ou áudio; picker “Envia áudio”; filtro por título/texto; visível no setor da conversa
+- `core/entities/QuickReply.test.ts` — lista ordenada pelo título; prévia Áudio/Foto/Vídeo/Documento; válido com texto ou mídia; picker “Envia áudio/imagem/vídeo/documento”; filtro por título/texto; visível no setor da conversa
+- `core/usecases/SaveQuickReplyMediaUseCase.test.ts` — grava áudio, imagem, vídeo e PDF; recusa outro documento; id inexistente retorna null
+- `core/usecases/GetQuickReplyMediaUseCase.test.ts` — lê mídia; sem mediaKind retorna null
 - `core/entities/flowAudience.test.ts` — conhecido exige thread + contato prévios; cadastro sem thread é novo
 - `core/entities/flowAudienceSession.test.ts` — menu conhecido usa o `flowId` de entrada do chatbot
 - `core/entities/botBehavior.test.ts` — tetos de delay; merge com padrão; segundos ↔ ms; overlay da linha
@@ -118,6 +125,8 @@ Runner: Jest + `ts-jest` (`npm test`). Testing Library só quando houver teste d
 - `core/usecases/ChatbotCatalogUseCase.test.ts` — gravar ativo desativa os outros
 - `core/usecases/DispatchIdleBotSessionsUseCase.test.ts` — fecha na pergunta parada; não fecha se `paused`; idle 0 na linha não fecha
 - `core/usecases/ProcessIncomingFlowUseCase.test.ts` — conhecido/reabertura pulam o Olá
+- `core/engine/runExclusive.test.ts` — mesma chave serializa; chaves diferentes não esperam
+- `core/usecases/HandleIncomingWhatsAppMessageUseCase.test.ts` — mesmo id de mensagem não dispara o motor de novo
 - `ui/lib/catalog-persist-error.test.ts` — PGRST205 vira aviso de migration; PGRST204 em flows cita 017; `quick_replies` cita 022 (`media_kind`) e 023 (`department_id`); `chatbots` cita 024 (`behavior`); `whatsapp_numbers` cita 025 (`behavior`), 026 (`flow_id`) ou 027 (`business_hours`); 23503 ao excluir fluxo
 - `ui/lib/catalog-load-phase.test.ts` — enquanto carrega não é empty state
 - `ui/lib/sidebar-nav.test.ts` — atendente vê Conversas, Contatos, `/dashboard/quick-replies` **e** `/dashboard/schedules`; `isAdminPath` dessas duas é false; admin vê Configuração incluindo `/dashboard/chatbots` com título **Chatbot**. Sem Testing Library obrigatório para esta feature
@@ -142,7 +151,7 @@ Runner: Jest + `ts-jest` (`npm test`). Testing Library só quando houver teste d
 - `ui/lib/flow-canvas-history.test.ts` — desfazer até 10 estados
 - `ui/lib/whatsapp-chip.test.ts` — uma linha = conectado/desconectado; várias = N de M (vermelho se alguma caiu)
 - `ui/lib/ttl-list-cache.test.ts` — cache de lista: coalescing + invalidate
-- `core/usecases/SaveFlowStepMediaUseCase.test.ts` — grava imagem ou áudio; recusa vídeo/documento e > 16 MB; fluxo/passo inexistente ou tipo ≠ `message` → null; `media: null` limpa campos e remove do storage
+- `core/usecases/SaveFlowStepMediaUseCase.test.ts` — grava imagem, áudio, vídeo e PDF; recusa outro documento e > 16 MB; fluxo/passo inexistente ou tipo ≠ `message` → null; `media: null` limpa campos e remove do storage
 - `core/usecases/GetFlowStepMediaUseCase.test.ts` — lê o path; ausente → null
 - `core/usecases/loadFlowStepMedia.test.ts` — `http(s)` continua; path `flows/{flowId}/{stepId}` e href da API leem `IMediaStorage`; outro valor → null
 - `app/api/flows/[flowId]/steps/[stepId]/media/route.test.ts` — 401/404/400/200 com storage fake; sem Supabase real
@@ -150,7 +159,7 @@ Runner: Jest + `ts-jest` (`npm test`). Testing Library só quando houver teste d
 - `ui/lib/flow-step-delay.test.ts` — pausa do bloco Mensagem em segundos 0–8; persiste `delayMs` 0–8000
 - `ui/lib/entry-flow-href.test.ts` — com `flowId` → `/dashboard/flows/{flowId}` (“Editar este fluxo”); sem fluxo → `/dashboard/flows` (“Abrir Fluxos”)
 - `ui/lib/chatbot-draft.test.ts` — snapshot do Vale para; dirty se o formulário mudou; troca sem rascunho não é dirty
-- `ui/lib/flow-step-media.test.ts` — `flowStepMediaPreviewSrc` usa GET autenticado no path do Storage e URL `http(s)` pública
+- `ui/lib/flow-step-media.test.ts` — `flowStepMediaPreviewSrc` usa GET autenticado no path do Storage e URL `http(s)` pública; cadastro aceita imagem/vídeo/áudio/PDF
 - `ui/lib/flow-keywords.test.ts` — Enter/vírgula/colar vira chips; trim; vazio e duplicata (case) ignorados; remover por índice
 - `core/entities/historyThread.test.ts` — clique no Histórico abre a thread da linha; senão `?contact=`
 - `ui/lib/history-href.test.ts` — href da linha do Histórico
@@ -161,7 +170,7 @@ Runner: Jest + `ts-jest` (`npm test`). Testing Library só quando houver teste d
 ## Próximos
 
 1. CRUD de `SaveFlowUseCase` / `DeleteFlowUseCase`
-2. `HandleIncomingWhatsAppMessageUseCase` — persiste incoming
+2. `HandleIncomingWhatsAppMessageUseCase` — persiste incoming (já coberto em parte; webhook retry não reprocessa o mesmo id)
 
 ## Convenções
 

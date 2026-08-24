@@ -3,20 +3,37 @@
 import { clientUseCases } from '@/infra/adapters/clientUseCases';
 import { KeyboardEvent, MouseEvent, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
-import { Mic, Zap } from 'lucide-react';
+import { FileText, Image as ImageIcon, Mic, Video, Zap } from 'lucide-react';
 import {
   QuickReply,
+  QuickReplyMediaKind,
   quickRepliesForConversation,
   quickRepliesMatchingQuery,
-  quickReplyHasAudio,
+  quickReplyHasMedia,
   quickReplyListPreview,
   quickReplyPickerActionLabel,
   sortQuickReplies,
 } from '@/core/entities/QuickReply';
-import { fetchQuickReplyAudioFile } from '@/ui/lib/quick-reply-audio';
+import { fetchQuickReplyMediaFile } from '@/ui/lib/quick-reply-audio';
 import { cn } from '@/ui/lib/utils';
 
 export type QuickReplyPick = { text: string; file?: File };
+
+function MediaKindIcon({ kind }: { kind?: QuickReplyMediaKind }) {
+  if (kind === 'audio') {
+    return <Mic className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />;
+  }
+  if (kind === 'image') {
+    return <ImageIcon className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />;
+  }
+  if (kind === 'video') {
+    return <Video className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />;
+  }
+  if (kind === 'document') {
+    return <FileText className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />;
+  }
+  return null;
+}
 
 type QuickReplyPickerProps = {
   disabled?: boolean;
@@ -72,16 +89,16 @@ export function QuickReplyPicker({
     setPickError(null);
     setPickingId(item.id);
     try {
-      if (quickReplyHasAudio(item)) {
-        const file = await fetchQuickReplyAudioFile(item.id);
+      if (quickReplyHasMedia(item)) {
+        const file = await fetchQuickReplyMediaFile(item.id);
         if (!file) {
-          setPickError('Não foi possível enviar o áudio');
+          setPickError('Não foi possível enviar a mídia');
           return;
         }
         try {
           await onPick({ text: item.body, file });
         } catch {
-          setPickError('Não foi possível enviar o áudio');
+          setPickError('Não foi possível enviar a mídia');
           return;
         }
       } else {
@@ -185,9 +202,7 @@ export function QuickReplyPicker({
                             {pickingId === item.id ? 'Enviando…' : quickReplyListPreview(item)}
                           </span>
                         </span>
-                        {quickReplyHasAudio(item) ? (
-                          <Mic className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />
-                        ) : null}
+                        {item.mediaKind ? <MediaKindIcon kind={item.mediaKind} /> : null}
                       </button>
                     </li>
                   ))}

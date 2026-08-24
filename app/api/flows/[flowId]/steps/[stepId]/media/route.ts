@@ -87,7 +87,9 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
       serverLocator.getMediaStorage()
     ).execute(flowId, stepId, {
       bytes: new Uint8Array(await uploaded.arrayBuffer()),
-      mimeType: uploaded.type || 'application/octet-stream',
+      mimeType:
+        uploaded.type ||
+        (uploaded.name.toLowerCase().endsWith('.pdf') ? 'application/pdf' : 'application/octet-stream'),
     });
     if (!updated) {
       return apiJson(request, { error: 'Fluxo ou passo não encontrado' }, { status: 404 });

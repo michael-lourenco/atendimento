@@ -74,18 +74,28 @@ describe('SaveFlowStepMediaUseCase', () => {
     expect(updated?.steps[0].mediaKind).toBe('audio');
   });
 
-  it('recusa vídeo e documento', async () => {
+  it('grava vídeo e PDF', async () => {
+    const flows = new MemoryFlows([sampleFlow()]);
+    const video = await new SaveFlowStepMediaUseCase(flows, new MemoryStorage()).execute(
+      'inicio',
+      'welcome',
+      { bytes: new Uint8Array([1]), mimeType: 'video/mp4' }
+    );
+    expect(video?.steps[0].mediaKind).toBe('video');
+    const pdf = await new SaveFlowStepMediaUseCase(flows, new MemoryStorage()).execute(
+      'inicio',
+      'welcome',
+      { bytes: new Uint8Array([1]), mimeType: 'application/pdf' }
+    );
+    expect(pdf?.steps[0].mediaKind).toBe('document');
+  });
+
+  it('recusa documento que não é PDF', async () => {
     const flows = new MemoryFlows([sampleFlow()]);
     await expect(
       new SaveFlowStepMediaUseCase(flows, new MemoryStorage()).execute('inicio', 'welcome', {
         bytes: new Uint8Array([1]),
-        mimeType: 'video/mp4',
-      })
-    ).rejects.toBeInstanceOf(InvalidFlowStepMediaError);
-    await expect(
-      new SaveFlowStepMediaUseCase(flows, new MemoryStorage()).execute('inicio', 'welcome', {
-        bytes: new Uint8Array([1]),
-        mimeType: 'application/pdf',
+        mimeType: 'application/zip',
       })
     ).rejects.toBeInstanceOf(InvalidFlowStepMediaError);
   });

@@ -83,6 +83,18 @@ export function mediaKindFromMime(mimeType: string): PlayableMediaType {
   return 'document';
 }
 
+export function isPdfMime(mimeType: string): boolean {
+  return mimeType.split(';')[0].trim().toLowerCase() === 'application/pdf';
+}
+
+export function isAllowedQuickReplyMime(mimeType: string): boolean {
+  if (isPdfMime(mimeType)) {
+    return true;
+  }
+  const kind = mediaKindFromMime(mimeType);
+  return kind === 'image' || kind === 'audio' || kind === 'video';
+}
+
 export function defaultOutgoingCaption(kind: PlayableMediaType): string {
   if (kind === 'image') {
     return 'Imagem enviada';

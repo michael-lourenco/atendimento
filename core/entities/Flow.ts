@@ -1,6 +1,6 @@
 export const FLOW_STEP_MAX_DELAY_MS = 8000;
 
-export type FlowStepMediaKind = 'image' | 'audio';
+export type FlowStepMediaKind = 'image' | 'audio' | 'video' | 'document';
 
 export interface FlowStep {
   id: string;
@@ -32,6 +32,8 @@ export interface Flow {
   name: string;
   description?: string;
   steps: FlowStep[];
+  /** Cópia publicada; o motor usa isto se existir. O editor edita `steps`. */
+  publishedSteps?: FlowStep[];
   /** Se o cliente envia uma destas frases, entra neste fluxo (ativo). */
   keywords?: string[];
   isActive: boolean;

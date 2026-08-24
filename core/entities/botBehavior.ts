@@ -7,6 +7,8 @@ export type BotBehavior = {
   inboundDebounceMs: number;
   idleContactMinutes: number;
   idleCloseMessage: string;
+  missHandoffAfter: number;
+  mediaHintMessage: string;
 };
 
 export const DEFAULT_BOT_BEHAVIOR: BotBehavior = {
@@ -19,6 +21,9 @@ export const DEFAULT_BOT_BEHAVIOR: BotBehavior = {
   idleContactMinutes: 30,
   idleCloseMessage:
     'Como não tivemos retorno, encerramos este atendimento. Quando quiser, é só chamar de novo.',
+  missHandoffAfter: 3,
+  mediaHintMessage:
+    'Recebi. Responda com o número da opção ou com o texto da linha.',
 };
 
 export const ZERO_BOT_BEHAVIOR: BotBehavior = {
@@ -30,6 +35,8 @@ export const ZERO_BOT_BEHAVIOR: BotBehavior = {
   inboundDebounceMs: 0,
   idleContactMinutes: 0,
   idleCloseMessage: '',
+  missHandoffAfter: 0,
+  mediaHintMessage: '',
 };
 
 const TYPING_WAIT_CAP_MS = 8000;
@@ -59,6 +66,11 @@ export function mergeBotBehavior(partial?: Partial<BotBehavior> | null): BotBeha
       typeof partial.idleCloseMessage === 'string'
         ? partial.idleCloseMessage
         : base.idleCloseMessage,
+    missHandoffAfter: clamp(partial.missHandoffAfter, 0, 10, base.missHandoffAfter),
+    mediaHintMessage:
+      typeof partial.mediaHintMessage === 'string'
+        ? partial.mediaHintMessage
+        : base.mediaHintMessage,
   };
 }
 

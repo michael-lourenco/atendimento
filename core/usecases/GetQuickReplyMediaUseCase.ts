@@ -1,8 +1,8 @@
-import { quickReplyHasAudio } from '../entities/QuickReply';
+import { quickReplyHasMedia } from '../entities/QuickReply';
 import { IQuickReplyRepository } from '../repositories/IQuickReplyRepository';
 import { IMediaStorage, StoredMedia, quickReplyMediaPath } from '../services/IMediaStorage';
 
-export class GetQuickReplyAudioUseCase {
+export class GetQuickReplyMediaUseCase {
   constructor(
     private replies: IQuickReplyRepository,
     private storage: IMediaStorage
@@ -14,7 +14,7 @@ export class GetQuickReplyAudioUseCase {
       return null;
     }
     const reply = await this.replies.getById(trimmed);
-    if (!reply || !quickReplyHasAudio(reply)) {
+    if (!reply || !quickReplyHasMedia(reply)) {
       return null;
     }
     return this.storage.get(quickReplyMediaPath(trimmed));

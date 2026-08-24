@@ -1,6 +1,6 @@
 'use client';
 
-import { Flow, FlowStep } from '@/core/entities/Flow';
+import { Flow, FlowStep, FlowStepMediaKind } from '@/core/entities/Flow';
 import { FlowAudience } from '@/core/entities/flowAudience';
 import { FlowSession } from '@/core/entities/FlowSession';
 import { previewFlowTurn, simulateFlowIncoming } from '@/core/engine/previewFlowOpening';
@@ -18,7 +18,7 @@ type Bubble = {
   flowId?: string;
   stepId?: string;
   mediaUrl?: string;
-  mediaKind?: 'image' | 'audio';
+  mediaKind?: FlowStepMediaKind;
 };
 
 type FlowSimulatorProps = {

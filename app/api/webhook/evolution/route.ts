@@ -73,7 +73,10 @@ export async function POST(request: NextRequest) {
           storage: serverLocator.getMediaStorage(),
         });
         const handleIncoming = serverLocator.createIncomingHandler();
-        await handleIncoming.executeMessages(messages);
+        const { fresh, hints } = await handleIncoming.persistIncoming(messages);
+        void handleIncoming.runIncomingFlow(fresh, hints).catch((error) => {
+          logApiError(requestIdFrom(request), 'Erro no motor do webhook Evolution', error);
+        });
       }
 
       return apiJson(request, { status: 'ok' }, { status: 200 });

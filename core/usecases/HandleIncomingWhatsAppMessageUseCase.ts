@@ -7,7 +7,7 @@ import { Message } from '../entities/Message';
 import { WhatsAppNumber } from '../entities/WhatsAppNumber';
 import { mergeMessageStatus } from '../entities/messageStatus';
 import { lineHintFromMessage, matchWhatsAppNumber } from '../entities/whatsappNumberLine';
-import { incomingFlowHints } from '../entities/flowAudience';
+import { IncomingFlowHint, incomingFlowHints } from '../entities/flowAudience';
 import { ProcessIncomingFlowUseCase } from './ProcessIncomingFlowUseCase';
 import {
   UpsertConversationFromMessageUseCase,
@@ -38,16 +38,24 @@ export class HandleIncomingWhatsAppMessageUseCase {
     return this.persistAndRunFlow(messages);
   }
 
-  private async persistAndRunFlow(messages: Message[]): Promise<Message[]> {
+  async persistIncoming(messages: Message[]): Promise<{
+    persisted: Message[];
+    fresh: Message[];
+    hints: IncomingFlowHint[];
+  }> {
     const catalog = this.numbers ? await this.numbers.getAll() : [];
     const hints = await this.peekFlowHints(messages, catalog);
+    const fresh: Message[] = [];
     for (const message of messages) {
       const existing = await this.messageRepository.getById(message.id);
       if (existing) {
         message.status = mergeMessageStatus(existing.status, message.status);
         message.reactions = existing.reactions;
+        await this.messageRepository.save(message);
+      } else {
+        await this.messageRepository.save(message);
+        fresh.push(message);
       }
-      await this.messageRepository.save(message);
       const phone = contactPhoneFromMessage(message);
       await this.upsertContact.execute(phone, message.contactName);
       if (this.syncAvatar) {
@@ -60,10 +68,17 @@ export class HandleIncomingWhatsAppMessageUseCase {
       }
       await this.upsertConversation.execute(message);
     }
+    return { persisted: messages, fresh, hints };
+  }
 
-    await this.processIncomingFlow.executeForMessages(messages, hints);
+  async runIncomingFlow(fresh: Message[], hints: IncomingFlowHint[]): Promise<void> {
+    await this.processIncomingFlow.executeForMessages(fresh, hints);
+  }
 
-    return messages;
+  private async persistAndRunFlow(messages: Message[]): Promise<Message[]> {
+    const { persisted, fresh, hints } = await this.persistIncoming(messages);
+    await this.runIncomingFlow(fresh, hints);
+    return persisted;
   }
 
   private async peekFlowHints(messages: Message[], catalog: WhatsAppNumber[]) {

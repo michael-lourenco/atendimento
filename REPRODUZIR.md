@@ -24,19 +24,39 @@ Cuidados com Evolution (API não oficial): o celular precisa permanecer online d
 
 ## 1. O que você precisa ter (máquina)
 
-Um computador capaz de rodar Docker + Node. O desenvolvimento atual usa **Windows + WSL2**, mas **macOS** e **Linux** também servem.
+Há **dois papéis**. Só o **servidor** instala Docker e o projeto. O atendente extra só abre o navegador.
 
-- **Windows 10/11** (ou macOS / Linux)
-- **WSL2** (só no Windows) — Ubuntu 22.04 ou 24.04
-- **Docker Desktop** — com integração WSL ligada (Settings → Resources → WSL Integration)
-- **Git**
-- **Node.js 20 LTS** (Next.js 15 pede no mínimo 18.18; use 20)
-- **npm** (vem com o Node)
-- Navegador (Chrome ou Edge)
-- **8 GB de RAM** no mínimo (12 GB melhor): o Docker sobe Evolution + Postgres + Redis, e o Next.js roda à parte
-- Portas livres: **3000** (painel) e **8080** (Evolution)
+### 1.1 PC servidor (mínimo)
+
+Este é o computador que fica ligado com Evolution + Next. Sem ele no ar, WhatsApp e o painel na LAN param.
+
+| Item | Mínimo | Recomendado |
+|------|--------|-------------|
+| Sistema | Windows 10/11 + **WSL2** (Ubuntu 22.04 ou 24.04), ou macOS, ou Linux | Windows 11 + WSL2, ou Linux |
+| RAM | **8 GB** | **12 GB** (Docker: Evolution + Postgres + Redis; Next à parte) |
+| CPU | 2 núcleos | 4 núcleos |
+| Disco livre | **15 GB** (imagens Docker + `node_modules`) | 30 GB |
+| Rede | Wi‑Fi ou cabo na mesma LAN dos atendentes | Cabo; IP reservado no roteador |
+| Energia | Ligado, **sem hibernar / suspender** enquanto atende | “Nunca suspender” com a tampa aberta (notebook) |
+| Portas livres | **3000** (painel) e **8080** (Evolution) | as duas |
+
+Software no servidor:
+
+- **Docker Desktop** — no Windows, integração WSL ligada (Settings → Resources → WSL Integration)
+- **Git**, **Node.js 20 LTS** (Next.js 15 pede no mínimo 18.18; use 20), **npm**
+- Navegador (Chrome ou Edge) para o QR e o login do admin
 
 Não precisa instalar Postgres do produto na máquina: o banco da aplicação é o **Supabase na nuvem**. O Postgres do Docker é **só da Evolution**.
+
+### 1.2 PC atendente (o “outro computador”)
+
+**Não** instala o repo, Docker nem Node. Precisa de:
+
+- Navegador atual (Chrome, Edge, Firefox)
+- Mesmo Wi‑Fi / mesma LAN do servidor (não use rede “convidado” / isolamento de AP)
+- URL `http://IP-DO-SERVIDOR:3000` e um usuário criado no **mesmo** Supabase
+
+Vários atendentes = vários navegadores nessa URL. **Uma** Evolution só, no servidor.
 
 ---
 
@@ -228,9 +248,93 @@ Espere:
 
 Login com o e-mail/senha do usuário criado no Supabase. Destino: `/dashboard/conversations`.
 
+`npm run dev` sozinho escuta só `localhost` (este PC). Para outro computador na LAN, use a seção 8.
+
+`NEXT_PUBLIC_APP_URL` e o webhook da Evolution **ficam** `http://localhost:3000`. Isso é o caminho Evolution → Next **neste** PC, não o endereço que o atendente digita no browser.
+
 ---
 
-## 8. Ligar o WhatsApp (QR)
+## 8. Outros computadores na mesma rede Wi‑Fi
+
+Um PC = servidor (Docker + Next). Os outros só abrem o navegador no IP da LAN. **Não** rode `docker compose` nem o projeto no segundo PC.
+
+O firewall que bloqueia é o **deste** PC (o servidor). O outro só faz um pedido de saída; não precisa de regra nova.
+
+### 8.1 Subir o Next para a LAN
+
+No servidor (WSL / terminal do projeto), no lugar de `npm run dev`:
+
+```bash
+docker compose up -d
+npx next dev -H 0.0.0.0 -p 3000
+```
+
+`-H 0.0.0.0` faz o painel aceitar conexões da rede.
+
+### 8.2 Descobrir o IP
+
+No **Windows do servidor**, PowerShell:
+
+```powershell
+ipconfig
+```
+
+Use o IPv4 do **Wi‑Fi** (ex. `192.168.2.52`), não `127.0.0.1` e não o `169.254.*`. No WSL: `hostname -I`. Se o WSL estiver em modo espelhado (mirrored), o IP costuma ser o mesmo do Wi‑Fi.
+
+No outro PC, mesmo Wi‑Fi:
+
+```
+http://192.168.2.52:3000
+```
+
+(troque pelo IP que o `ipconfig` mostrou.)
+
+### 8.3 Liberar o firewall **neste** PC (servidor)
+
+Timeout no outro computador quase sempre é o Firewall do Windows bloqueando a porta **3000**.
+
+**PowerShell como administrador** (neste PC):
+
+```powershell
+New-NetFirewallRule -DisplayName "chatbot-atimo Next.js 3000" -Direction Inbound -Protocol TCP -LocalPort 3000 -Action Allow -Profile Private
+Get-NetConnectionProfile
+Set-NetConnectionProfile -InterfaceAlias "Wi-Fi" -NetworkCategory Private
+```
+
+Se o alias da placa não for `Wi-Fi`, use o nome que o `Get-NetConnectionProfile` listar.
+
+**Pelo painel:** `Win + R` → `wf.msc` → Regras de entrada → Nova regra → Porta → TCP → portas locais `3000` → Permitir a conexão → só perfil **Privada** → nome `chatbot-atimo Next.js 3000`.
+
+Não precisa abrir a porta **8080** para os atendentes (Evolution fica só no servidor).
+
+### 8.4 WSL2: a LAN não chega no Next
+
+`localhost:3000` neste PC funciona, mas `http://IP-DO-WIFI:3000` no outro dá timeout: o Windows não encaminha a porta para o WSL. PowerShell **como administrador** (troque `IP_DO_WSL` pelo `hostname -I` no Ubuntu):
+
+```powershell
+netsh interface portproxy add v4tov4 listenaddress=0.0.0.0 listenport=3000 connectaddress=IP_DO_WSL connectport=3000
+```
+
+No Windows 11, o modo **mirrored** do WSL costuma tornar isso desnecessário (Wi‑Fi e WSL com o mesmo IPv4).
+
+### 8.5 Login pelo IP (Supabase)
+
+Em **Authentication → URL Configuration → Redirect URLs**, acrescente (com o IP real):
+
+- `http://192.168.2.52:3000`
+- `http://192.168.2.52:3000/login`
+
+Site URL pode continuar `http://localhost:3000`. Se o roteador mudar o IP do servidor, atualize as Redirect URLs (ou reserve o IP no DHCP).
+
+### 8.6 O que não fazer
+
+- Instalar Evolution/Docker no PC do atendente
+- Apontar o webhook da Evolution para o IP do atendente
+- Expor a porta 3000 na internet (só LAN)
+
+---
+
+## 9. Ligar o WhatsApp (QR)
 
 1. No painel (admin): **Números** → crie uma linha (ex. nome `Comercial`). O sistema gera o `instanceName`.
 2. Abra **WhatsApp** no menu (ou o selo no header) → `/dashboard/whatsapp`.
@@ -244,19 +348,20 @@ Teste: de **outro** número, mande um “oi” para o chip conectado. Deve nasce
 
 ---
 
-## 9. Checklist: “está rodando”
+## 10. Checklist: “está rodando”
 
-- [ ] `npm run dev` abre `/login`
+- [ ] `npm run dev` abre `/login` neste PC
 - [ ] Login com o usuário criado no Supabase
 - [ ] Fluxos `inicio`, `sistema`, `demo`, `cliente`, `comercial` aparecem em **Fluxos**
 - [ ] Docker: containers `chatbot-atimo-evolution`, `...-pg`, `...-redis` healthy
 - [ ] QR lido, selo Conectado
 - [ ] Mensagem de teste aparece em **Conversas**
 - [ ] Envio pelo painel chega no celular
+- [ ] (Opcional LAN) `npx next dev -H 0.0.0.0 -p 3000` + firewall na 3000 **neste** PC; outro computador abre `http://IP:3000`
 
 ---
 
-## 10. Stack (o que cada peça é)
+## 11. Stack (o que cada peça é)
 
 | Camada | Tecnologia | Onde roda |
 |--------|------------|-----------|
@@ -273,7 +378,7 @@ Provedores WhatsApp no código (`WHATSAPP_PROVIDER`): `evolution` | `meta` | `tw
 
 ---
 
-## 11. Se for Meta ou Twilio em vez de Evolution
+## 12. Se for Meta ou Twilio em vez de Evolution
 
 Pule o `docker compose` da Evolution. Preencha as env da spec `03-whatsapp.md`.
 
@@ -285,7 +390,7 @@ Para reproduzir **este** repositório do jeito que está no `.env.example`, fiqu
 
 ---
 
-## 12. Produção (outro passo, não obrigatório para “rodar no PC”)
+## 13. Produção (outro passo, não obrigatório para “rodar no PC”)
 
 Local já é o sistema completo. Para internet:
 
@@ -299,7 +404,7 @@ Cada empresa nova = **novo** projeto Supabase + **nova** cópia do app + **nova*
 
 ---
 
-## 13. Problemas comuns
+## 14. Problemas comuns
 
 | Sintoma | Causa típica |
 |---------|----------------|
@@ -310,6 +415,8 @@ Cada empresa nova = **novo** projeto Supabase + **nova** cópia do app + **nova*
 | Mensagem no celular, nada no painel | Webhook: Evolution precisa alcançar `host.docker.internal:3000`; Next tem que estar no ar |
 | Usuário criado mas login recusa | E-mail não confirmado no Auth; ou agente `offline` |
 | “Esqueci a senha” não chega | SMTP do projeto Free / Site URL errada |
+| Outro PC: timeout em `http://IP:3000` | Firewall **neste** PC (servidor) sem regra TCP 3000; Wi‑Fi “convidado”; ou WSL2 sem `portproxy` / mirrored |
+| Outro PC abre o site mas login falha | Faltou o IP nas Redirect URLs do Auth; ou Next só com `npm run dev` (sem `-H 0.0.0.0`) |
 
 ---
 
@@ -320,6 +427,7 @@ Cada empresa nova = **novo** projeto Supabase + **nova** cópia do app + **nova*
 3. SQL Editor: migrations **001 → 021**  
 4. Auth: criar o primeiro usuário (auto confirm)  
 5. Clonar, `npm install`, `.env.local`  
-6. `docker compose up -d` + `npm run dev`  
+6. `docker compose up -d` + `npm run dev` (só este PC) ou `npx next dev -H 0.0.0.0 -p 3000` (LAN)  
 7. Login → criar linha → QR com WhatsApp **comum ou Business**  
-8. Mandar mensagem de outro chip e ver a inbox
+8. Mandar mensagem de outro chip e ver a inbox  
+9. (Opcional) Firewall TCP 3000 **neste** PC; outro computador: `http://IP-DO-WIFI:3000` (sem Docker)

@@ -6,6 +6,7 @@ export function duplicateFlow(flow: Flow, now = new Date()): Flow {
     id: `flow-${now.getTime()}`,
     name: `${flow.name.trim() || 'Fluxo'} (cópia)`,
     isActive: false,
+    publishedSteps: undefined,
     createdAt: now,
     updatedAt: now,
   };

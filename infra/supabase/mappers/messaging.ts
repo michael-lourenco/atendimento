@@ -12,6 +12,9 @@ export function flowFromRow(row: Record<string, unknown>): Flow {
     name: String(row.name),
     description: row.description ? String(row.description) : undefined,
     steps: (row.steps as FlowStep[]) || [],
+    publishedSteps: Array.isArray(row.published_steps)
+      ? (row.published_steps as FlowStep[])
+      : undefined,
     keywords: Array.isArray(row.keywords) ? (row.keywords as string[]) : [],
     isActive: Boolean(row.is_active),
     createdAt: asDate(row.created_at),
@@ -25,6 +28,7 @@ export function flowToRow(flow: Flow) {
     name: flow.name,
     description: flow.description ?? null,
     steps: flow.steps,
+    published_steps: flow.publishedSteps ?? null,
     keywords: flow.keywords ?? [],
     is_active: flow.isActive,
     created_at: flow.createdAt.toISOString(),
@@ -83,6 +87,9 @@ export function sessionFromRow(row: Record<string, unknown>): FlowSession {
       ? (row.return_stack as FlowSession['returnStack'])
       : undefined,
     outsideHoursNotified: Boolean(row.outside_hours_notified),
+    consumedIncomingAt: row.consumed_incoming_at ? asDate(row.consumed_incoming_at) : undefined,
+    missStreak: Number(row.miss_streak ?? 0),
+    mediaHintStepId: row.media_hint_step_id ? String(row.media_hint_step_id) : undefined,
     updatedAt: asDate(row.updated_at),
   };
 }
@@ -156,9 +163,7 @@ export function conversationToRow(conversation: Conversation) {
   if (conversation.contactAvatarUrl) {
     row.contact_avatar_url = conversation.contactAvatarUrl;
   }
-  if (conversation.assignedAt) {
-    row.assigned_at = conversation.assignedAt.toISOString();
-  }
+  row.assigned_at = conversation.assignedAt ? conversation.assignedAt.toISOString() : null;
   row.contact_typing_at = conversation.contactTypingAt
     ? conversation.contactTypingAt.toISOString()
     : null;

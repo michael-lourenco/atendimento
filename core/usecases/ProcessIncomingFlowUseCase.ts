@@ -7,6 +7,7 @@ import { IConversationRepository } from '../repositories/IConversationRepository
 import { IMessageRepository } from '../repositories/IMessageRepository';
 import { IMediaStorage } from '../services/IMediaStorage';
 import { planFlowTurn } from '../engine/planFlowTurn';
+import { decorateFlowTurn } from '../engine/decorateFlowTurn';
 import { resolveActiveFlow } from '../engine/resolveActiveFlow';
 import { SendWhatsAppMessageUseCase } from './SendWhatsAppMessageUseCase';
 import { SetConversationDepartmentUseCase } from './SetConversationDepartmentUseCase';
@@ -17,14 +18,21 @@ import { conversationThreadId, messagesOnWhatsAppLine } from '../entities/conver
 import { matchWhatsAppNumber } from '../entities/whatsappNumberLine';
 import { isWithinBusinessHours, resolveBusinessHours } from '../entities/businessHours';
 import { resolveEntryFlowId } from '../entities/chatbotActive';
-import { queuePlace, queuePlaceLine } from '../entities/queuePlace';
-import { FlowSession } from '../entities/FlowSession';
 import { FlowAudience, IncomingFlowHint } from '../entities/flowAudience';
 import { planSessionForTurn } from '../entities/flowAudienceSession';
-import { latestIncomingText } from '../entities/botIdle';
+import { latestIncomingAt, latestIncomingText } from '../entities/botIdle';
 import { BotBehavior, resolveBotBehavior } from '../entities/botBehavior';
+import { flowsForEngine } from '../entities/flowPublish';
+import { shouldSkipConsumedIncoming } from '../entities/flowSessionTurn';
 import { SendWhatsAppPresenceUseCase } from './SendWhatsAppPresenceUseCase';
 import { waitBotRhythm } from './waitBotRhythm';
+import { runExclusive } from '../engine/runExclusive';
+import {
+  appendQueuePlace,
+  applyFlowDepartment,
+  hintIncomingMedia,
+  notifyClosedHours,
+} from './processIncomingFlowSupport';
 
 export interface ProcessIncomingFlowInput {
   contactId: string;
@@ -33,6 +41,7 @@ export interface ProcessIncomingFlowInput {
   sessionKey?: string;
   audience?: FlowAudience;
   reopened?: boolean;
+  incomingAt?: Date;
 }
 
 export type ProcessIncomingFlowOptions = {
@@ -67,55 +76,77 @@ export class ProcessIncomingFlowUseCase {
         hintByKey.set(hint.sessionKey, hint);
       }
     }
-    const groups = new Map<
-      string,
-      {
-        phone: string;
-        text: string;
-        instanceName?: string;
-        audience: FlowAudience;
-        reopened: boolean;
-      }
-    >();
+    const byThread = new Map<string, ProcessIncomingFlowInput[]>();
+    const mediaOnly = new Map<string, { phone: string; instanceName?: string }>();
     for (const message of messages) {
-      if (message.direction !== 'incoming' || message.type !== 'text') {
+      if (message.direction !== 'incoming') {
+        continue;
+      }
+      const phone = contactPhoneFromMessage(message);
+      const line = matchWhatsAppNumber(catalog, message.to);
+      const sessionKey = conversationThreadId(phone, line?.id);
+      if (message.type !== 'text' && !message.content.trim()) {
+        mediaOnly.set(sessionKey, { phone, instanceName: message.to });
         continue;
       }
       const text = message.content.trim();
       if (!text) {
         continue;
       }
-      const phone = contactPhoneFromMessage(message);
-      const line = matchWhatsAppNumber(catalog, message.to);
-      const sessionKey = conversationThreadId(phone, line?.id);
       const hint = hintByKey.get(sessionKey);
-      groups.set(sessionKey, {
-        phone,
+      const turns = byThread.get(sessionKey) ?? [];
+      turns.push({
+        contactId: phone,
         text,
         instanceName: message.to,
+        sessionKey,
         audience: hint?.audience ?? 'new',
         reopened: hint?.reopened ?? false,
+        incomingAt: message.timestamp,
       });
+      byThread.set(sessionKey, turns);
     }
-    for (const [sessionKey, group] of groups) {
-      await this.execute({
-        contactId: group.phone,
-        text: group.text,
-        instanceName: group.instanceName,
-        sessionKey,
-        audience: group.audience,
-        reopened: group.reopened,
-      });
-    }
+    await Promise.all(
+      [...byThread.entries()].map(async ([sessionKey, turns]) => {
+        mediaOnly.delete(sessionKey);
+        for (const turn of turns) {
+          await this.execute(turn);
+        }
+      })
+    );
+    await Promise.all(
+      [...mediaOnly.entries()].map(([sessionKey, item]) =>
+        hintIncomingMedia({
+          sessionKey,
+          phone: item.phone,
+          instanceName: item.instanceName,
+          sessions: this.sessionRepository,
+          chatbots: this.chatbots,
+          numbers: this.numbers,
+          sendMessage: this.sendMessage,
+        })
+      )
+    );
   }
 
   async execute(input: ProcessIncomingFlowInput): Promise<void> {
     const sessionKey = input.sessionKey ?? input.contactId;
+    await runExclusive(sessionKey, () => this.executeTurn(input, sessionKey));
+  }
+
+  private async executeTurn(
+    input: ProcessIncomingFlowInput,
+    sessionKey: string
+  ): Promise<void> {
     const audience = input.audience ?? 'new';
     const reopened = Boolean(input.reopened);
     const now = new Date();
-    const flows = await this.flowRepository.getAll();
+    const rawFlows = await this.flowRepository.getAll();
+    const flows = flowsForEngine(rawFlows);
     let session = await this.sessionRepository.getByContactId(sessionKey);
+    if (shouldSkipConsumedIncoming(session, input.incomingAt)) {
+      return;
+    }
     if (session?.paused && !reopened) {
       return;
     }
@@ -129,7 +160,7 @@ export class ProcessIncomingFlowUseCase {
     const lineCatalog = this.numbers ? await this.numbers.getAll() : [];
     const line = matchWhatsAppNumber(lineCatalog, input.instanceName);
     const behavior = resolveBotBehavior(bots, line?.behavior);
-    const text = await this.textAfterDebounce(input, behavior);
+    const afterDebounce = await this.textAfterDebounce(input, behavior, now);
 
     const hours = resolveBusinessHours(bots, line?.businessHours);
     const flow = resolveActiveFlow(flows, {
@@ -137,14 +168,16 @@ export class ProcessIncomingFlowUseCase {
       entryFlowId: resolveEntryFlowId({ bots, lineFlowId: line?.flowId }),
     });
     if (!isWithinBusinessHours(hours, now)) {
-      await this.notifyClosed(
-        input.contactId,
+      await notifyClosedHours({
+        phone: input.contactId,
         sessionKey,
         session,
-        hours?.closedMessage ?? '',
+        closedMessage: hours?.closedMessage ?? '',
         now,
-        flow?.id
-      );
+        entryFlowId: flow?.id,
+        sendMessage: this.sendMessage,
+        saveSession: (next) => this.sessionRepository.save(next),
+      });
       return;
     }
 
@@ -165,21 +198,33 @@ export class ProcessIncomingFlowUseCase {
       return;
     }
 
-    const plan = planFlowTurn({
-      flow,
-      flows,
+    const plan = decorateFlowTurn({
+      plan: planFlowTurn({
+        flow,
+        flows,
+        session,
+        contactId: sessionKey,
+        incomingText: afterDebounce.text,
+        now,
+      }),
       session,
-      contactId: sessionKey,
-      incomingText: text,
+      consumedAt: afterDebounce.consumedAt,
+      missAfter: behavior.missHandoffAfter,
+      departmentId: (await this.conversations?.getById(sessionKey))?.departmentId,
       now,
     });
 
     for (const effect of plan.effects) {
-      await this.applySetDepartment(sessionKey, effect.departmentId);
+      await applyFlowDepartment({
+        contactId: sessionKey,
+        departmentId: effect.departmentId,
+        setDepartment: this.setDepartment,
+        departments: this.departments,
+      });
     }
 
     if (plan.nextSession.paused) {
-      await this.appendQueuePlace(plan.replies, sessionKey);
+      await appendQueuePlace(plan.replies, sessionKey, this.conversations);
     }
 
     for (let index = 0; index < plan.replies.length; index += 1) {
@@ -213,85 +258,26 @@ export class ProcessIncomingFlowUseCase {
       });
     }
 
-    await this.sessionRepository.save({
-      ...plan.nextSession,
-      outsideHoursNotified: false,
-    });
+    await this.sessionRepository.save(plan.nextSession);
   }
 
   private async textAfterDebounce(
     input: ProcessIncomingFlowInput,
-    behavior: BotBehavior
-  ): Promise<string> {
+    behavior: BotBehavior,
+    now: Date
+  ): Promise<{ text: string; consumedAt: Date }> {
+    const fallbackAt = input.incomingAt ?? now;
     if (behavior.inboundDebounceMs <= 0 || !this.options.messages) {
-      return input.text;
+      return { text: input.text, consumedAt: fallbackAt };
     }
     await this.sleep(behavior.inboundDebounceMs);
     const catalog = this.numbers ? await this.numbers.getAll() : [];
     const line = matchWhatsAppNumber(catalog, input.instanceName);
     const list = await this.options.messages.getByContact(input.contactId);
-    return latestIncomingText(messagesOnWhatsAppLine(list, line), input.text);
-  }
-
-  private async notifyClosed(
-    phone: string,
-    sessionKey: string,
-    session: FlowSession | null,
-    closedMessage: string,
-    now: Date,
-    entryFlowId?: string
-  ): Promise<void> {
-    if (session?.outsideHoursNotified) {
-      return;
-    }
-    const text = closedMessage.trim();
-    if (text) {
-      await this.sendMessage.execute({
-        to: phone,
-        message: text,
-        conversationId: sessionKey,
-      });
-    }
-    await this.sessionRepository.save({
-      contactId: sessionKey,
-      flowId: session?.flowId ?? entryFlowId ?? 'inicio',
-      currentStepId: null,
-      paused: false,
-      outsideHoursNotified: true,
-      updatedAt: now,
-    });
-  }
-
-  private async appendQueuePlace(
-    replies: { content: string }[],
-    sessionKey: string
-  ): Promise<void> {
-    if (!this.conversations || replies.length === 0) {
-      return;
-    }
-    const [all, current] = await Promise.all([
-      this.conversations.getAll(),
-      this.conversations.getById(sessionKey),
-    ]);
-    if (!current) {
-      return;
-    }
-    const last = replies[replies.length - 1];
-    last.content = `${last.content} ${queuePlaceLine(queuePlace(all, current))}`.trim();
-  }
-
-  private async applySetDepartment(contactId: string, departmentId: string): Promise<void> {
-    if (!this.setDepartment || !this.departments) {
-      return;
-    }
-    const department = await this.departments.getById(departmentId);
-    if (!department?.isActive) {
-      return;
-    }
-    await this.setDepartment.execute({
-      conversationId: contactId,
-      departmentId: department.id,
-      departmentName: department.name,
-    });
+    const onLine = messagesOnWhatsAppLine(list, line);
+    return {
+      text: latestIncomingText(onLine, input.text),
+      consumedAt: latestIncomingAt(onLine, fallbackAt),
+    };
   }
 }

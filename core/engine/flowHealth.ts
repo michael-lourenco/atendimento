@@ -1,8 +1,9 @@
-import { FlowStep } from '../entities/Flow';
+import { Flow, FlowStep } from '../entities/Flow';
 import { isValidFlowStepMediaUrl } from '../services/IMediaStorage';
 import { trueStepIdForOption } from './flowOptionPaths';
 import { listQuestionOptions } from './questionOptions';
 import { visibleFlowSteps } from './visibleFlowSteps';
+import { flowStepsForEngine } from '../entities/flowPublish';
 
 export type FlowHealthIssue = {
   stepId?: string;
@@ -102,4 +103,11 @@ export function flowHealthIssues(
 
 export function issuesForStep(issues: FlowHealthIssue[], stepId: string): FlowHealthIssue[] {
   return issues.filter((issue) => issue.stepId === stepId);
+}
+
+export function entryFlowIsHealthy(flow: Flow | null, catalog: Flow[]): boolean {
+  if (!flow) {
+    return true;
+  }
+  return flowHealthIssues(flowStepsForEngine(flow), catalog).length === 0;
 }

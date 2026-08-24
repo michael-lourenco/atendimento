@@ -39,6 +39,10 @@ export const EXPECTED_SCHEMA_COLUMNS: SchemaHealthIssue[] = [
   { table: 'whatsapp_numbers', column: 'behavior', sqlType: 'jsonb' },
   { table: 'whatsapp_numbers', column: 'flow_id', sqlType: 'text' },
   { table: 'whatsapp_numbers', column: 'business_hours', sqlType: 'jsonb' },
+  { table: 'flows', column: 'published_steps', sqlType: 'jsonb' },
+  { table: 'flow_sessions', column: 'consumed_incoming_at', sqlType: 'timestamptz' },
+  { table: 'flow_sessions', column: 'miss_streak', sqlType: 'integer not null default 0' },
+  { table: 'flow_sessions', column: 'media_hint_step_id', sqlType: 'text' },
 ];
 
 export function schemaHealthSql(issues: SchemaHealthIssue[]): string {

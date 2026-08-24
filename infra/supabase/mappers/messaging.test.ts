@@ -39,6 +39,13 @@ describe('conversationToRow', () => {
     expect(row.last_message).toMatchObject({ content: 'oi', from_address: '5515996507651' });
   });
 
+  it('manda assigned_at nulo ao soltar o dono', () => {
+    expect(conversationToRow(base).assigned_at).toBeNull();
+    expect(
+      conversationToRow({ ...base, assignedAt: new Date('2026-08-20T12:00:00Z') }).assigned_at
+    ).toBe('2026-08-20T12:00:00.000Z');
+  });
+
   it('manda viewer_at nulo sem viewer e preenche quando há', () => {
     expect(conversationToRow(base).viewer_at).toBeNull();
     expect(conversationToRow(base).viewer_agent_id).toBeNull();

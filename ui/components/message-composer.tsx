@@ -249,9 +249,9 @@ export function MessageComposer({
           onOpenChange={setQuickOpen}
           conversationDepartmentId={conversationDepartmentId}
           disabled={busy || ptt.recording}
-          onPick={async ({ text, file: audio }) => {
-            if (audio) {
-              await onSend({ text, file: audio, quotedMessageId: replyTo?.id });
+          onPick={async ({ text, file }) => {
+            if (file) {
+              await onSend({ text, file, quotedMessageId: replyTo?.id });
               return;
             }
             insertText(text);

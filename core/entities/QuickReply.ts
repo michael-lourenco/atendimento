@@ -1,10 +1,16 @@
+export type QuickReplyMediaKind = 'audio' | 'image' | 'video' | 'document';
+
 export interface QuickReply {
   id: string;
   title: string;
   body: string;
-  mediaKind?: 'audio';
+  mediaKind?: QuickReplyMediaKind;
   departmentId?: string;
   createdAt: Date;
+}
+
+export function isQuickReplyMediaKind(value: unknown): value is QuickReplyMediaKind {
+  return value === 'audio' || value === 'image' || value === 'video' || value === 'document';
 }
 
 export function sortQuickReplies(replies: QuickReply[]): QuickReply[] {
@@ -13,26 +19,51 @@ export function sortQuickReplies(replies: QuickReply[]): QuickReply[] {
   );
 }
 
-export function quickReplyHasAudio(reply: Pick<QuickReply, 'mediaKind'>): boolean {
-  return reply.mediaKind === 'audio';
+export function quickReplyHasMedia(reply: Pick<QuickReply, 'mediaKind'>): boolean {
+  return isQuickReplyMediaKind(reply.mediaKind);
+}
+
+export function quickReplyMediaLabel(kind: QuickReplyMediaKind): string {
+  if (kind === 'image') {
+    return 'Foto';
+  }
+  if (kind === 'video') {
+    return 'Vídeo';
+  }
+  if (kind === 'document') {
+    return 'Documento';
+  }
+  return 'Áudio';
 }
 
 export function quickReplyListPreview(reply: QuickReply): string {
-  if (quickReplyHasAudio(reply) && !reply.body.trim()) {
-    return 'Áudio';
+  if (quickReplyHasMedia(reply) && !reply.body.trim() && reply.mediaKind) {
+    return quickReplyMediaLabel(reply.mediaKind);
   }
   return reply.body;
 }
 
 export function quickReplyPickerActionLabel(reply: Pick<QuickReply, 'mediaKind'>): string {
-  return quickReplyHasAudio(reply) ? 'Envia áudio' : 'Insere texto';
+  if (reply.mediaKind === 'image') {
+    return 'Envia imagem';
+  }
+  if (reply.mediaKind === 'video') {
+    return 'Envia vídeo';
+  }
+  if (reply.mediaKind === 'audio') {
+    return 'Envia áudio';
+  }
+  if (reply.mediaKind === 'document') {
+    return 'Envia documento';
+  }
+  return 'Insere texto';
 }
 
 export function quickReplyIsValid(reply: Pick<QuickReply, 'title' | 'body' | 'mediaKind'>): boolean {
   if (!reply.title.trim()) {
     return false;
   }
-  return Boolean(reply.body.trim() || quickReplyHasAudio(reply));
+  return Boolean(reply.body.trim() || quickReplyHasMedia(reply));
 }
 
 export function quickReplyMatchesQuery(reply: QuickReply, query: string): boolean {

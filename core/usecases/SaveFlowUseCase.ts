@@ -4,7 +4,15 @@ import { IFlowRepository } from '../repositories/IFlowRepository';
 export class SaveFlowUseCase {
   constructor(private repository: IFlowRepository) {}
 
-  execute(flow: Flow): Promise<void> {
-    return this.repository.save(flow);
+  async execute(flow: Flow): Promise<Flow> {
+    const existing = await this.repository.getById(flow.id);
+    const publishedSteps = flow.publishedSteps?.length
+      ? flow.publishedSteps
+      : existing?.publishedSteps?.length
+        ? existing.publishedSteps
+        : flow.steps;
+    const next = { ...flow, publishedSteps };
+    await this.repository.save(next);
+    return next;
   }
 }

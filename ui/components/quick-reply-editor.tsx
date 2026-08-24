@@ -1,17 +1,23 @@
 'use client';
 
 import { ChangeEvent, FormEvent, useEffect, useRef, useState } from 'react';
-import { QuickReply, quickReplyHasAudio, quickReplyIsValid } from '@/core/entities/QuickReply';
-import { quickReplyMediaApiHref } from '@/core/services/IMediaStorage';
+import {
+  QuickReply,
+  isQuickReplyMediaKind,
+  quickReplyHasMedia,
+  quickReplyIsValid,
+} from '@/core/entities/QuickReply';
+import { mediaKindFromMime, quickReplyMediaApiHref } from '@/core/services/IMediaStorage';
 import { Button } from '@/ui/components/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/ui/components/card';
 import { Input } from '@/ui/components/input';
 import { Label } from '@/ui/components/label';
 import { Textarea } from '@/ui/components/textarea';
 import { PttButton } from '@/ui/components/ptt-button';
+import { QuickReplyMediaPreview } from '@/ui/components/quick-reply-media-preview';
 import { PTT_MAX_MS } from '@/ui/lib/ptt-file';
 import { usePttRecorder } from '@/ui/lib/use-ptt-recorder';
-import { quickReplyAudioFileError } from '@/ui/lib/quick-reply-audio';
+import { mimeOfFile, quickReplyMediaFileError } from '@/ui/lib/quick-reply-audio';
 
 type QuickReplyEditorProps = {
   editing: QuickReply | null;
@@ -22,9 +28,18 @@ type QuickReplyEditorProps = {
     body: string;
     departmentId?: string;
     file: File | null;
-    removeAudio: boolean;
+    removeMedia: boolean;
   }) => Promise<void>;
 };
+
+function mediaKindOfFile(file: File) {
+  const mime = mimeOfFile(file);
+  if (!mime) {
+    return undefined;
+  }
+  const kind = mediaKindFromMime(mime);
+  return isQuickReplyMediaKind(kind) ? kind : undefined;
+}
 
 export function QuickReplyEditor({ editing, departments, onCancel, onSave }: QuickReplyEditorProps) {
   const [title, setTitle] = useState(editing?.title ?? '');
@@ -32,18 +47,19 @@ export function QuickReplyEditor({ editing, departments, onCancel, onSave }: Qui
   const [departmentId, setDepartmentId] = useState(editing?.departmentId ?? '');
   const [file, setFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
-  const [removeAudio, setRemoveAudio] = useState(false);
+  const [removeMedia, setRemoveMedia] = useState(false);
   const [sizeError, setSizeError] = useState<string | null>(null);
   const [pttCancelArmed, setPttCancelArmed] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
   const finishingPtt = useRef(false);
   const ptt = usePttRecorder();
-  const keepAudio = Boolean(editing && quickReplyHasAudio(editing) && !removeAudio && !file);
+  const keepMedia = Boolean(editing && quickReplyHasMedia(editing) && !removeMedia && !file);
+  const draftKind = file ? mediaKindOfFile(file) : keepMedia ? editing?.mediaKind : undefined;
   const draft: QuickReply = {
     id: editing?.id ?? 'new',
     title,
     body,
-    mediaKind: file || keepAudio ? 'audio' : undefined,
+    mediaKind: draftKind,
     createdAt: editing?.createdAt ?? new Date(),
   };
 
@@ -61,13 +77,13 @@ export function QuickReplyEditor({ editing, departments, onCancel, onSave }: Qui
 
   const applyFile = (selected: File | null) => {
     if (selected) {
-      const problem = quickReplyAudioFileError(selected);
+      const problem = quickReplyMediaFileError(selected);
       if (problem) {
         setSizeError(problem);
         return;
       }
       setSizeError(null);
-      setRemoveAudio(false);
+      setRemoveMedia(false);
       setFile(selected);
       return;
     }
@@ -113,12 +129,12 @@ export function QuickReplyEditor({ editing, departments, onCancel, onSave }: Qui
       body: body.trim(),
       departmentId: departmentId || undefined,
       file,
-      removeAudio,
+      removeMedia,
     });
   };
 
   const seconds = Math.max(1, Math.ceil(ptt.elapsedMs / 1000));
-  const audioSrc = previewUrl ?? (keepAudio && editing ? quickReplyMediaApiHref(editing.id) : null);
+  const mediaSrc = previewUrl ?? (keepMedia && editing ? quickReplyMediaApiHref(editing.id) : null);
 
   return (
     <Card className="mb-6">
@@ -167,8 +183,10 @@ export function QuickReplyEditor({ editing, departments, onCancel, onSave }: Qui
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="audio">Áudio</Label>
-            {audioSrc ? <audio controls className="w-full" src={audioSrc} /> : null}
+            <Label htmlFor="media">Mídia</Label>
+            {mediaSrc && draftKind ? (
+              <QuickReplyMediaPreview src={mediaSrc} kind={draftKind} />
+            ) : null}
             <div className="flex items-center gap-2">
               {ptt.supported ? (
                 <PttButton
@@ -184,10 +202,10 @@ export function QuickReplyEditor({ editing, departments, onCancel, onSave }: Qui
                 />
               ) : null}
               <Input
-                id="audio"
+                id="media"
                 ref={fileRef}
                 type="file"
-                accept="audio/*"
+                accept="image/*,video/*,audio/*,.pdf,application/pdf"
                 className="bg-background"
                 disabled={ptt.recording}
                 onChange={onFileChange}
@@ -203,7 +221,7 @@ export function QuickReplyEditor({ editing, departments, onCancel, onSave }: Qui
             {file && !ptt.recording ? (
               <p className="text-sm text-muted-foreground">{file.name}</p>
             ) : null}
-            {keepAudio || file ? (
+            {keepMedia || file ? (
               <Button
                 type="button"
                 variant="ghost"
@@ -211,18 +229,19 @@ export function QuickReplyEditor({ editing, departments, onCancel, onSave }: Qui
                 disabled={ptt.recording}
                 onClick={() => {
                   applyFile(null);
-                  setRemoveAudio(true);
+                  setRemoveMedia(true);
                   if (fileRef.current) {
                     fileRef.current.value = '';
                   }
                 }}
               >
-                Remover áudio
+                Remover mídia
               </Button>
             ) : null}
             {sizeError ? <p className="text-sm text-destructive">{sizeError}</p> : null}
             <p className="text-xs text-muted-foreground">
-              Segure o microfone ou envie um arquivo. Texto, áudio ou os dois. Máx. 16 MB.
+              Foto, vídeo, áudio ou PDF. Grave no microfone ou envie um arquivo. Texto, mídia ou os
+              dois. Máx. 16 MB.
             </p>
           </div>
           <div className="flex gap-2">

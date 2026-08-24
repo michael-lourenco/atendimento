@@ -5,6 +5,7 @@ import {
   MAX_OUTGOING_MEDIA_BYTES,
   StoredMedia,
   flowStepMediaPath,
+  isAllowedQuickReplyMime,
   mediaKindFromMime,
 } from '../services/IMediaStorage';
 
@@ -63,8 +64,8 @@ export class SaveFlowStepMediaUseCase {
       throw new InvalidFlowStepMediaError('Arquivo maior que 16 MB');
     }
     const kind = mediaKindFromMime(media.mimeType);
-    if (kind !== 'image' && kind !== 'audio') {
-      throw new InvalidFlowStepMediaError('Só é permitido imagem ou áudio');
+    if (!isAllowedQuickReplyMime(media.mimeType)) {
+      throw new InvalidFlowStepMediaError('Só é permitido imagem, vídeo, áudio ou PDF');
     }
     if (!this.storage) {
       throw new InvalidFlowStepMediaError('Storage de mídia indisponível');

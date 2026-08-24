@@ -52,4 +52,43 @@ describe('ChatbotCatalogUseCase', () => {
     await catalog.save(bot('a', false));
     expect((await catalog.getById('b'))?.isActive).toBe(false);
   });
+
+  it('recusa fluxo de entrada com problema de saúde', async () => {
+    const now = new Date('2026-08-21T12:00:00Z');
+    const flows = {
+      async getAll() {
+        return [
+          {
+            id: 'broken',
+            name: 'Quebrado',
+            isActive: true,
+            createdAt: now,
+            updatedAt: now,
+            steps: [
+              { id: 'a', type: 'message' as const, content: 'A' },
+              { id: 'b', type: 'message' as const, content: 'B' },
+            ],
+          },
+        ];
+      },
+      async getById() {
+        return null;
+      },
+      async save() {},
+      async update() {},
+      async delete() {},
+    };
+    const catalog = new ChatbotCatalogUseCase(new FakeRepo([]), flows);
+    await expect(
+      catalog.save({
+        id: 'bot',
+        name: 'Bot',
+        isActive: true,
+        flowId: 'broken',
+        messagesCount: 0,
+        createdAt: now,
+        updatedAt: now,
+      })
+    ).rejects.toThrow('Este fluxo tem problemas');
+  });
 });

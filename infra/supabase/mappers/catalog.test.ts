@@ -37,6 +37,12 @@ describe('quickReplyToRow', () => {
     expect(quickReplyToRow({ ...reply, mediaKind: 'audio' }).media_kind).toBe('audio');
   });
 
+  it('manda image, video e document', () => {
+    expect(quickReplyToRow({ ...reply, mediaKind: 'image' }).media_kind).toBe('image');
+    expect(quickReplyToRow({ ...reply, mediaKind: 'video' }).media_kind).toBe('video');
+    expect(quickReplyToRow({ ...reply, mediaKind: 'document' }).media_kind).toBe('document');
+  });
+
   it('lê media_kind do banco', () => {
     expect(
       quickReplyFromRow({
@@ -47,6 +53,15 @@ describe('quickReplyToRow', () => {
         created_at: '2026-08-20T12:00:00Z',
       }).mediaKind
     ).toBe('audio');
+    expect(
+      quickReplyFromRow({
+        id: 'qr-1',
+        title: 'Foto',
+        body: '',
+        media_kind: 'image',
+        created_at: '2026-08-20T12:00:00Z',
+      }).mediaKind
+    ).toBe('image');
   });
 
   it('manda e lê department_id', () => {

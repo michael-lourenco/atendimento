@@ -4,7 +4,7 @@ import {
   InvalidQuickReplyMediaError,
   SaveQuickReplyMediaUseCase,
 } from '@/core/usecases/SaveQuickReplyMediaUseCase';
-import { GetQuickReplyAudioUseCase } from '@/core/usecases/GetQuickReplyAudioUseCase';
+import { GetQuickReplyMediaUseCase } from '@/core/usecases/GetQuickReplyMediaUseCase';
 import { MAX_OUTGOING_MEDIA_BYTES } from '@/core/services/IMediaStorage';
 import { apiJson, applyRequestId } from '@/infra/http/apiJson';
 import { logApiError } from '@/infra/http/apiLog';
@@ -36,12 +36,12 @@ export async function GET(
     if (!id) {
       return apiJson(request, { error: 'id é obrigatório' }, { status: 400 });
     }
-    const file = await new GetQuickReplyAudioUseCase(
+    const file = await new GetQuickReplyMediaUseCase(
       serverLocator.getRepos().quickReply,
       serverLocator.getMediaStorage()
     ).execute(id);
     if (!file) {
-      return apiJson(request, { error: 'Áudio não encontrado' }, { status: 404 });
+      return apiJson(request, { error: 'Mídia não encontrada' }, { status: 404 });
     }
     return applyRequestId(
       request,
@@ -54,8 +54,8 @@ export async function GET(
       })
     );
   } catch (error) {
-    logApiError(requestIdFrom(request), 'Erro ao obter áudio da resposta rápida', error);
-    return apiJson(request, { error: 'Erro ao obter áudio' }, { status: 500 });
+    logApiError(requestIdFrom(request), 'Erro ao obter mídia da resposta rápida', error);
+    return apiJson(request, { error: 'Erro ao obter mídia' }, { status: 500 });
   }
 }
 
@@ -85,7 +85,9 @@ export async function PUT(
       serverLocator.getMediaStorage()
     ).execute(id, {
       bytes: new Uint8Array(await uploaded.arrayBuffer()),
-      mimeType: uploaded.type || 'audio/ogg',
+      mimeType:
+        uploaded.type ||
+        (uploaded.name.toLowerCase().endsWith('.pdf') ? 'application/pdf' : 'application/octet-stream'),
     });
     if (!updated) {
       return apiJson(request, { error: 'Resposta não encontrada' }, { status: 404 });
@@ -95,8 +97,8 @@ export async function PUT(
     if (error instanceof InvalidQuickReplyMediaError) {
       return apiJson(request, { error: error.message }, { status: 400 });
     }
-    logApiError(requestIdFrom(request), 'Erro ao gravar áudio da resposta rápida', error);
-    return apiJson(request, { error: 'Erro ao gravar áudio' }, { status: 500 });
+    logApiError(requestIdFrom(request), 'Erro ao gravar mídia da resposta rápida', error);
+    return apiJson(request, { error: 'Erro ao gravar mídia' }, { status: 500 });
   }
 }
 
@@ -122,7 +124,7 @@ export async function DELETE(
     }
     return apiJson(request, updated, { status: 200 });
   } catch (error) {
-    logApiError(requestIdFrom(request), 'Erro ao remover áudio da resposta rápida', error);
-    return apiJson(request, { error: 'Erro ao remover áudio' }, { status: 500 });
+    logApiError(requestIdFrom(request), 'Erro ao remover mídia da resposta rápida', error);
+    return apiJson(request, { error: 'Erro ao remover mídia' }, { status: 500 });
   }
 }

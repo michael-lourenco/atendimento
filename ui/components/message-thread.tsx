@@ -201,7 +201,6 @@ export function MessageThread({
         <MessageComposer
           sending={sending}
           error={error}
-          disabled={conversation?.status === 'closed'}
           replyTo={replyTo}
           onCancelReply={() => setReplyTo(null)}
           presenceTo={phone}

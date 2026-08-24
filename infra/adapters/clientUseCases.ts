@@ -28,6 +28,8 @@ import { QuickReplyCatalogUseCase } from '../../core/usecases/QuickReplyCatalogU
 import { ReportCatalogUseCase } from '../../core/usecases/ReportCatalogUseCase';
 import { ResumeContactFlowUseCase } from '../../core/usecases/ResumeContactFlowUseCase';
 import { SaveFlowUseCase } from '../../core/usecases/SaveFlowUseCase';
+import { PublishFlowUseCase } from '../../core/usecases/PublishFlowUseCase';
+import { GetFlowPublishImpactUseCase } from '../../core/usecases/GetFlowPublishImpactUseCase';
 import { SaveInternalMessageUseCase } from '../../core/usecases/SaveInternalMessageUseCase';
 import { ScheduledMessageCatalogUseCase } from '../../core/usecases/ScheduledMessageCatalogUseCase';
 import { SetConversationDepartmentUseCase } from '../../core/usecases/SetConversationDepartmentUseCase';
@@ -45,7 +47,11 @@ import { serviceLocator } from './ServiceLocator';
 export const clientUseCases = {
   tags: () => new TagCatalogUseCase(serviceLocator.getTagRepository()),
   departments: () => new DepartmentCatalogUseCase(serviceLocator.getDepartmentRepository()),
-  chatbots: () => new ChatbotCatalogUseCase(serviceLocator.getChatbotRepository()),
+  chatbots: () =>
+    new ChatbotCatalogUseCase(
+      serviceLocator.getChatbotRepository(),
+      serviceLocator.getFlowRepository()
+    ),
   agents: () =>
     new AgentCatalogUseCase(serviceLocator.getAgentRepository(), serviceLocator.getAuthRepository()),
   contacts: () => {
@@ -61,7 +67,10 @@ export const clientUseCases = {
     new ScheduledMessageCatalogUseCase(serviceLocator.getScheduledMessageRepository()),
   reports: () => new ReportCatalogUseCase(serviceLocator.getReportRepository()),
   whatsAppNumbers: () =>
-    new WhatsAppNumberCatalogUseCase(serviceLocator.getWhatsAppNumberRepository()),
+    new WhatsAppNumberCatalogUseCase(
+      serviceLocator.getWhatsAppNumberRepository(),
+      serviceLocator.getFlowRepository()
+    ),
 
   login: () =>
     new LoginUseCase(serviceLocator.getAuthRepository(), serviceLocator.getAgentRepository()),
@@ -85,6 +94,12 @@ export const clientUseCases = {
   allFlows: () => new GetAllFlowsUseCase(serviceLocator.getFlowRepository()),
   flowById: () => new GetFlowByIdUseCase(serviceLocator.getFlowRepository()),
   saveFlow: () => new SaveFlowUseCase(serviceLocator.getFlowRepository()),
+  publishFlow: () => new PublishFlowUseCase(serviceLocator.getFlowRepository()),
+  flowPublishImpact: () =>
+    new GetFlowPublishImpactUseCase(
+      serviceLocator.getFlowRepository(),
+      serviceLocator.getFlowSessionRepository()
+    ),
   deleteFlow: () =>
     new DeleteFlowUseCase(
       serviceLocator.getFlowRepository(),

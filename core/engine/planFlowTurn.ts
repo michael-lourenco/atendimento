@@ -1,9 +1,11 @@
-import { Flow, FlowStep } from '../entities/Flow';
+import { Flow, FlowStep, FlowStepMediaKind } from '../entities/Flow';
 import { FlowReturnFrame, FlowSession } from '../entities/FlowSession';
 import { evaluateCondition } from './evaluateCondition';
 import { resolveQuestionChoice } from './resolveQuestionChoice';
 import { matchFlowByKeyword } from './matchFlowByKeyword';
 import { clampFlowDelayMs } from './clampFlowDelayMs';
+import { matchesHumanHandoff } from '../entities/humanHandoff';
+import { DEFAULT_MISS_HANDOFF } from '../entities/flowPublish';
 
 export const MAX_FLOW_STEPS_PER_TURN = 20;
 
@@ -13,7 +15,7 @@ export interface FlowReply {
   flowId: string;
   delayMs?: number;
   mediaUrl?: string;
-  mediaKind?: 'image' | 'audio';
+  mediaKind?: FlowStepMediaKind;
 }
 
 export type FlowEffect = {
@@ -25,6 +27,8 @@ export interface FlowTurnPlan {
   replies: FlowReply[];
   effects: FlowEffect[];
   nextSession: FlowSession;
+  unmatchedQuestion: boolean;
+  matchedChoice: boolean;
 }
 
 export function formatQuestion(step: FlowStep): string {
@@ -117,6 +121,27 @@ export function planFlowTurn(input: {
   const visitedFlows = new Set<string>([active.id]);
   let stack: FlowReturnFrame[] = [...(session?.returnStack ?? [])];
   const waiting = session?.currentStepId ? findStep(active, session.currentStepId) : null;
+  if (matchesHumanHandoff(incomingText)) {
+    return {
+      replies: [
+        {
+          content: DEFAULT_MISS_HANDOFF,
+          stepId: 'handoff',
+          flowId: active.id,
+        },
+      ],
+      effects: [],
+      unmatchedQuestion: false,
+      matchedChoice: true,
+      nextSession: {
+        contactId,
+        flowId: active.id,
+        currentStepId: null,
+        paused: true,
+        updatedAt: now,
+      },
+    };
+  }
   const optionLocked = waiting?.type === 'question' && incomingMatchesQuestionOption(waiting, incomingText);
   const replyText =
     waiting?.type === 'question' ? resolveQuestionChoice(waiting, incomingText) : incomingText;
@@ -222,6 +247,8 @@ export function planFlowTurn(input: {
   return {
     replies,
     effects,
+    unmatchedQuestion: Boolean(waiting?.type === 'question' && !optionLocked && !keywordFlow),
+    matchedChoice: Boolean(optionLocked || keywordFlow),
     nextSession: {
       contactId,
       flowId: active.id,

@@ -49,7 +49,7 @@ import { IQuickReplyRepository } from '../../core/repositories/IQuickReplyReposi
 function createFlowRepository(client: SupabaseClient): IFlowRepository {
   const crud = createSupabaseCrud<Flow>(client, 'flows', flowFromRow, flowToRow);
   const save = (flow: Flow) =>
-    upsertOmittingMissingColumns(client, 'flows', flowToRow(flow), ['keywords']);
+    upsertOmittingMissingColumns(client, 'flows', flowToRow(flow), ['keywords', 'published_steps']);
   return {
     getAll: () => crud.getAll(),
     getById: (id) => crud.getById(id),
@@ -124,10 +124,23 @@ function createSessionRepository(client: SupabaseClient): IFlowSessionRepository
           paused: session.paused,
           return_stack: session.returnStack ?? [],
           outside_hours_notified: session.outsideHoursNotified ?? false,
+          consumed_incoming_at: session.consumedIncomingAt
+            ? session.consumedIncomingAt.toISOString()
+            : null,
+          miss_streak: session.missStreak ?? 0,
+          media_hint_step_id: session.mediaHintStepId ?? null,
           updated_at: session.updatedAt.toISOString(),
         },
-        ['return_stack', 'outside_hours_notified']
+        ['return_stack', 'outside_hours_notified', 'consumed_incoming_at', 'miss_streak', 'media_hint_step_id']
       );
+    },
+    async listByFlowId(flowId: string) {
+      const { data, error } = await client
+        .from('flow_sessions')
+        .select('*')
+        .eq('flow_id', flowId);
+      if (error) throw error;
+      return (data ?? []).map((row) => sessionFromRow(row as Record<string, unknown>));
     },
     async deleteByFlowId(flowId: string) {
       const { error } = await client.from('flow_sessions').delete().eq('flow_id', flowId);

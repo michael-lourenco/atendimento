@@ -17,6 +17,7 @@ import { useCatalogSavedFlash } from '@/ui/lib/use-catalog-saved-flash';
 import { catalogPersistErrorMessage } from '@/ui/lib/catalog-persist-error';
 import { normalizeFlowKeywords } from '@/ui/lib/flow-keywords';
 import { useConfirm } from '@/ui/components/confirm-dialog';
+import { flowHasUnpublishedChanges } from '@/core/entities/flowPublish';
 
 type FlowEditorScreenProps = {
   flowId?: string;
@@ -36,7 +37,7 @@ function snapshot(value: {
 export function FlowEditorScreen({ flowId, fromFlowId }: FlowEditorScreenProps) {
   const router = useRouter();
   const { confirm, dialog } = useConfirm();
-  const { show, kind, message, markSaved, flashError } = useCatalogSavedFlash();
+  const { show, kind, message, markSaved, flashSuccess, flashError } = useCatalogSavedFlash();
   const [loading, setLoading] = useState(true);
   const [flows, setFlows] = useState<Flow[]>([]);
   const [departments, setDepartments] = useState<Department[]>([]);
@@ -126,19 +127,20 @@ export function FlowEditorScreen({ flowId, fromFlowId }: FlowEditorScreenProps) 
         isActive,
         keywords: keywordList,
         steps,
+        publishedSteps: editing?.publishedSteps,
         createdAt: editing?.createdAt || new Date(),
         updatedAt: new Date(),
       };
-      await clientUseCases.saveFlow().execute(flow);
-      setEditing(flow);
-      setKeywords(flow.keywords ?? []);
+      const savedFlow = await clientUseCases.saveFlow().execute(flow);
+      setEditing(savedFlow);
+      setKeywords(savedFlow.keywords ?? []);
       setError(null);
       setSavedSnap(
         snapshot({
-          name: flow.name,
+          name: savedFlow.name,
           description,
           isActive,
-          keywords: flow.keywords ?? [],
+          keywords: savedFlow.keywords ?? [],
           steps,
         })
       );
@@ -146,7 +148,7 @@ export function FlowEditorScreen({ flowId, fromFlowId }: FlowEditorScreenProps) 
       if ((options?.navigate ?? true) && !flowId) {
         router.replace(`/dashboard/flows/${id}`);
       }
-      return flow;
+      return savedFlow;
     } catch (saveError) {
       setError(catalogPersistErrorMessage(saveError, 'flows'));
       flashError(catalogPersistErrorMessage(saveError, 'flows'));
@@ -176,6 +178,38 @@ export function FlowEditorScreen({ flowId, fromFlowId }: FlowEditorScreenProps) 
     window.addEventListener('beforeunload', onLeave);
     return () => window.removeEventListener('beforeunload', onLeave);
   }, [dirty]);
+
+  const unpublished = flowHasUnpublishedChanges({
+    steps,
+    publishedSteps: editing?.publishedSteps,
+  });
+
+  const publishFlow = async () => {
+    const saved = await saveFlow({ navigate: false });
+    if (!saved) {
+      return;
+    }
+    try {
+      const impact = await clientUseCases.flowPublishImpact().execute(saved.id, steps);
+      if (
+        impact.count > 0 &&
+        !(await confirm(
+          `${impact.count} conversa${impact.count === 1 ? '' : 's'} estão em passos que vão sumir. Publicar mesmo assim?`
+        ))
+      ) {
+        return;
+      }
+      const published = await clientUseCases.publishFlow().execute(saved.id);
+      if (!published) {
+        return;
+      }
+      setEditing(published);
+      flashSuccess('Publicado');
+    } catch (publishError) {
+      setError(catalogPersistErrorMessage(publishError, 'flows'));
+      flashError(catalogPersistErrorMessage(publishError, 'flows'));
+    }
+  };
 
   const goBack = async () => {
     if (dirty && !(await confirm('Sair sem salvar as alterações?'))) {
@@ -210,13 +244,23 @@ export function FlowEditorScreen({ flowId, fromFlowId }: FlowEditorScreenProps) 
           Alterações não salvas. Ctrl+S ou ⌘S para gravar.
         </p>
       ) : null}
+      {unpublished ? (
+        <p className="rounded-md border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-sm">
+          Alterações no quadro ainda não estão no WhatsApp. Publique quando o roteiro estiver ok.
+        </p>
+      ) : null}
       <div className="flex flex-wrap items-center justify-between gap-2">
         <Button type="button" variant="outline" onClick={() => void goBack()}>
           Voltar
         </Button>
-        <Button type="button" onClick={() => void saveFlow()}>
-          Salvar fluxo
-        </Button>
+        <div className="flex flex-wrap gap-2">
+          <Button type="button" variant="outline" onClick={() => void publishFlow()}>
+            Publicar
+          </Button>
+          <Button type="button" onClick={() => void saveFlow()}>
+            Salvar fluxo
+          </Button>
+        </div>
       </div>
       <div className="flex flex-wrap items-end gap-3">
         <div className="min-w-[220px] flex-1 space-y-2">

@@ -57,6 +57,9 @@ class InMemorySessionRepository implements IFlowSessionRepository {
   async getByContactId(contactId: string) {
     return this.session?.contactId === contactId ? this.session : null;
   }
+  async listByFlowId(flowId: string) {
+    return this.session?.flowId === flowId ? [this.session] : [];
+  }
   async save(session: FlowSession) {
     this.session = session;
   }

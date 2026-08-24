@@ -4,6 +4,7 @@ import {
   contactAvatarPath,
   flowStepMediaApiHref,
   flowStepMediaPath,
+  isAllowedQuickReplyMime,
   mediaKindFromMime,
   quickReplyMediaApiHref,
   quickReplyMediaPath,
@@ -19,6 +20,14 @@ describe('mediaKindFromMime', () => {
   });
 });
 
+describe('isAllowedQuickReplyMime', () => {
+  it('aceita PDF e recusa outro documento', () => {
+    expect(isAllowedQuickReplyMime('application/pdf')).toBe(true);
+    expect(isAllowedQuickReplyMime('image/png')).toBe(true);
+    expect(isAllowedQuickReplyMime('application/zip')).toBe(false);
+  });
+});
+
 describe('contactAvatarPath', () => {
   it('href da foto no painel', () => {
     expect(contactAvatarPath('5511999')).toBe('contacts/5511999');
@@ -27,7 +36,7 @@ describe('contactAvatarPath', () => {
 });
 
 describe('quickReplyMediaPath', () => {
-  it('href do áudio no painel', () => {
+  it('href da mídia no painel', () => {
     expect(quickReplyMediaPath('qr-1')).toBe('quick-replies/qr-1');
     expect(quickReplyMediaApiHref('qr-1')).toBe('/api/quick-replies/qr-1/media');
   });

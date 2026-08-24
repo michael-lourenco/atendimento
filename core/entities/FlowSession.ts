@@ -11,5 +11,8 @@ export interface FlowSession {
   /** Origem após `goToFlow`: quando o destino acaba, retoma `resumeStepId`. */
   returnStack?: FlowReturnFrame[];
   outsideHoursNotified?: boolean;
+  consumedIncomingAt?: Date;
+  missStreak?: number;
+  mediaHintStepId?: string;
   updatedAt: Date;
 }

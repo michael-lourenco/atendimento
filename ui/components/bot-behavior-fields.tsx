@@ -90,6 +90,18 @@ export function BotBehaviorFields({ value, onChange }: BotBehaviorFieldsProps) {
               0 desliga. Só vale enquanto o bot espera uma resposta. Com atendente na conversa, não encerra.
             </p>
           </div>
+          <div className="space-y-1">
+            <Label htmlFor="miss-handoff">Falhas na pergunta até passar a uma pessoa</Label>
+            <Input
+              id="miss-handoff"
+              type="number"
+              min={0}
+              max={10}
+              value={value.missHandoffAfter}
+              onChange={(event) => patch({ missHandoffAfter: Number(event.target.value) })}
+            />
+            <p className="text-xs text-muted-foreground">0 desliga. Padrão 3.</p>
+          </div>
         </div>
         <label className="flex items-center gap-2 text-sm">
           <input
@@ -114,6 +126,15 @@ export function BotBehaviorFields({ value, onChange }: BotBehaviorFieldsProps) {
             rows={2}
             value={value.idleCloseMessage}
             onChange={(event) => patch({ idleCloseMessage: event.target.value })}
+          />
+        </div>
+        <div className="space-y-1">
+          <Label htmlFor="media-hint">Aviso quando chegar mídia na pergunta</Label>
+          <Textarea
+            id="media-hint"
+            rows={2}
+            value={value.mediaHintMessage}
+            onChange={(event) => patch({ mediaHintMessage: event.target.value })}
           />
         </div>
       </div>

@@ -2,16 +2,25 @@ import {
   MAX_OUTGOING_MEDIA_BYTES,
   flowStepMediaApiHref,
   flowStepStoragePathFromRef,
-  mediaKindFromMime,
+  isAllowedQuickReplyMime,
 } from '@/core/services/IMediaStorage';
+
+export function mimeOfFlowStepFile(file: File): string {
+  if (file.type) {
+    return file.type;
+  }
+  if (file.name.toLowerCase().endsWith('.pdf')) {
+    return 'application/pdf';
+  }
+  return 'application/octet-stream';
+}
 
 export function flowStepMediaFileError(file: File): string | null {
   if (file.size > MAX_OUTGOING_MEDIA_BYTES) {
     return 'Arquivo maior que 16 MB';
   }
-  const kind = mediaKindFromMime(file.type || 'application/octet-stream');
-  if (kind !== 'image' && kind !== 'audio') {
-    return 'Só é permitido imagem ou áudio';
+  if (!isAllowedQuickReplyMime(mimeOfFlowStepFile(file))) {
+    return 'Só é permitido imagem, vídeo, áudio ou PDF';
   }
   return null;
 }

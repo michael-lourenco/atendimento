@@ -4,6 +4,7 @@ import {
   IMediaStorage,
   MAX_OUTGOING_MEDIA_BYTES,
   StoredMedia,
+  isAllowedQuickReplyMime,
   mediaKindFromMime,
   quickReplyMediaPath,
 } from '../services/IMediaStorage';
@@ -34,14 +35,15 @@ export class SaveQuickReplyMediaUseCase {
     if (media.bytes.byteLength > MAX_OUTGOING_MEDIA_BYTES) {
       throw new InvalidQuickReplyMediaError('Arquivo maior que 16 MB');
     }
-    if (mediaKindFromMime(media.mimeType) !== 'audio') {
-      throw new InvalidQuickReplyMediaError('Só é permitido áudio');
+    if (!isAllowedQuickReplyMime(media.mimeType)) {
+      throw new InvalidQuickReplyMediaError('Só é permitido imagem, vídeo, áudio ou PDF');
     }
     if (!this.storage) {
       throw new InvalidQuickReplyMediaError('Storage de mídia indisponível');
     }
+    const kind = mediaKindFromMime(media.mimeType);
     await this.storage.save(quickReplyMediaPath(existing.id), media);
-    const updated: QuickReply = { ...existing, mediaKind: 'audio' };
+    const updated: QuickReply = { ...existing, mediaKind: kind };
     await this.replies.save(updated);
     return updated;
   }

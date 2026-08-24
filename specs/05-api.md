@@ -40,10 +40,10 @@ Bodies JSON das rotas abaixo passam por schema Zod na borda. Inválido → `400 
 - `quotedMessageId`: cita essa bolha no WhatsApp se ela existir; senão envia sem citar
 - 400 se faltar `to`; 400 se não houver `message` nem arquivo; 400 se `type=template` sem `templateName`; 400 se arquivo > 16 MB
 - 200: entidade `Message` persistida (`type` image/audio/video/document quando houver arquivo)
-- Após envio bem-sucedido, pausa o fluxo **dessa thread** (`PauseContactFlowUseCase` com o id da conversa) e, se houver mídia, grava no Storage
+- Após envio bem-sucedido: se a thread estava `closed`, `ReopenConversationUseCase` + `ResumeContactFlowUseCase`; senão pausa o fluxo (`PauseContactFlowUseCase`) e, se houver mídia, grava no Storage
 - 401: sem sessão de operador quando o Supabase está configurado
 - 500: falha no provedor
-- Emoji Unicode no `message`, **resposta rápida** de texto (o `body` já está no compositor) e **Reenviar** de outgoing `failed` usam este mesmo POST. Resposta rápida **com áudio**: o picker manda o arquivo no mesmo multipart. CRUD do catálogo continua no client (`QuickReplyCatalogUseCase`). Áudio do catálogo: `GET`/`PUT`/`DELETE /api/quick-replies/{id}/media`.
+- Emoji Unicode no `message`, **resposta rápida** de texto (o `body` já está no compositor) e **Reenviar** de outgoing `failed` usam este mesmo POST. Resposta rápida **com mídia** (áudio, imagem, vídeo ou PDF): o picker manda o arquivo no mesmo multipart (`body` como legenda). CRUD do catálogo continua no client (`QuickReplyCatalogUseCase`). Mídia do catálogo: `GET`/`PUT`/`DELETE /api/quick-replies/{id}/media`.
 
 `POST /api/messages/react`
 
@@ -110,9 +110,9 @@ Bodies JSON das rotas abaixo passam por schema Zod na borda. Inválido → `400 
 `GET` / `PUT` / `DELETE /api/quick-replies/{id}/media`
 
 - 401: sem sessão de operador quando o Supabase está configurado
-- 404: resposta inexistente (GET/PUT/DELETE) ou sem áudio no Storage (GET). No picker, 404/falha do GET **não** fecha o painel; o item mostra “Não foi possível enviar o áudio”.
-- GET: stream do áudio via `GetQuickReplyAudioUseCase` (`quick-replies/{id}`); `Cache-Control: private, no-cache`
-- PUT: multipart `file` (só áudio, máx. 16 MB). Grava Storage + `mediaKind: "audio"`. 400 se não for áudio ou passar de 16 MB. 200: `QuickReply`
+- 404: resposta inexistente (GET/PUT/DELETE) ou sem mídia no Storage (GET). No picker, 404/falha do GET **não** fecha o painel; o item mostra “Não foi possível enviar a mídia”.
+- GET: stream da mídia via `GetQuickReplyMediaUseCase` (`quick-replies/{id}`); `Cache-Control: private, no-cache`
+- PUT: multipart `file` (áudio, imagem, vídeo ou PDF, máx. 16 MB). Grava Storage + `mediaKind` pelo MIME (`document` se PDF). 400 se for outro documento, tipo inválido ou passar de 16 MB. 200: `QuickReply`
 - DELETE: tira `mediaKind` (o `body` permanece). 200: `QuickReply`
 - Sem Zod (multipart / sem body). Não cria a resposta: o catálogo `save` no client vem antes
 
@@ -121,8 +121,8 @@ Bodies JSON das rotas abaixo passam por schema Zod na borda. Inválido → `400 
 - Padrão das rotas de mídia do painel (respostas rápidas). Auth: sessão de operador (cookie) quando o Supabase está configurado
 - 401: sem sessão
 - 404: fluxo inexistente, passo inexistente, passo que não é `message` (PUT/DELETE) ou sem objeto no Storage (GET)
-- GET: stream da imagem ou áudio via `GetFlowStepMediaUseCase` (`flows/{flowId}/{stepId}`); `Cache-Control: private, no-cache`. O painel reproduz no inspetor
-- PUT: multipart `file` (imagem **ou** áudio, máx. 16 MB). Grava Storage + `mediaUrl` = path `flows/{flowId}/{stepId}` + `mediaKind` pelo MIME. 400 se não for imagem/áudio, passar de 16 MB ou faltar `file`. 200: `Flow` atualizado
+- GET: stream da mídia via `GetFlowStepMediaUseCase` (`flows/{flowId}/{stepId}`); `Cache-Control: private, no-cache`. O painel reproduz no inspetor
+- PUT: multipart `file` (imagem, áudio, vídeo ou PDF, máx. 16 MB). Grava Storage + `mediaUrl` = path `flows/{flowId}/{stepId}` + `mediaKind` pelo MIME (`document` se PDF). 400 se for outro documento, passar de 16 MB ou faltar `file`. 200: `Flow` atualizado
 - DELETE: limpa `mediaUrl`/`mediaKind` no passo e apaga o objeto no Storage (`IMediaStorage.remove`). 200: `Flow` atualizado
 - Sem Zod (multipart / sem body). **Não** cria o fluxo nem o passo: o save do editor vem antes (igual ao catálogo de respostas rápidas)
 - O motor **não** usa este GET no browser; lê o Storage com `service_role` (`loadFlowStepMedia` / `02-domain.md`, `08-supabase.md`)
@@ -133,9 +133,9 @@ Bodies JSON das rotas abaixo passam por schema Zod na borda. Inválido → `400 
 
 `GET /api/webhook/whatsapp` — query `hub.mode`, `hub.verify_token`, `hub.challenge`. 200 texto do challenge ou 403.
 
-`POST /api/webhook/whatsapp` — body Meta (`object` + `entry[]`). Zod frouxo. Sempre 200 após tentativa de processamento (ACK). Sem `message` interno/stack no JSON.
+`POST /api/webhook/whatsapp` — body Meta (`object` + `entry[]`). Zod frouxo. Sempre 200 após tentativa de processamento (ACK). Sem `message` interno/stack no JSON. Incoming texto dispara o motor **com lock por `Conversation.id`** (`02-domain.md` invariante 10): ACK 200 **não** espera o turno nem a fila da thread.
 
-`POST /api/webhook/evolution` — `{ event, data?, instance? }` (compat `key` → body como `data`, ver tabela Zod). 400 se o schema falhar. Processamento: ACK **200** sem `message` de stack (hoje o handler pode devolver 200 com texto de erro — em produção o ACK permanece 200, sem vazar detalhe interno).
+`POST /api/webhook/evolution` — `{ event, data?, instance? }` (compat `key` → body como `data`, ver tabela Zod). 400 se o schema falhar. Processamento: ACK **200** sem `message` de stack (hoje o handler pode devolver 200 com texto de erro — em produção o ACK permanece 200, sem vazar detalhe interno). O mesmo lock por thread do Meta: persistir a mensagem é independente; `ProcessIncomingFlowUseCase` serializa por conversa.
 
 `POST /api/webhook/chat-whatsapp` — `{ event, data }`. 400 se inválido. 200 ACK sem stack.
 
