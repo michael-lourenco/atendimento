@@ -88,7 +88,7 @@ Runner: Jest + `ts-jest` (`npm test`). Testing Library só quando houver teste d
 - `core/engine/planFlowTurn.test.ts` — também `returnStack`, `handoff`, keyword
 - `core/entities/whatsappNumberLive.test.ts` — lista de Números inclui a sessão ao vivo (wid); sync preserva `behavior`, `flowId` e `businessHours` da linha
 - `core/usecases/SyncLiveWhatsAppNumberUseCase.test.ts` — primeira conexão grava; poll igual não regrava
-- `ui/lib/status-tone.test.ts` — fila entrada/esperando/finalizado; ligado/desligado
+- `ui/lib/status-tone.test.ts` — fila entrada/esperando/finalizado; ligado/desligado; aba Finalizados ativa em cinza visível
 - `ui/lib/contact-picker.test.ts` — busca nome/telefone; número novo; prefixo 55
 - `core/entities/messageStatus.test.ts` — ack Evolution → tiques; não rebaixa lida
 - `core/usecases/UpdateMessageStatusUseCase.test.ts` — avança sent→delivered; lastMessage da conversa acompanha o ack
@@ -129,7 +129,7 @@ Runner: Jest + `ts-jest` (`npm test`). Testing Library só quando houver teste d
 - `core/usecases/HandleIncomingWhatsAppMessageUseCase.test.ts` — mesmo id de mensagem não dispara o motor de novo
 - `ui/lib/catalog-persist-error.test.ts` — PGRST205 vira aviso de migration; PGRST204 em flows cita 017; `quick_replies` cita 022 (`media_kind`) e 023 (`department_id`); `chatbots` cita 024 (`behavior`); `whatsapp_numbers` cita 025 (`behavior`), 026 (`flow_id`) ou 027 (`business_hours`); 23503 ao excluir fluxo
 - `ui/lib/catalog-load-phase.test.ts` — enquanto carrega não é empty state
-- `ui/lib/sidebar-nav.test.ts` — atendente vê Conversas, Contatos, `/dashboard/quick-replies` **e** `/dashboard/schedules`; `isAdminPath` dessas duas é false; admin vê Configuração incluindo `/dashboard/chatbots` com título **Chatbot**. Sem Testing Library obrigatório para esta feature
+- `ui/lib/sidebar-nav.test.ts` — atendente vê Conversas, Contatos, `/dashboard/quick-replies` **e** `/dashboard/schedules`; `isAdminPath` dessas duas é false; admin vê Configuração incluindo `/dashboard/chatbots` com título **Chatbot**; clique em outra tela marca pending, a atual não. Sem Testing Library obrigatório para esta feature
 - `ui/lib/inbox-href.test.ts` — Contatos: uma thread → `?conversation=`; nenhuma → `?contact=`; várias → `?contact=` (o menu escolhe o id)
 - `ui/lib/catalog-saved.test.ts` — aviso Salvo some depois do TTL; botão mostra Salvando… / Salvo
 - `infra/schedules/cronAuth.test.ts` — Bearer `CRON_SECRET`

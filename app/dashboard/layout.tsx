@@ -17,6 +17,8 @@ import { isAdminPath, pageTitleFromPath, SIDEBAR_EXPANDED_STORAGE_KEY } from '@/
 import { DASHBOARD_POLL_MS } from '@/ui/lib/dashboard-poll';
 import { cn } from '@/ui/lib/utils';
 import { SchemaHealthBanner } from '@/ui/components/schema-health-banner';
+import { SidebarNavProgress } from '@/ui/components/sidebar-nav-progress';
+import { usePendingSidebarNav } from '@/ui/lib/use-pending-sidebar-nav';
 
 export default function DashboardLayout({
   children,
@@ -29,6 +31,7 @@ export default function DashboardLayout({
   const [sidebarExpanded, setSidebarExpanded] = useState(true);
   const router = useRouter();
   const pathname = usePathname();
+  const { pendingHref, onSidebarNavigate } = usePendingSidebarNav();
 
   useEffect(() => {
     const stored = window.localStorage.getItem(SIDEBAR_EXPANDED_STORAGE_KEY);
@@ -108,15 +111,19 @@ export default function DashboardLayout({
         expanded={sidebarExpanded}
         onToggle={toggleSidebar}
         role={user.role}
+        pendingHref={pendingHref}
+        onNavigate={onSidebarNavigate}
       />
       <MobileSidebar
         isOpen={mobileMenuOpen}
         onClose={() => setMobileMenuOpen(false)}
         role={user.role}
+        pendingHref={pendingHref}
+        onNavigate={onSidebarNavigate}
       />
 
       <div className={cn(sidebarExpanded ? 'lg:pl-56' : 'lg:pl-16')}>
-        <nav className="sticky top-0 z-30 bg-card border-b border-border">
+        <nav className="sticky top-0 z-30 relative bg-card border-b border-border">
           <div className="px-4 sm:px-6 lg:px-8">
             <div className="flex justify-between h-16">
               <div className="flex items-center">
@@ -133,7 +140,7 @@ export default function DashboardLayout({
                     Chatbot Atendimento
                   </p>
                   <h1 className="text-lg font-semibold text-foreground">
-                    {pageTitleFromPath(pathname)}
+                    {pageTitleFromPath(pendingHref ?? pathname)}
                   </h1>
                 </div>
               </div>
@@ -150,6 +157,7 @@ export default function DashboardLayout({
               </div>
             </div>
           </div>
+          <SidebarNavProgress pending={Boolean(pendingHref)} />
         </nav>
         {isAdmin(user) ? <SchemaHealthBanner /> : null}
         <main className="p-4 sm:p-6 lg:p-8">

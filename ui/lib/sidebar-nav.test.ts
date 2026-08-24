@@ -1,4 +1,9 @@
-import { isAdminPath, sidebarGroupsForRole } from './sidebar-nav';
+import {
+  isAdminPath,
+  isSidebarItemPending,
+  pendingSidebarHref,
+  sidebarGroupsForRole,
+} from './sidebar-nav';
 
 describe('sidebarGroupsForRole', () => {
   it('atendente vê Conversas, Contatos, Respostas rápidas e Agendamentos', () => {
@@ -31,5 +36,19 @@ describe('sidebarGroupsForRole', () => {
     expect(isAdminPath('/dashboard/flows/inicio')).toBe(true);
     expect(isAdminPath('/dashboard/flows/new')).toBe(true);
     expect(isAdminPath('/dashboard/chatbots')).toBe(true);
+  });
+
+  it('clique em outra tela marca loading; a tela atual não', () => {
+    expect(pendingSidebarHref('/dashboard/conversations', '/dashboard/contacts')).toBe(
+      '/dashboard/contacts'
+    );
+    expect(pendingSidebarHref('/dashboard/conversations', '/dashboard/conversations')).toBeNull();
+    expect(pendingSidebarHref('/dashboard/flows/inicio', '/dashboard/flows')).toBeNull();
+    expect(
+      isSidebarItemPending('/dashboard/contacts', '/dashboard/contacts', '/dashboard/conversations')
+    ).toBe(true);
+    expect(
+      isSidebarItemPending('/dashboard/contacts', '/dashboard/contacts', '/dashboard/contacts')
+    ).toBe(false);
   });
 });

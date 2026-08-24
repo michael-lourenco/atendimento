@@ -28,7 +28,8 @@ export const queueTabActiveClass: Record<QueueTone, string> = {
     'data-[state=active]:bg-amber-500/20 data-[state=active]:text-amber-900 dark:data-[state=active]:text-amber-200',
   waiting:
     'data-[state=active]:bg-sky-500/20 data-[state=active]:text-sky-900 dark:data-[state=active]:text-sky-200',
-  closed: 'data-[state=active]:bg-background data-[state=active]:text-muted-foreground',
+  closed:
+    'data-[state=active]:bg-zinc-500/20 data-[state=active]:text-zinc-900 dark:data-[state=active]:text-zinc-100',
 };
 
 export const flowStepToneBar: Record<FlowStep['type'], string> = {

@@ -13,7 +13,8 @@ import { QUEUE_TAB_LABEL } from '@/core/entities/inboxFilterHint';
 import { ConversationInboxList } from '@/ui/components/conversation-inbox-list';
 import { InboxFilterBanner } from '@/ui/components/inbox-guidance';
 import { EmptyState } from '@/ui/components/empty-state';
-import { queueTabActiveClass } from '@/ui/lib/status-tone';
+import { QueueTone, queueTabActiveClass } from '@/ui/lib/status-tone';
+import { cn } from '@/ui/lib/utils';
 
 type InboxConversationAsideProps = {
   threadOpen: boolean;
@@ -39,6 +40,42 @@ type InboxConversationAsideProps = {
   onSelect: (conversation: Conversation) => void;
   onClearFilters: () => void;
 };
+
+function InboxQueueTabTrigger({
+  value,
+  tone,
+  label,
+  count,
+  badgeVariant,
+}: {
+  value: string;
+  tone: QueueTone;
+  label: string;
+  count: number;
+  badgeVariant: 'warning' | 'info' | 'muted';
+}) {
+  return (
+    <TabsTrigger
+      value={value}
+      className={cn(
+        'flex h-full min-h-8 w-full min-w-0 flex-col gap-0.5 overflow-hidden whitespace-normal px-1 py-1.5 text-[11px] leading-tight shadow-none data-[state=active]:shadow-none sm:text-xs',
+        queueTabActiveClass[tone],
+      )}
+    >
+      <span className="max-w-full truncate">{label}</span>
+      {count > 0 ? (
+        <Badge
+          variant={badgeVariant}
+          className="h-4 min-w-4 justify-center px-1 py-0 text-[10px] leading-none"
+        >
+          {count}
+        </Badge>
+      ) : (
+        <span className="h-4" aria-hidden />
+      )}
+    </TabsTrigger>
+  );
+}
 
 export function InboxConversationAside({
   threadOpen,
@@ -82,31 +119,28 @@ export function InboxConversationAside({
           />
         </div>
         <Tabs value={activeTab} onValueChange={onTab}>
-          <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="incoming" className={`text-xs sm:text-sm ${queueTabActiveClass.incoming}`}>
-              Entrada
-              {incomingCount > 0 ? (
-                <Badge variant="warning" className="ml-1">
-                  {incomingCount}
-                </Badge>
-              ) : null}
-            </TabsTrigger>
-            <TabsTrigger value="waiting" className={`text-xs sm:text-sm ${queueTabActiveClass.waiting}`}>
-              Esperando
-              {waitingCount > 0 ? (
-                <Badge variant="info" className="ml-1">
-                  {waitingCount}
-                </Badge>
-              ) : null}
-            </TabsTrigger>
-            <TabsTrigger value="closed" className={`text-xs sm:text-sm ${queueTabActiveClass.closed}`}>
-              Finalizados
-              {closedCount > 0 ? (
-                <Badge variant="muted" className="ml-1">
-                  {closedCount}
-                </Badge>
-              ) : null}
-            </TabsTrigger>
+          <TabsList className="grid h-auto w-full min-w-0 grid-cols-3 items-stretch gap-0.5 overflow-hidden p-1">
+            <InboxQueueTabTrigger
+              value="incoming"
+              tone="incoming"
+              label="Entrada"
+              count={incomingCount}
+              badgeVariant="warning"
+            />
+            <InboxQueueTabTrigger
+              value="waiting"
+              tone="waiting"
+              label="Esperando"
+              count={waitingCount}
+              badgeVariant="info"
+            />
+            <InboxQueueTabTrigger
+              value="closed"
+              tone="closed"
+              label="Finalizados"
+              count={closedCount}
+              badgeVariant="muted"
+            />
           </TabsList>
         </Tabs>
       </div>

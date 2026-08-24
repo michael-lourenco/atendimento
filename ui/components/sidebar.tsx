@@ -4,11 +4,12 @@ import React from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { cn } from '../lib/utils';
-import { ChevronsLeft, ChevronsRight, X } from 'lucide-react';
+import { ChevronsLeft, ChevronsRight, Loader2, X } from 'lucide-react';
 import { Button } from './button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './tooltip';
 import {
   isSidebarItemActive,
+  isSidebarItemPending,
   sidebarGroupsForRole,
   type SidebarItem,
 } from '../lib/sidebar-nav';
@@ -18,31 +19,46 @@ interface SidebarProps {
   expanded: boolean;
   onToggle: () => void;
   role: 'admin' | 'user';
+  pendingHref?: string | null;
+  onNavigate?: (href: string) => void;
 }
 
 function NavLink({
   item,
   pathname,
   expanded,
+  pendingHref,
+  onNavigate,
 }: {
   item: SidebarItem;
   pathname: string;
   expanded: boolean;
+  pendingHref?: string | null;
+  onNavigate?: (href: string) => void;
 }) {
   const Icon = item.icon;
   const isActive = isSidebarItemActive(pathname, item.href);
+  const isPending = isSidebarItemPending(pendingHref ?? null, item.href, pathname);
   const link = (
     <Link
       href={item.href}
+      onClick={() => onNavigate?.(item.href)}
+      aria-busy={isPending}
       className={cn(
         'flex items-center rounded-lg p-3 text-sm font-medium transition-colors',
         expanded ? 'gap-3 px-3' : 'w-full justify-center',
         isActive
           ? 'bg-primary text-primary-foreground'
-          : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
+          : isPending
+            ? 'bg-accent text-accent-foreground'
+            : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
       )}
     >
-      <Icon className="h-5 w-5 shrink-0" />
+      {isPending ? (
+        <Loader2 className="h-5 w-5 shrink-0 animate-spin" />
+      ) : (
+        <Icon className="h-5 w-5 shrink-0" />
+      )}
       {expanded ? <span className="truncate">{item.title}</span> : <span className="sr-only">{item.title}</span>}
     </Link>
   );
@@ -61,7 +77,14 @@ function NavLink({
   );
 }
 
-export const Sidebar: React.FC<SidebarProps> = ({ className, expanded, onToggle, role }) => {
+export const Sidebar: React.FC<SidebarProps> = ({
+  className,
+  expanded,
+  onToggle,
+  role,
+  pendingHref,
+  onNavigate,
+}) => {
   const pathname = usePathname();
   const groups = sidebarGroupsForRole(role);
 
@@ -101,7 +124,14 @@ export const Sidebar: React.FC<SidebarProps> = ({ className, expanded, onToggle,
                   />
                 ) : null}
                 {group.items.map((item) => (
-                  <NavLink key={item.href} item={item} pathname={pathname} expanded={expanded} />
+                  <NavLink
+                    key={item.href}
+                    item={item}
+                    pathname={pathname}
+                    expanded={expanded}
+                    pendingHref={pendingHref}
+                    onNavigate={onNavigate}
+                  />
                 ))}
               </div>
             ))}
@@ -135,9 +165,17 @@ interface MobileSidebarProps {
   isOpen: boolean;
   onClose: () => void;
   role: 'admin' | 'user';
+  pendingHref?: string | null;
+  onNavigate?: (href: string) => void;
 }
 
-export const MobileSidebar: React.FC<MobileSidebarProps> = ({ isOpen, onClose, role }) => {
+export const MobileSidebar: React.FC<MobileSidebarProps> = ({
+  isOpen,
+  onClose,
+  role,
+  pendingHref,
+  onNavigate,
+}) => {
   const pathname = usePathname();
   const groups = sidebarGroupsForRole(role);
 
@@ -178,19 +216,30 @@ export const MobileSidebar: React.FC<MobileSidebarProps> = ({ isOpen, onClose, r
                   {group.items.map((item) => {
                     const Icon = item.icon;
                     const isActive = isSidebarItemActive(pathname, item.href);
+                    const isPending = isSidebarItemPending(pendingHref ?? null, item.href, pathname);
                     return (
                       <Link
                         key={item.href}
                         href={item.href}
-                        onClick={onClose}
+                        onClick={() => {
+                          onNavigate?.(item.href);
+                          onClose();
+                        }}
+                        aria-busy={isPending}
                         className={cn(
                           'flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors',
                           isActive
                             ? 'bg-primary text-primary-foreground'
-                            : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
+                            : isPending
+                              ? 'bg-accent text-accent-foreground'
+                              : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
                         )}
                       >
-                        <Icon className="h-5 w-5" />
+                        {isPending ? (
+                          <Loader2 className="h-5 w-5 animate-spin" />
+                        ) : (
+                          <Icon className="h-5 w-5" />
+                        )}
                         <span>{item.title}</span>
                       </Link>
                     );

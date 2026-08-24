@@ -76,6 +76,18 @@ export function isSidebarItemActive(pathname: string, href: string): boolean {
   return pathname === href || pathname.startsWith(`${href}/`);
 }
 
+export function pendingSidebarHref(pathname: string, href: string): string | null {
+  return isSidebarItemActive(pathname, href) ? null : href;
+}
+
+export function isSidebarItemPending(
+  pendingHref: string | null,
+  href: string,
+  pathname: string
+): boolean {
+  return pendingHref === href && !isSidebarItemActive(pathname, href);
+}
+
 export const SIDEBAR_EXPANDED_STORAGE_KEY = 'chatbot-atimo-sidebar-expanded';
 
 export function pageTitleFromPath(pathname: string): string {

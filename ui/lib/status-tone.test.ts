@@ -1,4 +1,4 @@
-import { queueToneOf, onOffTone } from './status-tone';
+import { queueToneOf, onOffTone, queueTabActiveClass } from './status-tone';
 
 describe('status-tone', () => {
   it('pinta a fila: entrada, esperando e finalizado', () => {
@@ -12,5 +12,10 @@ describe('status-tone', () => {
   it('ligado é sucesso e desligado é mudo', () => {
     expect(onOffTone(true)).toBe('success');
     expect(onOffTone(false)).toBe('muted');
+  });
+
+  it('aba Finalizados ativa usa cinza visível, não o texto mudo do trilho', () => {
+    expect(queueTabActiveClass.closed).toContain('bg-zinc-500/20');
+    expect(queueTabActiveClass.closed).not.toContain('text-muted-foreground');
   });
 });
